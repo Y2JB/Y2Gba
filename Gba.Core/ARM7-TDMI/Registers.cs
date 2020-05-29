@@ -11,7 +11,7 @@ namespace Gba.Core
         // Flags - Current Program Status Register
         UInt32 CPSR;
 
-        enum RegisterNames
+        enum RegisterName
         {
             R0 = 0,
             R1,
@@ -33,10 +33,27 @@ namespace Gba.Core
             PC = R15
         }
 
-        UInt32 GetRegisterValue(int index)
+
+        public UInt32 GetRegisterValue(UInt32 index)
         {
             return registers[index];
         }
+
+
+        public void SetRegisterValue(UInt32 index, UInt32 value)
+        {
+            registers[index] = value;
+        }
+
+
+        public string GetRegisterName(UInt32 index)
+        {
+            if (index == 15) return "PC";
+            if (index == 14) return "LR";
+            if (index == 13) return "SP";
+            return ((RegisterName)(index)).ToString();
+        }
+
 
         public UInt32 PC { get { return registers[15]; } set { registers[15] = value; } }
         
@@ -62,5 +79,64 @@ namespace Gba.Core
         public UInt32 R13 { get { return registers[13]; } set { registers[13] = value; } }
         public UInt32 R14 { get { return registers[14]; } set { registers[14] = value; } }
         public UInt32 R15 { get { return registers[15]; } set { registers[15] = value; } }
+
+
+        public UInt32 PC_Adjusted { get { if (State == CpuState.Arm) return (PC - 8); else return (PC - 4); } }
+
+        UInt32 SPSR_Fiq;
+        UInt32 SPSR_Svc;
+        UInt32 SPSR_Abt;
+        UInt32 SPSR_Irq;
+        UInt32 SPSR_Und;
+
+        public UInt32 SPSR 
+        { 
+            get 
+            {
+                switch (Mode)
+                {
+                    case CpuMode.User:
+                    case CpuMode.System: 
+                        return CPSR;
+                    case CpuMode.FIQ: 
+                        return SPSR_Fiq; 
+                    case CpuMode.Supervisor: 
+                        return SPSR_Svc; 
+                    case CpuMode.Abort: 
+                        return SPSR_Abt; 
+                    case CpuMode.IRQ: 
+                        return SPSR_Irq; 
+                    case CpuMode.Undefined: 
+                        return SPSR_Und; 
+                }
+                throw new ArgumentException("Invalid SPSR register request");
+            } 
+            
+            set 
+            {
+                switch (Mode)
+                {
+                    case CpuMode.User:
+                    case CpuMode.System:
+                        break;
+                    case CpuMode.FIQ:
+                        SPSR_Fiq = value;
+                        return;
+                    case CpuMode.Supervisor:
+                        SPSR_Svc = value;
+                        return;
+                    case CpuMode.Abort:
+                        SPSR_Abt = value;
+                        return;
+                    case CpuMode.IRQ:
+                        SPSR_Irq = value;
+                        return;
+                    case CpuMode.Undefined:
+                        SPSR_Und = value;
+                        return;
+                }
+                throw new ArgumentException("Invalid SPSR register request");
+            } 
+        }
     }
 }

@@ -4,48 +4,28 @@ using Gba.Core;
 namespace GbaDebugger
 {
     // We bolt onto the instruction the state it had when it executed - pc, operand etc
-    public class StoredInstruction : ArmInstruction
+    // We can do more expensive processing in here as we only create these when a progam is being debugged
+    public class StoredInstruction
     {
+        public string friendlyInstruction { get; set; }
+
         // These methods are only used when peeking the instruction, not when exectuing as then the data needs to be fetched 
         public UInt32 PC { get; set; }
 
-        // NB: I'm not setting the handler as this is purely for debugging!
-        public static StoredInstruction DeepCopy(ArmInstruction instruction)
+        //GameboyAdvance gba;
+
+        public StoredInstruction(string friendlyInstruction, UInt32 pc) 
         {
-            if (instruction == null) return new StoredInstruction("UNKNOWN INSTRUCTION", InstructionCatagory.Unkonwn, null);
-            return new StoredInstruction(instruction.Mnemonic, instruction.Catagory, null)
-            {
-                Operand = instruction.Operand,
-            };       
+            this.friendlyInstruction = friendlyInstruction;
+            this.PC = pc;
         }
 
-        public static StoredInstruction DeepCopy(StoredInstruction instruction)
-        {
-            return new StoredInstruction(instruction.Mnemonic, instruction.Catagory, null)
-            {
-                Operand = instruction.Operand,
-                PC = instruction.PC,
-            };
-        }
-
-        public StoredInstruction(string mnemonic, InstructionCatagory catagory, Action<UInt32> handler) : base(mnemonic, catagory, null)
-        {
-         
-        }
 
         public override String ToString()
         {
-           /*
-            if (HasOperand)
-            {
-                string instructionWithOperand = String.Format(Name, Operand);
-                return String.Format("({0:X2})  ->  {1}", PC, instructionWithOperand);
+            //string instructionWithOperand = "UNFORMATED";
 
-            }
-            else*/
-            {
-                return String.Format("({0:X2})  ->  {1}", PC, Mnemonic);
-            }
+            return String.Format("({0:X8})  ->  {1}", PC, friendlyInstruction);
         }
     }
 }

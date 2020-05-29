@@ -9,12 +9,12 @@ namespace GbaDebugger
         public UInt32 Address { get; set; }
         public ConditionalExpression Expression { get; set; }
 
-        public Breakpoint(ushort address)
+        public Breakpoint(UInt32 address)
         {
             Address = address;
         }
         
-        public Breakpoint(ushort address, ConditionalExpression expr)
+        public Breakpoint(UInt32 address, ConditionalExpression expr)
         {
             Address = address;
             Expression = expr;

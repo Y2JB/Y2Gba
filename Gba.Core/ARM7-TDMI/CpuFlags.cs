@@ -39,6 +39,14 @@ namespace Gba.Core
         }
 
 
+        bool OverflowFlag
+        {
+            get
+            {
+                return (CPSR & (UInt32)(StatusFlag.Overflow)) != 0;
+            }
+        }
+
         bool CarryFlag
         {
             get
@@ -47,6 +55,13 @@ namespace Gba.Core
             }
         }
 
+        bool ThumbFlag
+        {
+            get
+            {
+                return (CPSR & (UInt32)(StatusFlag.ThumbExecution)) != 0;
+            }
+        }
 
         void SetFlag(StatusFlag flag)
         {

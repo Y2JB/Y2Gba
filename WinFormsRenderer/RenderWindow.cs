@@ -78,8 +78,7 @@ namespace WinFormRender
                         DropDownItems =
                         {
                             new ToolStripMenuItem("Load ROM", null, (sender, args) => { LoadRom(); }),
-                            new ToolStripMenuItem("Pause", null, (sender, args) => {  }),
-                            new ToolStripMenuItem("Quit", null, (sender, args) => { Application.Exit(); })
+                            new ToolStripMenuItem("Reset", null, (sender, args) => {  }),
                         }
                     },
                     new ToolStripMenuItem("Window")
@@ -88,13 +87,6 @@ namespace WinFormRender
                         {
                             new ToolStripMenuItem("Console", null, (sender, args) => { consoleWindow.Visible = !consoleWindow.Visible; }),
                             new ToolStripMenuItem("Bg Viewer", null, (sender, args) => { bgWnd.Visible = !bgWnd.Visible; })
-                        }
-                    },
-                     new ToolStripMenuItem("Help")
-                    {
-                        DropDownItems =
-                        {
-                            new ToolStripMenuItem("About", null, (sender, args) => {  })
                         }
                     }
                 }
