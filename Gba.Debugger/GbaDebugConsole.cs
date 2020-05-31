@@ -496,21 +496,21 @@ namespace GbaDebugger
 
             // Inefficient but we are not running at this point so what the hell
             rawInstr = gba.Cpu.InstructionPipeline.ElementAt(0);
-            instructionText = gba.Cpu.PeekArmInstruction(rawInstr);
+            instructionText = gba.Cpu.State == Cpu.CpuState.Arm ? gba.Cpu.PeekArmInstruction(rawInstr) : gba.Cpu.PeekThumbInstruction((ushort)rawInstr);
             newInstruction = new StoredInstruction(instructionText, gba.Cpu.PC_Adjusted);
             NextInstructions.Add(newInstruction);
 
             adjust += instrSize;
 
             rawInstr = gba.Cpu.InstructionPipeline.ElementAt(1);
-            instructionText = gba.Cpu.PeekArmInstruction(rawInstr);
+            instructionText = gba.Cpu.State == Cpu.CpuState.Arm ? gba.Cpu.PeekArmInstruction(rawInstr) : gba.Cpu.PeekThumbInstruction((ushort)rawInstr);
             newInstruction = new StoredInstruction(instructionText, (UInt32) (gba.Cpu.PC_Adjusted + adjust));
             NextInstructions.Add(newInstruction);
 
             adjust += instrSize;
 
             rawInstr = gba.Cpu.InstructionPipeline.ElementAt(2);
-            instructionText = gba.Cpu.PeekArmInstruction(rawInstr);
+            instructionText = gba.Cpu.State == Cpu.CpuState.Arm ? gba.Cpu.PeekArmInstruction(rawInstr) : gba.Cpu.PeekThumbInstruction((ushort)rawInstr);
             newInstruction = new StoredInstruction(instructionText, (UInt32)(gba.Cpu.PC_Adjusted + adjust));
             NextInstructions.Add(newInstruction);
             /*

@@ -92,6 +92,9 @@ namespace WinFormRender
             dmgSnapshot.AppendText((dbgConsole.EmulatorMode == GbaDebugConsole.Mode.BreakPoint) ? "BREAK" : "RUNNING");
 
             dmgSnapshot.AppendText(Environment.NewLine);
+            dmgSnapshot.AppendText((Gba.Cpu.State == Cpu.CpuState.Arm) ? "ARM" : "THUMB");
+
+            dmgSnapshot.AppendText(Environment.NewLine);
             dmgSnapshot.AppendText(Gba.Cpu.ToString());
 
            

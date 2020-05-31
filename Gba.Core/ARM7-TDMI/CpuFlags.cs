@@ -74,10 +74,5 @@ namespace Gba.Core
             CPSR &= (UInt32)~((UInt32)flag);
         }
 
-
-        void ClearAllFlags()
-        {
-            CPSR = 0;
-        }
     }
 }

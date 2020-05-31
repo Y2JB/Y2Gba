@@ -43,7 +43,6 @@ namespace Gba.Core
 				}
 			}
 
-
 			if (((rawInstruction >> 8) & 0xFFFFF) == 0x12FFF)
 			{
 				//ARM_3
@@ -216,8 +215,7 @@ namespace Gba.Core
 						// JB: -4 so the pipeline will pull in this instruction next
 						PC = (final_addr);
 
-						FlushPipeline();
-						RefillPipeline();
+						requestFlushPipeline = true;
 						//needs_flush = true;
 
 						//Clock CPU and controllers - 2S
@@ -241,6 +239,8 @@ namespace Gba.Core
 
 						LR = PC - 4;
 						PC = final_addr;
+
+						requestFlushPipeline = true;
 						//needs_flush = true;
 
 						//Clock CPU and controllers - 2S
@@ -255,26 +255,27 @@ namespace Gba.Core
 
 
 
-		void DecodeBranchExchange(UInt32 current_arm_instruction, bool peek)
+		void DecodeBranchExchange(UInt32 rawinstruction, bool peek)
 		{
 			// |_Cond__|0_0_0_1_0_0_1_0_1_1_1_1_1_1_1_1_1_1_1_1|0_0|L|1|__Rn___| BX,BLX
 
-			//Grab source register - Bits 0-2
-			byte src_reg = (byte) (current_arm_instruction & 0xF);
+			// Bits 0-2
+			byte srcReg = (byte) (rawinstruction & 0xF);
 
-			//Valid registers : 0-14
-			if (src_reg <= 14)
+			// R15 is not allowed
+			if (srcReg <= 14)
 			{
 				if (peek)
 				{
-					peekString = String.Format("BX {0}", GetRegisterName(src_reg));
+					peekString = String.Format("BX {0}", GetRegisterName(srcReg));
 					return;
 				}
 
-				UInt32 result = GetRegisterValue(src_reg);
-				byte op = (byte)((current_arm_instruction >> 4) & 0xF);
+				UInt32 result = GetRegisterValue(srcReg);
+				byte op = (byte)((rawinstruction >> 4) & 0xF);
 
-				//Switch to THUMB mode if necessary
+				// Arm instrctions are always aligned to a 2 or 4 byte boundary. Therefore the low bit of the
+				// branch address is never used so it is used as the toggle bit for switching to Thumb mode. 
 				if ((result & 0x1) != 0)
 				{
 					State = CpuState.Thumb;
@@ -290,6 +291,8 @@ namespace Gba.Core
 						//clock(reg.r15, true);
 
 						PC = result;
+
+						requestFlushPipeline = true;
 						//needs_flush = true;
 
 						//Clock CPU and controllers - 2S
@@ -302,103 +305,101 @@ namespace Gba.Core
 						throw new ArgumentException("Invalid BX Instr");
 				}
 			}
-
 			else
 			{
-				throw new ArgumentException("Invalid BX Instr");
+				throw new ArgumentException("Invalid BX Instr, branch to R15 not allowed");
 			}
 		}
 
 
-
 		// ARM 5
-		void DecodeDataProcessing(UInt32 current_arm_instruction, bool peek)
+		void DecodeDataProcessing(UInt32 rawInstruction, bool peek)
 		{
 			//Determine if an immediate value or a register should be used as the operand
-			bool use_immediate = ((current_arm_instruction & 0x2000000)!=0) ? true : false;
+			bool use_immediate = ((rawInstruction & 0x2000000)!=0) ? true : false;
 
 			//Determine if condition codes should be updated
-			bool set_condition = ((current_arm_instruction & 0x100000) != 0) ? true : false;
+			bool setCondition = ((rawInstruction & 0x100000) != 0) ? true : false;
 
-			byte op = (byte)((current_arm_instruction >> 21) & 0xF);
+			byte op = (byte)((rawInstruction >> 21) & 0xF);
 
 			//Grab source register
-			byte src_reg = (byte)((current_arm_instruction >> 16) & 0xF);
+			byte srcReg = (byte)((rawInstruction >> 16) & 0xF);
 
 			//Grab destination register
-			byte dest_reg = (byte)((current_arm_instruction >> 12) & 0xF);
+			byte destReg = (byte)((rawInstruction >> 12) & 0xF);
 
 			//When use_immediate is 0, determine whether the register should be shifted by another register or an immediate
-			bool shift_immediate = ((current_arm_instruction & 0x10) != 0) ? false : true;
+			bool shiftImmediate = ((rawInstruction & 0x10) != 0) ? false : true;
 
 			UInt32 result = 0;
-			UInt32 input = GetRegisterValue(src_reg);
+			UInt32 input = GetRegisterValue(srcReg);
 			UInt32 operand = 0;
-			byte shift_out = 2;
+			byte shiftOut = 2;
 
 			//Use immediate as operand
 			if (use_immediate)
 			{
-				operand = (current_arm_instruction & 0xFF);
-				byte offset = (byte)((current_arm_instruction >> 8) & 0xF);
+				operand = (rawInstruction & 0xFF);
+				byte offset = (byte)((rawInstruction >> 8) & 0xF);
 
 				//Shift immediate - ROR special case - Carry flag not affected
-				rotate_right_special(ref operand, offset);
+				RotateRightSpecial(ref operand, offset);
 			}
 
 			//Use register as operand
 			else
 			{
-				operand = GetRegisterValue(current_arm_instruction & 0xF);
-				byte shift_type = (byte)((current_arm_instruction >> 5) & 0x3);
+				operand = GetRegisterValue(rawInstruction & 0xF);
+				byte shiftType = (byte)((rawInstruction >> 5) & 0x3);
 				byte offset = 0;
 
 				//Shift the register-operand by an immediate
-				if (shift_immediate)
+				if (shiftImmediate)
 				{
-					offset = (byte)((current_arm_instruction >> 7) & 0x1F);
+					offset = (byte)((rawInstruction >> 7) & 0x1F);
 				}
 
 				//Shift the register-operand by another register
 				else
 				{
-					offset = (byte) (GetRegisterValue((UInt32)((current_arm_instruction >> 8) & 0xF)));
+					offset = (byte) (GetRegisterValue((UInt32)((rawInstruction >> 8) & 0xF)));
 
-					if (src_reg == 15) { input += 4; }
-					if ((current_arm_instruction & 0xF) == 15) { operand += 4; }
+					if (srcReg == 15) { input += 4; }
+					if ((rawInstruction & 0xF) == 15) { operand += 4; }
 
 					//Valid registers to shift by are R0-R14
-					if (((current_arm_instruction >> 8) & 0xF) == 0xF) 
+					if (((rawInstruction >> 8) & 0xF) == 0xF) 
 					{
 						throw new ArgumentException("Data Processing: Bad Shift");
 					}
 				}
 
 				//Shift the register
-				switch (shift_type)
+				switch (shiftType)
 				{
 					//LSL
 					case 0x0:
-						if ((!shift_immediate) && (offset == 0)) { break; }
-						else { shift_out = logical_shift_left(ref operand, offset); }
+						if ((!shiftImmediate) && (offset == 0)) { break; }
+						else { shiftOut = LogicalShiftLeft(ref operand, offset); }
 						break;
 
 					//LSR
 					case 0x1:
-						if ((!shift_immediate) && (offset == 0)) { break; }
-						else { shift_out = logical_shift_right(ref operand, offset); }
+						if ((!shiftImmediate) && (offset == 0)) { break; }
+						else { shiftOut = LogicalShiftRight(ref operand, offset); }
 						break;
 
 					//ASR
 					case 0x2:
-						if ((!shift_immediate) && (offset == 0)) { break; }
-						else { shift_out = arithmetic_shift_right(ref operand, offset); }
+						if ((!shiftImmediate) && (offset == 0)) { break; }
+						else { shiftOut = ArithmeticShiftRight(ref operand, offset); }
 						break;
 
 					//ROR
 					case 0x3:
-						if ((!shift_immediate) && (offset == 0)) { break; }
-						else { shift_out = rotate_right(ref operand, offset); }
+						if ((!shiftImmediate) && (offset == 0)) { break; }
+						else { shiftOut = RotateRight(ref operand, offset); }
 						break;
 				}
 
@@ -411,17 +412,17 @@ namespace Gba.Core
 			//TODO - See GBATEK - S=1, with unused Rd bits=1111b
 
 			//Clock CPU and controllers - 1N
-			if (dest_reg == 15)
+			if (destReg == 15)
 			{
 				if (peek == false)
 				{
 					//clock(reg.r15, true);
 
 					//When the set condition parameter is 1 and destination register is R15, change CPSR to SPSR
-					if (set_condition)
+					if (setCondition)
 					{
 						CPSR = SPSR;
-						set_condition = false;
+						setCondition = false;
 
 						// Set the CPU mode
 						switch ((CPSR & 0x1F))
@@ -448,255 +449,255 @@ namespace Gba.Core
 				case 0x0:
 					if (peek)
 					{
-						peekString = String.Format("AND {0},{1:X}", GetRegisterName(dest_reg), operand);
+						peekString = String.Format("AND {0},{1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
 					result = (input & operand);
-					SetRegisterValue(dest_reg, result);
+					SetRegisterValue(destReg, result);
 
 					//Update condition codes
-					if (set_condition) { update_condition_logical(result, shift_out); }
+					if (setCondition) { UpdateFlagsForLogicOps(result, shiftOut); }
 					break;
 
 				//XOR
 				case 0x1:
 					if (peek)
 					{
-						peekString = String.Format("EOR {0},{1:X}", GetRegisterName(dest_reg), operand);
+						peekString = String.Format("EOR {0},{1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
 					result = (input ^ operand);
-					SetRegisterValue(dest_reg, result);
+					SetRegisterValue(destReg, result);
 
 					//Update condition codes
-					if (set_condition) { update_condition_logical(result, shift_out); }
+					if (setCondition) { UpdateFlagsForLogicOps(result, shiftOut); }
 					break;
 
 				//SUB
 				case 0x2:
 					if (peek)
 					{
-						peekString = String.Format("SUB {0},{1:X}", GetRegisterName(dest_reg), operand);
+						peekString = String.Format("SUB {0},{1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
 					result = (input - operand);
-					SetRegisterValue(dest_reg, result);
+					SetRegisterValue(destReg, result);
 
 					//Update condtion codes
-					if (set_condition) { update_condition_arithmetic(input, operand, result, false); }
+					if (setCondition) { UpdateFlagsForArithmeticOps(input, operand, result, false); }
 					break;
 
 				//RSB
 				case 0x3:
 					if (peek)
 					{
-						peekString = String.Format("RSB {0},{1:X}", GetRegisterName(dest_reg), operand);
+						peekString = String.Format("RSB {0},{1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
 					result = (operand - input);
-					SetRegisterValue(dest_reg, result);
+					SetRegisterValue(destReg, result);
 
 					//Update condtion codes
-					if (set_condition) { update_condition_arithmetic(operand, input, result, false); }
+					if (setCondition) { UpdateFlagsForArithmeticOps(operand, input, result, false); }
 					break;
 
 				//ADD
 				case 0x4:
 					if (peek)
 					{
-						peekString = String.Format("ADD {0},[{1:X},{2:X}]", GetRegisterName(dest_reg), input, operand);
+						peekString = String.Format("ADD {0},[{1:X},{2:X}]", GetRegisterName(destReg), input, operand);
 						return;
 					}
 
 					result = (input + operand);		
-					SetRegisterValue(dest_reg, result);
+					SetRegisterValue(destReg, result);
 
 					//Update condtion codes
-					if (set_condition) { update_condition_arithmetic(input, operand, result, true); }
+					if (setCondition) { UpdateFlagsForArithmeticOps(input, operand, result, true); }
 					break;
 
 				//ADC
 				case 0x5:
 					if (peek)
 					{
-						peekString = String.Format("ADC {0},{1:X}", GetRegisterName(dest_reg), operand);
+						peekString = String.Format("ADC {0},{1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
 					//If no shift was performed, use the current Carry Flag for this math op
-					if (shift_out == 2) { shift_out = (byte)(CarryFlag ? 1 : 0); }
-					result = (input + operand + shift_out);
-					SetRegisterValue(dest_reg, result);
+					if (shiftOut == 2) { shiftOut = (byte)(CarryFlag ? 1 : 0); }
+					result = (input + operand + shiftOut);
+					SetRegisterValue(destReg, result);
 
 					//Update condtion codes
-					if (set_condition) { update_condition_arithmetic(input, (operand + shift_out), result, true); }
+					if (setCondition) { UpdateFlagsForArithmeticOps(input, (operand + shiftOut), result, true); }
 					break;
 
 				//SBC
 				case 0x6:
 					if (peek)
 					{
-						peekString = String.Format("SBC {0},{1:X}", GetRegisterName(dest_reg), operand);
+						peekString = String.Format("SBC {0},{1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
 					//If no shift was performed, use the current Carry Flag for this math op
-					if (shift_out == 2) { shift_out = (byte)(CarryFlag ? 1 : 0); }
+					if (shiftOut == 2) { shiftOut = (byte)(CarryFlag ? 1 : 0); }
 
-					result = (input - operand + shift_out - 1);
+					result = (input - operand + shiftOut - 1);
 
 					if (peek)
 					{
-						peekString = String.Format("SBC {0},{1:X}", GetRegisterName(dest_reg), result);
+						peekString = String.Format("SBC {0},{1:X}", GetRegisterName(destReg), result);
 						return;
 					}
 
 
-					SetRegisterValue(dest_reg, result);
+					SetRegisterValue(destReg, result);
 
 					//Update condtion codes
-					if (set_condition) { update_condition_arithmetic(input, (operand + shift_out - 1), result, false); }
+					if (setCondition) { UpdateFlagsForArithmeticOps(input, (operand + shiftOut - 1), result, false); }
 					break;
 
 				//RSC
 				case 0x7:
 					if (peek)
 					{
-						peekString = String.Format("RSC {0},{1:X}", GetRegisterName(dest_reg), operand);
+						peekString = String.Format("RSC {0},{1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
 					//If no shift was performed, use the current Carry Flag for this math op
-					if (shift_out == 2) { shift_out = (byte)(CarryFlag ? 1 : 0); }
+					if (shiftOut == 2) { shiftOut = (byte)(CarryFlag ? 1 : 0); }
 
-					result = (operand - input + shift_out - 1);
-					SetRegisterValue(dest_reg, result);
+					result = (operand - input + shiftOut - 1);
+					SetRegisterValue(destReg, result);
 
 					//Update condtion codes
-					if (set_condition) { update_condition_arithmetic((operand + shift_out - 1), input, result, false); }
+					if (setCondition) { UpdateFlagsForArithmeticOps((operand + shiftOut - 1), input, result, false); }
 					break;
 
 				//TST
 				case 0x8:
 					if (peek)
 					{
-						peekString = String.Format("TST {0},{1:X}", GetRegisterName(src_reg), operand);
+						peekString = String.Format("TST {0},{1:X}", GetRegisterName(srcReg), operand);
 						return;
 					}
 
 					result = (input & operand);
 
 					//Update condtion codes
-					if (set_condition) { update_condition_logical(result, shift_out); }
+					if (setCondition) { UpdateFlagsForLogicOps(result, shiftOut); }
 					break;
 
 				//TEQ
 				case 0x9:
 					if (peek)
 					{
-						peekString = String.Format("TEQ {0},{1:X}", GetRegisterName(src_reg), operand);
+						peekString = String.Format("TEQ {0},{1:X}", GetRegisterName(srcReg), operand);
 						return;
 					}
 					result = (input ^ operand);
 
 					//Update condtion codes
-					if (set_condition) { update_condition_logical(result, shift_out); }
+					if (setCondition) { UpdateFlagsForLogicOps(result, shiftOut); }
 					break;
 
 				//CMP
 				case 0xA:
 					if (peek)
 					{
-						peekString = String.Format("CMP {0},{1:X}", GetRegisterName(src_reg), operand);
+						peekString = String.Format("CMP {0},{1:X}", GetRegisterName(srcReg), operand);
 						return;
 					}
 					result = (input - operand);
 
 					//Update condtion codes
-					if (set_condition) { update_condition_arithmetic(input, operand, result, false); }
+					if (setCondition) { UpdateFlagsForArithmeticOps(input, operand, result, false); }
 					break;
 
 				//CMN
 				case 0xB:
 					if (peek)
 					{
-						peekString = String.Format("CMN {0},{1:X}", GetRegisterName(src_reg), operand);
+						peekString = String.Format("CMN {0},{1:X}", GetRegisterName(srcReg), operand);
 						return;
 					}
 
 					result = (input + operand);
 
 					//Update condtion codes
-					if (set_condition) { update_condition_arithmetic(input, operand, result, true); }
+					if (setCondition) { UpdateFlagsForArithmeticOps(input, operand, result, true); }
 					break;
 
 				//ORR
 				case 0xC:
 					if (peek)
 					{
-						peekString = String.Format("ORR {0},{1:X}", GetRegisterName(src_reg), operand);
+						peekString = String.Format("ORR {0},{1:X}", GetRegisterName(srcReg), operand);
 						return;
 					}
 
 					result = (input | operand);
-					SetRegisterValue(dest_reg, result);
+					SetRegisterValue(destReg, result);
 
 					//Update condtion codes
-					if (set_condition) { update_condition_logical(result, shift_out); }
+					if (setCondition) { UpdateFlagsForLogicOps(result, shiftOut); }
 					break;
 
 				//MOV
 				case 0xD:
 					if (peek)
 					{
-						peekString = String.Format("MOV {0},{1:X}", GetRegisterName(dest_reg), operand);
+						peekString = String.Format("MOV {0},{1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
 					result = operand;
-					SetRegisterValue(dest_reg, result);
+					SetRegisterValue(destReg, result);
 
 					//Update condtion codes
-					if (set_condition) { update_condition_logical(result, shift_out); }
+					if (setCondition) { UpdateFlagsForLogicOps(result, shiftOut); }
 					break;
 
 				//BIC
 				case 0xE:
 					if (peek)
 					{
-						peekString = String.Format("BIC {0},{1:X}", GetRegisterName(dest_reg), operand);
+						peekString = String.Format("BIC {0},{1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
 					result = (input & (~operand));
-					SetRegisterValue(dest_reg, result);
+					SetRegisterValue(destReg, result);
 
 					//Update condtion codes
-					if (set_condition) { update_condition_logical(result, shift_out); }
+					if (setCondition) { UpdateFlagsForLogicOps(result, shiftOut); }
 					break;
 
 				//MVN
 				case 0xF:
 					if (peek)
 					{
-						peekString = String.Format("MVN {0},{1:X}", GetRegisterName(dest_reg), operand);
+						peekString = String.Format("MVN {0},{1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
 					result = ~operand;
-					SetRegisterValue(dest_reg, result);
+					SetRegisterValue(destReg, result);
 
 					//Update condtion codes
-					if (set_condition) { update_condition_logical(result, shift_out); }
+					if (setCondition) { UpdateFlagsForLogicOps(result, shiftOut); }
 					break;
 			}
 
 			//Timings for PC as destination register
-			if (dest_reg == 15)
+			if (destReg == 15)
 			{
 				//Clock CPU and controllers - 2S
 				//needs_flush = true;
@@ -723,16 +724,16 @@ namespace Gba.Core
 		}
 
 		/****** ARM.6 PSR Transfer ******/
-		void psr_transfer(UInt32 current_arm_instruction, bool peek)
+		void psr_transfer(UInt32 rawInstruction, bool peek)
 		{
 			//Determine if an immediate or a register will be used as input (MSR only) - Bit 25
-			bool use_immediate = ((current_arm_instruction & 0x2000000)!=0) ? true : false;
+			bool useImmediate = ((rawInstruction & 0x2000000)!=0) ? true : false;
 
 			//Determine access is for CPSR or SPSR - Bit 22
-			byte psr = (byte) (((current_arm_instruction & 0x400000) != 0) ? 1 : 0);
+			byte psr = (byte) (((rawInstruction & 0x400000) != 0) ? 1 : 0);
 
 			//Grab opcode
-			byte op = (byte) (((current_arm_instruction & 0x200000) !=0) ? 1 : 0);
+			byte op = (byte) (((rawInstruction & 0x200000) !=0) ? 1 : 0);
 
 			switch (op)
 			{
@@ -740,9 +741,9 @@ namespace Gba.Core
 				case 0x0:
 					{
 						//Grab destination register - Bits 12-15
-						byte dest_reg = (byte) ((current_arm_instruction >> 12) & 0xF);
+						byte destReg = (byte) ((rawInstruction >> 12) & 0xF);
 
-						if (dest_reg == 15) 
+						if (destReg == 15) 
 						{ 
 							throw new ArgumentException("Invalid Register"); 
 						}
@@ -752,20 +753,20 @@ namespace Gba.Core
 						{
 							if (peek)
 							{
-								peekString = String.Format("MRS {0},CPSR", GetRegisterName(dest_reg));
+								peekString = String.Format("MRS {0},CPSR", GetRegisterName(destReg));
 								return;
 							}
-							SetRegisterValue(dest_reg, CPSR); 
+							SetRegisterValue(destReg, CPSR); 
 						}
 						// Store SPSR into destination register
 						else 
 						{
 							if (peek)
 							{
-								peekString = String.Format("MRS {0},SPSR", GetRegisterName(dest_reg));
+								peekString = String.Format("MRS {0},SPSR", GetRegisterName(destReg));
 								return;
 							}
-							SetRegisterValue(dest_reg, SPSR); 
+							SetRegisterValue(destReg, SPSR); 
 						}
 					}
 					break;
@@ -776,59 +777,59 @@ namespace Gba.Core
 						UInt32 input = 0;
 
 						//Create Op Field mask
-						UInt32 op_field_mask = 0;
+						UInt32 opFieldMask = 0;
 
 						//Flag field - Bit 19
-						if (((current_arm_instruction & 0x80000) != 0)) 
+						if (((rawInstruction & 0x80000) != 0)) 
 						{ 
-							op_field_mask |= 0xFF000000; 
+							opFieldMask |= 0xFF000000; 
 						}
 
 						//Status field - Bit 18
-						if (((current_arm_instruction & 0x40000) != 0))
+						if (((rawInstruction & 0x40000) != 0))
 						{
-							op_field_mask |= 0x00FF0000;
+							opFieldMask |= 0x00FF0000;
 							//std::cout << "CPU::Warning - ARM.6 MSR enabled access to Status Field \n";
 						}
 
 						//Extension field - Bit 17
-						if (((current_arm_instruction & 0x20000) != 0))
+						if (((rawInstruction & 0x20000) != 0))
 						{
-							op_field_mask |= 0x0000FF00;
+							opFieldMask |= 0x0000FF00;
 							//std::cout << "CPU::Warning - ARM.6 MSR enabled access to Extension Field \n";
 						}
 
 						//Control field - Bit 15
-						if (((current_arm_instruction & 0x10000) != 0)) 
+						if (((rawInstruction & 0x10000) != 0)) 
 						{ 
-							op_field_mask |= 0x000000FF; 
+							opFieldMask |= 0x000000FF; 
 						}
 
 						//Use shifted 8-bit immediate as input
-						if (use_immediate)
+						if (useImmediate)
 						{
 							//Grab shift offset - Bits 8-11
-							byte offset = (byte) ((current_arm_instruction >> 8) & 0xF);
+							byte offset = (byte) ((rawInstruction >> 8) & 0xF);
 
 							//Grab 8-bit immediate - Bits 0-7
-							input = (current_arm_instruction) & 0xFF;
+							input = (rawInstruction) & 0xFF;
 
-							rotate_right_special(ref input, offset);
+							RotateRightSpecial(ref input, offset);
 						}
 
 						//Use register as input
 						else
 						{
 							//Grab source register - Bits 0-3
-							byte src_reg = (byte) (current_arm_instruction & 0xF);
+							byte srcReg = (byte) (rawInstruction & 0xF);
 
-							if (src_reg == 15) 
+							if (srcReg == 15) 
 							{ 
 								//std::cout << "CPU::Warning - ARM.6 R15 used as Source Register \n"; 
 							}
 
-							input = GetRegisterValue(src_reg);
-							input &= op_field_mask;
+							input = GetRegisterValue(srcReg);
+							input &= opFieldMask;
 						}
 
 						//Write into CPSR
@@ -840,7 +841,7 @@ namespace Gba.Core
 								return;
 							}
 
-							CPSR &= ~op_field_mask;
+							CPSR &= ~opFieldMask;
 							CPSR |= input;
 						
 							//Set the CPU mode accordingly
@@ -873,7 +874,7 @@ namespace Gba.Core
 							}
 
 							UInt32 temp_spsr = SPSR;
-							temp_spsr &= ~op_field_mask;
+							temp_spsr &= ~opFieldMask;
 							temp_spsr |= input;
 							SPSR = temp_spsr;
 						}
@@ -887,111 +888,111 @@ namespace Gba.Core
 
 		void DecodeSingleDataTransfer(UInt32 current_arm_instruction, bool peek)
         {
-			//Grab Immediate-Offset flag - Bit 25
-			byte offset_is_register = (byte) (((current_arm_instruction & 0x2000000) !=0) ? 1 : 0);
+			// Bit 25
+			byte offsetIsRegister = (byte) (((current_arm_instruction & 0x2000000) !=0) ? 1 : 0);
 
-			//Grab Pre-Post bit - Bit 24
-			byte pre_post = (byte)(((current_arm_instruction & 0x1000000) != 0) ? 1 : 0);
+			// Bit 24
+			byte prePost = (byte)(((current_arm_instruction & 0x1000000) != 0) ? 1 : 0);
 
-			//Grab Up-Down bit - Bit 23
-			byte up_down = (byte)(((current_arm_instruction & 0x800000) != 0) ? 1 : 0);
+			// Bit 23
+			byte upDown = (byte)(((current_arm_instruction & 0x800000) != 0) ? 1 : 0);
 
-			//Grab Byte-Word bit - Bit 22
-			byte byte_word = (byte)(((current_arm_instruction & 0x400000) != 0) ? 1 : 0);
+			// Bit 22
+			byte byteWord = (byte)(((current_arm_instruction & 0x400000) != 0) ? 1 : 0);
 
-			//Grab Write-Back bit - Bit 21
-			byte write_back = (byte)(((current_arm_instruction & 0x200000) != 0) ? 1 : 0);
+			// Bit 21
+			byte writeBack = (byte)(((current_arm_instruction & 0x200000) != 0) ? 1 : 0);
 
-			//Grab Load-Store bit - Bit 20
-			byte load_store = (byte)(((current_arm_instruction & 0x100000) != 0) ? 1 : 0);
+			// Bit 20
+			byte loadStore = (byte)(((current_arm_instruction & 0x100000) != 0) ? 1 : 0);
 
-			//Grab the Base Register - Bits 16-19
-			byte base_reg = (byte) ((current_arm_instruction >> 16) & 0xF);
+			// Bits 16-19
+			byte baseReg = (byte) ((current_arm_instruction >> 16) & 0xF);
 
-			//Grab the Destination Register - Bits 12-15
-			byte dest_reg = (byte) ((current_arm_instruction >> 12) & 0xF);
+			// Bits 12-15
+			byte destReg = (byte) ((current_arm_instruction >> 12) & 0xF);
 
-			UInt32 base_offset = 0;
-			UInt32 base_addr = GetRegisterValue(base_reg);
+			UInt32 baseOffset = 0;
+			UInt32 baseAddr = GetRegisterValue(baseReg);
 			UInt32 value = 0;
 
-			//Determine Offset - 12-bit immediate
-			if (offset_is_register == 0) { base_offset = (current_arm_instruction & 0xFFF); }
+			// Offset is a 12-bit immediate value
+			if (offsetIsRegister == 0) { baseOffset = (current_arm_instruction & 0xFFF); }
 
-			//Determine Offset - Shifted register
+			// Offset is shifted register
 			else
 			{
-				//Grab register to use as offset - Bits 0-3
-				byte offset_register = (byte) (current_arm_instruction & 0xF);
-				base_offset = GetRegisterValue(offset_register);
+				// Bits 0-3
+				byte offsetRegister = (byte) (current_arm_instruction & 0xF);
+				baseOffset = GetRegisterValue(offsetRegister);
 
-				//Grab the shift type - Bits 5-6
-				byte shift_type = (byte) ((current_arm_instruction >> 5) & 0x3);
+				// Bits 5-6
+				byte shiftType = (byte) ((current_arm_instruction >> 5) & 0x3);
 
-				//Grab the shift offset - Bits 7-11
-				byte shift_offset = (byte) ((current_arm_instruction >> 7) & 0x1F);
+				// Bits 7-11
+				byte shiftOffset = (byte) ((current_arm_instruction >> 7) & 0x1F);
 
 				//Shift the register
-				switch (shift_type)
+				switch (shiftType)
 				{
 					//LSL
 					case 0x0:
-						logical_shift_left(ref base_offset, shift_offset);
+						LogicalShiftLeft(ref baseOffset, shiftOffset);
 						break;
 
 					//LSR
 					case 0x1:
-						logical_shift_right(ref base_offset, shift_offset);
+						LogicalShiftRight(ref baseOffset, shiftOffset);
 						break;
 
 					//ASR
 					case 0x2:
-						arithmetic_shift_right(ref base_offset, shift_offset);
+						ArithmeticShiftRight(ref baseOffset, shiftOffset);
 						break;
 
 					//ROR
 					case 0x3:
-						rotate_right(ref base_offset, shift_offset);
+						RotateRight(ref baseOffset, shiftOffset);
 						break;
 				}
 			}
 
 			//Increment or decrement before transfer if pre-indexing
-			if (pre_post == 1)
+			if (prePost == 1)
 			{
-				if (up_down == 1) { base_addr += base_offset; }
-				else { base_addr -= base_offset; }
+				if (upDown == 1) { baseAddr += baseOffset; }
+				else { baseAddr -= baseOffset; }
 			}
 
 			//Clock CPU and controllers - 1N
 			//clock(reg.r15, true);
 
 			//Store Byte or Word
-			if (load_store == 0)
+			if (loadStore == 0)
 			{
 				if (peek)
 				{
-					peekString = String.Format("STR {0} , [{1},{2:X}]", GetRegisterName(dest_reg), GetRegisterName(base_reg), base_offset);
+					peekString = String.Format("STR {0} , [{1},{2:X}]", GetRegisterName(destReg), GetRegisterName(baseReg), baseOffset);
 					return;
 				}
 
-				if (byte_word == 1)
+				if (byteWord == 1)
 				{
-					value = GetRegisterValue(dest_reg);
-					if (dest_reg == 15) { value += 4; }
+					value = GetRegisterValue(destReg);
+					if (destReg == 15) { value += 4; }
 					value &= 0xFF;
 
 					//mem_check_8(base_addr, value, false);
-					gba.Memory.WriteByte(base_addr, (byte)value);
+					gba.Memory.WriteByte(baseAddr, (byte)value);
 				}
 
 				else
 				{
-					value = GetRegisterValue(dest_reg);
-					if (dest_reg == 15) { value += 4; }
+					value = GetRegisterValue(destReg);
+					if (destReg == 15) { value += 4; }
 
 					//mem->write_u32(base_addr, value);
-					gba.Memory.WriteWord(base_addr, value);
+					gba.Memory.WriteWord(baseAddr, value);
 				}
 
 				//Clock CPU and controllers - 1N
@@ -1003,24 +1004,24 @@ namespace Gba.Core
 			{
 				if (peek)
 				{
-					peekString = String.Format("LDR {0} , [{1},{2:X}]", GetRegisterName(dest_reg), GetRegisterName(base_reg), base_offset);
+					peekString = String.Format("LDR {0} , [{1},{2:X}]", GetRegisterName(destReg), GetRegisterName(baseReg), baseOffset);
 					return;
 				}
 
-				if (byte_word == 1)
+				if (byteWord == 1)
 				{
 					//Clock CPU and controllers - 1I
 					//mem_check_8(base_addr, value, true);
-					value = gba.Memory.ReadByte(base_addr);
+					value = gba.Memory.ReadByte(baseAddr);
 
 
 
 					//clock();
 
 					//Clock CPU and controllers - 1N
-					//if (dest_reg == 15) { clock((reg.r15 + 4), true); }
+					//if (destReg == 15) { clock((reg.r15 + 4), true); }
 
-					SetRegisterValue(dest_reg, value);
+					SetRegisterValue(destReg, value);
 				}
 
 				else
@@ -1028,32 +1029,32 @@ namespace Gba.Core
 					//Clock CPU and controllers - 1I
 					//mem_check_32(base_addr, value, true);
 					//base_addr += 8;
-					gba.Memory.ReadWriteWord_Checked(base_addr, ref value, true);
+					gba.Memory.ReadWriteWord_Checked(baseAddr, ref value, true);
 					//value = gba.Memory.ReadWord(base_addr);
 
 					//clock();
 
 					//Clock CPU and controllers - 1N
-					//if (dest_reg == 15) { clock((reg.r15 + 4), true); }
+					//if (destReg == 15) { clock((reg.r15 + 4), true); }
 
-					SetRegisterValue(dest_reg, value);
+					SetRegisterValue(destReg, value);
 				}
 			}
 
 			//Increment or decrement after transfer if post-indexing
-			if (pre_post == 0)
+			if (prePost == 0)
 			{
-				if (up_down == 1) { base_addr += base_offset; }
-				else { base_addr -= base_offset; }
+				if (upDown == 1) { baseAddr += baseOffset; }
+				else { baseAddr -= baseOffset; }
 			}
 
 			//Write back into base register
 			//Post-indexing ALWAYS does this. Pre-Indexing does this optionally
-			if ((pre_post == 0) && (base_reg != dest_reg)) { SetRegisterValue(base_reg, base_addr); }
-			else if ((pre_post == 1) && (write_back == 1) && (base_reg != dest_reg)) { SetRegisterValue(base_reg, base_addr); }
+			if ((prePost == 0) && (baseReg != destReg)) { SetRegisterValue(baseReg, baseAddr); }
+			else if ((prePost == 1) && (writeBack == 1) && (baseReg != destReg)) { SetRegisterValue(baseReg, baseAddr); }
 
 			//Timings for LDR - PC
-			if ((dest_reg == 15) && (load_store == 1))
+			if ((destReg == 15) && (loadStore == 1))
 			{
 				//Clock CPU and controllser - 2S
 				//clock(reg.r15, false);
@@ -1062,7 +1063,7 @@ namespace Gba.Core
 			}
 
 			//Timings for LDR - No PC
-			else if ((dest_reg != 15) && (load_store == 1))
+			else if ((destReg != 15) && (loadStore == 1))
 			{
 				//Clock CPU and controllers - 1S
 				//clock(reg.r15, false);
@@ -1079,83 +1080,80 @@ namespace Gba.Core
 		}
 
 
-		/****** Updates the condition codes in the CPSR register after logical operations ******/
-		void update_condition_logical(UInt32 result, byte shift_out)
+		void UpdateFlagsForLogicOps(UInt32 result, byte shift_out)
 		{
-			//Negative flag
-			if ((result & 0x80000000) != 0) { CPSR |= (UInt32) StatusFlag.Negative; }
-			else { CPSR &= (UInt32)~StatusFlag.Negative; }
+			// Negative
+			if ((result & 0x80000000) != 0) SetFlag(StatusFlag.Negative);
+			else ClearFlag(StatusFlag.Negative);
 
-			//Zero flag
-			if (result == 0) { CPSR |= (UInt32)StatusFlag.Zero; }
-			else { CPSR &= (UInt32)~StatusFlag.Zero; }
+			// Zero
+			if (result == 0) SetFlag(StatusFlag.Zero);
+			else ClearFlag(StatusFlag.Zero);
 
-			//Carry flag
-			if (shift_out == 1) { CPSR |= (UInt32)StatusFlag.Carry; }
-			else if (shift_out == 0) { CPSR &= (UInt32)~StatusFlag.Carry; }
+			// Carry
+			if (shift_out == 1) SetFlag(StatusFlag.Carry);
+			else if (shift_out == 0) ClearFlag(StatusFlag.Carry);
 		}
 
 
-
-		/****** Updates the condition codes in the CPSR register after arithmetic operations ******/
-		void update_condition_arithmetic(UInt32 input, UInt32 operand, UInt32 result, bool addition)
+		void UpdateFlagsForArithmeticOps(UInt32 input, UInt32 operand, UInt32 result, bool addition)
 		{
-			//Negative flag
-			if ((result & 0x80000000)!= 0) { CPSR |= (UInt32)StatusFlag.Negative; }
-			else { CPSR &= (UInt32)~StatusFlag.Negative; }
+			// Negative
+			if ((result & 0x80000000)!= 0) SetFlag(StatusFlag.Negative);
+			else ClearFlag(StatusFlag.Negative);
 
-			//Zero flag
-			if (result == 0) { CPSR |= (UInt32)StatusFlag.Zero; }
-			else { CPSR &= (UInt32)~StatusFlag.Zero; }
+			// Zero
+			if (result == 0) SetFlag(StatusFlag.Zero);
+			else ClearFlag(StatusFlag.Zero);
 
-			//Carry flag - Addition
-			if ((operand > (0xFFFFFFFF - input)) && (addition)) { CPSR |= (UInt32)StatusFlag.Carry; }
+			//Carry - Addition
+			if ((operand > (0xFFFFFFFF - input)) && (addition)) SetFlag(StatusFlag.Carry);
 
-			//Carry flag - Subtraction
-			else if ((operand <= input) && (!addition)) { CPSR |= (UInt32)StatusFlag.Carry; }
+			//Carry - Subtraction
+			else if ((operand <= input) && (!addition)) SetFlag(StatusFlag.Carry);
 
-			else { CPSR &= (UInt32)~StatusFlag.Carry; }
+			else ClearFlag(StatusFlag.Carry);
 
-			//Overflow flag
-			byte input_msb = (byte) (((input & 0x80000000)!=0) ? 1 : 0);
-			byte operand_msb = (byte) (((operand & 0x80000000) != 0) ? 1 : 0);
-			byte result_msb = (byte) (((result & 0x80000000) != 0) ? 1 : 0);
+			//Overflow
+			byte inputMsb = (byte) (((input & 0x80000000)!=0) ? 1 : 0);
+			byte operandMsb = (byte) (((operand & 0x80000000) != 0) ? 1 : 0);
+			byte resultMsb = (byte) (((result & 0x80000000) != 0) ? 1 : 0);
 
 			if (addition)
 			{
-				if (input_msb != operand_msb) { CPSR &= (UInt32)~StatusFlag.Overflow; }
+				if (inputMsb != operandMsb) ClearFlag(StatusFlag.Overflow);
 
 				else
 				{
-					if ((result_msb == input_msb) && (result_msb == operand_msb)) { CPSR &= (UInt32)~StatusFlag.Overflow; }
-					else { CPSR |= (UInt32)StatusFlag.Overflow; }
+					if ((resultMsb == inputMsb) && (resultMsb == operandMsb)) ClearFlag(StatusFlag.Overflow);
+					else SetFlag(StatusFlag.Overflow);
 				}
 			}
 			else
 			{
-				if (input_msb == operand_msb) { CPSR &= (UInt32)~StatusFlag.Overflow; }
+				if (inputMsb == operandMsb) ClearFlag(StatusFlag.Overflow);
 
 				else
 				{
-					if (result_msb == operand_msb) { CPSR |= (UInt32)StatusFlag.Overflow; }
-					else { CPSR &= (UInt32)~StatusFlag.Overflow; }
+					if (resultMsb == operandMsb) SetFlag(StatusFlag.Overflow);
+					else ClearFlag(StatusFlag.Overflow);
 				}
 			}
 		}
 
 
 
-		/****** Performs 32-bit logical shift left - Returns Carry Out ******/
-		byte logical_shift_left(ref UInt32 input, byte offset)
+		// Performs 32-bit logical shift left - Returns Carry Out
+		byte LogicalShiftLeft(ref UInt32 input, byte offset)
 		{
-			byte carry_out = 0;
+			byte carryOut = 0;
 
 			if (offset > 0)
 			{
 				//Test for carry
 				//Perform LSL #(n-1), if Bit 31 is 1, we know it will carry out
 				UInt32 carry_test = input << (offset - 1);
-				carry_out = (byte) (((carry_test & 0x80000000) != 0) ? 1 : 0);
+				carryOut = (byte) (((carry_test & 0x80000000) != 0) ? 1 : 0);
 
 				if (offset >= 32) { input = 0; }
 				else { input <<= offset; }
@@ -1163,22 +1161,22 @@ namespace Gba.Core
 
 			//LSL #0
 			//No shift performed, carry flag not affected, set it to something not 0 or 1 to check!
-			else { carry_out = 2; }
+			else { carryOut = 2; }
 
-			return carry_out;
+			return carryOut;
 		}
 
-		/****** Performs 32-bit logical shift right - Returns Carry Out ******/
-		byte logical_shift_right(ref UInt32 input, byte offset)
+		// Performs 32-bit logical shift right - Returns Carry Out
+		byte LogicalShiftRight(ref UInt32 input, byte offset)
 		{
-			byte carry_out = 0;
+			byte carryOut = 0;
 
 			if (offset > 0)
 			{
 				//Test for carry
 				//Perform LSR #(n-1), if Bit 0 is 1, we know it will carry out
 				UInt32 carry_test = input >> (offset - 1);
-				carry_out = (byte)(((carry_test & 0x1) != 0) ? 1 : 0);
+				carryOut = (byte)(((carry_test & 0x1) != 0) ? 1 : 0);
 
 				if (offset >= 32) { input = 0; }
 				else { input >>= offset; }
@@ -1188,17 +1186,17 @@ namespace Gba.Core
 			//Same as LSR #32, input becomes zero, carry flag is Bit 31 of input
 			else
 			{
-				carry_out = (byte) (((input & 0x80000000) != 0) ? 1 : 0);
+				carryOut = (byte) (((input & 0x80000000) != 0) ? 1 : 0);
 				input = 0;
 			}
 
-			return carry_out;
+			return carryOut;
 		}
 
-		/****** Performs 32-bit arithmetic shift right - Returns Carry Out ******/
-		byte arithmetic_shift_right(ref UInt32 input, byte offset)
+		// Performs 32-bit arithmetic shift right - Returns Carry Out
+		byte ArithmeticShiftRight(ref UInt32 input, byte offset)
 		{
-			byte carry_out = 0;
+			byte carryOut = 0;
 
 			if (offset > 0)
 			{
@@ -1207,7 +1205,7 @@ namespace Gba.Core
 				//Basically LSR, but bits become Bit 31
 				for (int x = 0; x < offset; x++)
 				{
-					carry_out = (byte) (((input & 0x1) != 0) ? 1 : 0);
+					carryOut = (byte) (((input & 0x1) != 0) ? 1 : 0);
 					input >>= 1;
 					if (high_bit == 1) { input |= 0x80000000; }
 				}
@@ -1218,27 +1216,27 @@ namespace Gba.Core
 			//Carry flag set to 0 or 1 depending on Bit 31 of input
 			else
 			{
-				if ((input & 0x80000000) != 0) { input = 0xFFFFFFFF; carry_out = 1; }
-				else { input = 0; carry_out = 0; }
+				if ((input & 0x80000000) != 0) { input = 0xFFFFFFFF; carryOut = 1; }
+				else { input = 0; carryOut = 0; }
 			}
 
-			return carry_out;
+			return carryOut;
 		}
 
-		/****** Performs 32-bit rotate right ******/
-		public byte rotate_right(ref UInt32 input, byte offset)
+		// Performs 32-bit rotate right
+		public byte RotateRight(ref UInt32 input, byte offset)
 		{
-			byte carry_out = 0;
+			byte carryOut = 0;
 
 			if (offset > 0)
 			{
 				//Perform ROR shift on immediate
 				for (int x = 0; x < offset; x++)
 				{
-					carry_out = (byte) (input & 0x1);
+					carryOut = (byte) (input & 0x1);
 					input >>= 1;
 
-					if (carry_out != 0) 
+					if (carryOut != 0) 
 					{ 
 						input |= 0x80000000; 
 					}
@@ -1250,18 +1248,18 @@ namespace Gba.Core
 			else
 			{
 				byte old_carry = (byte) (CarryFlag ? 1 : 0);
-				carry_out = (byte) (input & 0x1);
+				carryOut = (byte) (input & 0x1);
 				input >>= 1;
 
 				if (old_carry != 0) { input |= 0x80000000; }
 			}
 
-			return carry_out;
+			return carryOut;
 		}
 
 
-		/****** Performs 32-bit rotate right - For ARM.5 Data Processing when Bit 25 is 1 ******/
-		void rotate_right_special(ref UInt32 input, byte offset)
+		// Performs 32-bit rotate right - For ARM.5 Data Processing when Bit 25 is 1
+		void RotateRightSpecial(ref UInt32 input, byte offset)
 		{
 			if (offset > 0)
 			{

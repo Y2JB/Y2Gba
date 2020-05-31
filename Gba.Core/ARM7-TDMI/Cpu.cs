@@ -28,7 +28,7 @@ namespace Gba.Core
         public const int Pipeline_Size = 3;
         public Queue<UInt32> InstructionPipeline { get; private set; }
 
-        bool pipelineFlushed;
+        bool requestFlushPipeline;
 
         GameboyAdvance gba;
 
@@ -62,7 +62,6 @@ namespace Gba.Core
         public void FlushPipeline()
         {
             InstructionPipeline.Clear();
-            pipelineFlushed = true;
         }
 
 
@@ -70,37 +69,69 @@ namespace Gba.Core
         // If a branch or some other op has invalidated the pipeline, refill it fro scratch before we execute anything else
         public void RefillPipeline()
         {
-            if(InstructionPipeline.Count != 0)
+            if (InstructionPipeline.Count != 0)
             {
                 throw new ArgumentException("Refill but pipeline isn't empty??");
             }
-            InstructionPipeline.Enqueue(gba.Memory.ReadWord(PC));
-            InstructionPipeline.Enqueue(gba.Memory.ReadWord(PC+4));
-            InstructionPipeline.Enqueue(gba.Memory.ReadWord(PC+8));
-            PC += 8;
+
+            if (State == CpuState.Thumb)
+            {
+                InstructionPipeline.Enqueue(gba.Memory.ReadHalfWord(PC));
+                PC += 2;
+                InstructionPipeline.Enqueue(gba.Memory.ReadHalfWord(PC));
+                PC += 2;
+                InstructionPipeline.Enqueue(gba.Memory.ReadHalfWord(PC));                
+            }
+            else
+            {
+                InstructionPipeline.Enqueue(gba.Memory.ReadWord(PC));
+                PC += 4;
+                InstructionPipeline.Enqueue(gba.Memory.ReadWord(PC));
+                PC += 4;
+                InstructionPipeline.Enqueue(gba.Memory.ReadWord(PC));
+            }
         }
 
 
         // After an instruction executes we move the pieline forward one instruction
         public void PipelineAdvance()
         {
-            PC += (State == CpuState.Arm) ? 4U : 2U;
-            InstructionPipeline.Enqueue(gba.Memory.ReadWord(PC));
-            
+            if (State == CpuState.Thumb)
+            {
+                PC += 2U;
+                InstructionPipeline.Enqueue(gba.Memory.ReadHalfWord(PC));
+            }
+            else
+            {
+                PC += 4U;
+                InstructionPipeline.Enqueue(gba.Memory.ReadWord(PC));
+            }
+                
+                     
         }
 
 
         public void Step()
         {
-            DecodeAndExecuteArmInstruction(InstructionPipeline.Dequeue());
+            if (State == CpuState.Thumb)
+            {
+                DecodeAndExecuteThumbInstruction((ushort)InstructionPipeline.Dequeue());
+            }
+            else
+            {
+                DecodeAndExecuteArmInstruction(InstructionPipeline.Dequeue());
+            }
 
-            if (pipelineFlushed == false)
+
+            if (requestFlushPipeline == false)
             {
                 PipelineAdvance();
             }
             else
             {
-                pipelineFlushed = false;
+                FlushPipeline();
+                requestFlushPipeline = false;
+                RefillPipeline();
             }
             //PC += (State == CpuState.Arm) ? 4U : 2U;
             // PC += 4;

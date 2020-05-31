@@ -83,7 +83,7 @@ namespace Gba.Core
 					//Force alignment by word, then rotate right the read
 					byte offset = (byte) ((addr & 0x3) * 8);
 					value = ReadWord((UInt32) (addr & ~0x3));
-					gba.Cpu.rotate_right(ref value, offset);
+					gba.Cpu.RotateRight(ref value, offset);
 				}
 
 				//Out of bounds unused memory
