@@ -50,8 +50,7 @@ namespace Gba.Core
 
             RomName = Encoding.UTF8.GetString(romData, RomNameOffset, 12).TrimEnd((Char)0);
 
-            EntryPoint = ReadWord(0); // BitConverter.ToUInt32(romData, 0);
-
+            EntryPoint = ReadWord(0);
         }
 
 

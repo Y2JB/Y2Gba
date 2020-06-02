@@ -31,6 +31,8 @@ namespace Gba.Core
 
         UInt32 lcdCycles;
 
+        public Palettes Palettes { get; private set; }
+
         public Bitmap FrameBuffer { get; private set; }
         Bitmap drawBuffer;
         Bitmap frameBuffer0;
@@ -51,6 +53,8 @@ namespace Gba.Core
             frameBuffer1 = new Bitmap(Screen_X_Resolution, Screen_Y_Resolution);
             FrameBuffer = frameBuffer0;
             drawBuffer = frameBuffer1;
+
+            this.Palettes = new Palettes();
 
             Mode = LcdMode.ScanlineRendering;
             lcdCycles = 0;
@@ -134,6 +138,9 @@ namespace Gba.Core
 
                         CurrentScanline = 0;
                         Mode = LcdMode.ScanlineRendering;
+
+                        //Palettes.DumpPaletteToPng(0);
+                        //Palettes.DumpPaletteToPng(1);
                     }
                     else
                     {
