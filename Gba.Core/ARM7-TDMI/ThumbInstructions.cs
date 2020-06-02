@@ -983,7 +983,7 @@ namespace Gba.Core
 
 			//Clock CPU and controllers - 1I
 			//mem_check_32(load_addr, value, true);
-			value = gba.Memory.ReadWord(load_addr);
+			value = Memory.ReadWord(load_addr);
 			//clock();
 
 			//Clock CPU and controllers - 1S
@@ -1038,7 +1038,7 @@ namespace Gba.Core
 					{
 						sp -= 4;
 						//mem_check_32(r13, lr, false);
-						gba.Memory.WriteWord(sp, lr);
+						Memory.WriteWord(sp, lr);
 						LR = lr;
 
 						//Clock CPU and controllers - 1S
@@ -1053,7 +1053,7 @@ namespace Gba.Core
 							sp -= 4;
 							UInt32 push_value = GetRegisterValue((UInt32)x);
 							//mem_check_32(r13, push_value, false);
-							gba.Memory.WriteWord(sp, push_value);
+							Memory.WriteWord(sp, push_value);
 
 							//Clock CPU and controllers - (n)S
 							if ((nCount - 1) != 0) 
@@ -1091,7 +1091,7 @@ namespace Gba.Core
 						{
 							UInt32 pop_value = 0;
 							//mem_check_32(r13, pop_value, true);
-							pop_value = gba.Memory.ReadWord(sp);
+							pop_value = Memory.ReadWord(sp);
 							SetRegisterValue((UInt32)x, pop_value);
 							sp += 4;
 
@@ -1116,7 +1116,7 @@ namespace Gba.Core
 
 						//Clock CPU and controllers - 2S
 						//mem_check_32(r13, reg.r15, true);
-						PC = gba.Memory.ReadWord(sp);
+						PC = Memory.ReadWord(sp);
 						PC &= ~0x1U;
 						sp += 4;
 						requestFlushPipeline = true;
@@ -1214,11 +1214,11 @@ namespace Gba.Core
 
 								if ((x == transferReg) && (baseReg == transferReg))
 								{
-									gba.Memory.WriteWord(baseAddr, oldBase);
+									Memory.WriteWord(baseAddr, oldBase);
 								}
 								else
 								{
-									gba.Memory.WriteWord(baseAddr, regValue);
+									Memory.WriteWord(baseAddr, regValue);
 								}
 
 								// Update base register
@@ -1247,7 +1247,7 @@ namespace Gba.Core
 
 						//Store PC, then add 0x40 to base register
 						//mem_check_32(base_addr, R15, false);
-						gba.Memory.WriteWord(baseAddr, PC);
+						Memory.WriteWord(baseAddr, PC);
 						baseAddr += 0x40;
 						SetRegisterValue(baseReg, baseAddr);
 
@@ -1279,7 +1279,7 @@ namespace Gba.Core
 								if ((x == transferReg) && (baseReg == transferReg)) { writeBack = false; }
 
 								//mem_check_32(base_addr, reg_value, true);
-								regValue = gba.Memory.ReadWord(baseAddr);
+								regValue = Memory.ReadWord(baseAddr);
 								SetRegisterValue(x, regValue);
 
 								// Update base register
@@ -1314,7 +1314,7 @@ namespace Gba.Core
 
 						//Load PC, then add 0x40 to base register
 						//mem_check_32(base_addr, reg.r15, true);
-						PC = gba.Memory.ReadWord(baseAddr);
+						PC = Memory.ReadWord(baseAddr);
 						baseAddr += 0x40;
 						SetRegisterValue(baseReg, baseAddr);
 
@@ -1363,7 +1363,7 @@ namespace Gba.Core
 					//Clock CPU and controllers - 1N
 					value = GetRegisterValue(srcDestReg);
 					//mem->write_u32(op_addr, value);
-					gba.Memory.WriteWord(opAddr, value);
+					Memory.WriteWord(opAddr, value);
 					//clock(op_addr, true);
 
 					break;
@@ -1383,7 +1383,7 @@ namespace Gba.Core
 					value = GetRegisterValue(srcDestReg);
 					value &= 0xFF;
 					//mem_check_8(op_addr, value, false);
-					gba.Memory.WriteByte(opAddr, (byte)value);
+					Memory.WriteByte(opAddr, (byte)value);
 					//clock(op_addr, true);
 
 					break;
@@ -1401,7 +1401,7 @@ namespace Gba.Core
 
 					//Clock CPU and controllers - 1I
 					//mem_check_32(op_addr, value, true);
-					value = gba.Memory.ReadWord(opAddr);
+					value = Memory.ReadWord(opAddr);
 					//clock();
 
 					//Clock CPU and controllers - 1S
@@ -1422,7 +1422,7 @@ namespace Gba.Core
 
 					//Clock CPU and controllers - 1I
 					//mem_check_8(op_addr, value, true);
-					value = gba.Memory.ReadByte(opAddr);
+					value = Memory.ReadByte(opAddr);
 					//clock();
 
 					//Clock CPU and controllers - 1S
@@ -1471,7 +1471,7 @@ namespace Gba.Core
 
 					//Clock CPU and controllers - 1N
 					//mem_check_32(op_addr, value, false);
-					gba.Memory.WriteWord(opAddr, value);
+					Memory.WriteWord(opAddr, value);
 					//clock(op_addr, true);
 
 					break;
@@ -1491,7 +1491,7 @@ namespace Gba.Core
 
 					//Clock CPU and controllers - 1I
 					//mem_check_32(op_addr, value, true);
-					value = gba.Memory.ReadWord(opAddr);
+					value = Memory.ReadWord(opAddr);
 					//clock();
 
 					//Clock CPU and controllers - 1S
@@ -1515,7 +1515,7 @@ namespace Gba.Core
 
 					//Clock CPU and controllers - 1N
 					//mem_check_8(op_addr, value, false);
-					gba.Memory.WriteByte(opAddr, (byte) value);
+					Memory.WriteByte(opAddr, (byte) value);
 					//clock(op_addr, true);
 
 					break;
@@ -1534,7 +1534,7 @@ namespace Gba.Core
 
 					//Clock CPU and controllers - 1I
 					//mem_check_8(op_addr, value, true);
-					value = gba.Memory.ReadByte(opAddr);
+					value = Memory.ReadByte(opAddr);
 					//clock();
 
 					//Clock CPU and controllers - 1S

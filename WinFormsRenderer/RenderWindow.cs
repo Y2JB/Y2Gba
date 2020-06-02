@@ -1,4 +1,4 @@
-﻿//#define THREADED_RENDERER
+﻿#define THREADED_RENDERER
 
 using System;
 using System.Collections.Generic;
@@ -36,7 +36,7 @@ namespace WinFormRender
         Rectangle fpsRect;
         Point fpsPt;
 
-        //MenuStrip menu;
+        MenuStrip menu;
 
 #if THREADED_RENDERER
         bool drawFrame = false;
@@ -56,7 +56,7 @@ namespace WinFormRender
 
             gba = new Gba.Core.GameboyAdvance();
             gba.PowerOn();
-            //dmg.OnFrame = () => this.Draw();
+            gba.OnFrame = () => this.Draw();
 
             dbgConsole = new GbaDebugConsole(gba);
             
@@ -67,8 +67,7 @@ namespace WinFormRender
             this.Text = gba.Rom.RomName;
             KeyDown += OnKeyDown;
             KeyUp += OnKeyUp;
-
-      /*      
+      
             Controls.Add(menu = new MenuStrip
             {
                 Items =
@@ -77,7 +76,7 @@ namespace WinFormRender
                     {
                         DropDownItems =
                         {
-                            new ToolStripMenuItem("Load ROM", null, (sender, args) => { LoadRom(); }),
+                            new ToolStripMenuItem("Load ROM", null, (sender, args) => { }),
                             new ToolStripMenuItem("Reset", null, (sender, args) => {  }),
                         }
                     },
@@ -86,16 +85,15 @@ namespace WinFormRender
                         DropDownItems =
                         {
                             new ToolStripMenuItem("Console", null, (sender, args) => { consoleWindow.Visible = !consoleWindow.Visible; }),
-                            new ToolStripMenuItem("Bg Viewer", null, (sender, args) => { bgWnd.Visible = !bgWnd.Visible; })
+                            //new ToolStripMenuItem("Bg Viewer", null, (sender, args) => { bgWnd.Visible = !bgWnd.Visible; })
                         }
                     }
                 }
             });
 
-    */
             // 4X gameboy resolution
-            Width = 640;
-            Height = 576; // + menu.Height;
+            Width = LcdController.Screen_X_Resolution * 4;
+            Height = LcdController.Screen_Y_Resolution * 4 + menu.Height;
             DoubleBuffered = true;
             
 
@@ -129,12 +127,11 @@ namespace WinFormRender
         {
             base.OnSizeChanged(e);
 
-            fpsRect = new Rectangle(ClientRectangle.Width - 75, 5, 55, 30);
+            fpsRect = new Rectangle(ClientRectangle.Width - 75, 5, 75, 30);
             fpsPt = new Point(ClientRectangle.Width - 75, 10);
 
             gameRect = new Rectangle(0, 0, ClientRectangle.Width, ClientRectangle.Height);
-            
-            /*
+                       
             if(menu != null)
             {
                 fpsPt.Y = 10 + menu.Height; 
@@ -142,7 +139,7 @@ namespace WinFormRender
                 gameRect.Y = menu.Height;
                 gameRect.Height -= menu.Height;
             }
-            */
+
             if (gfxBufferedContext != null)
             {
                 gfxBuffer = gfxBufferedContext.Allocate(this.CreateGraphics(), this.DisplayRectangle);
@@ -246,10 +243,10 @@ namespace WinFormRender
                 {
                     framesDrawn++;
 
-                    lock (dmg.FrameBuffer)
+                    lock (gba.FrameBuffer)
                     {
                     
-                        gfxBuffer.Graphics.DrawImage(dmg.FrameBuffer, gameRect);
+                        gfxBuffer.Graphics.DrawImage(gba.FrameBuffer, gameRect);
 
 
                         // Only show fps if we are dipping and then use a colour code
@@ -273,7 +270,7 @@ namespace WinFormRender
 
         private void Draw()
         {
-
+            /*
             // If the Bg viewer is open, then update it at 5fps
             if (bgWnd.Visible &&
                 timer.ElapsedMilliseconds - elapsedMsBgWin >= (200))
@@ -281,6 +278,7 @@ namespace WinFormRender
                 elapsedMsBgWin = timer.ElapsedMilliseconds;
                 bgWnd.RenderBg();
             }             
+            */
 
             // Wait for previous frame to finish drawing while also locking to 60fps
             while (drawFrame)
@@ -291,25 +289,23 @@ namespace WinFormRender
 
 #else
         private void Draw()
-        {
-            /*
+        {  
             framesDrawn++;                
-            gfxBuffer.Graphics.DrawImage(dmg.FrameBuffer, new Rectangle(0, 0, ClientRectangle.Width, ClientRectangle.Height));
+            gfxBuffer.Graphics.DrawImage(gba.FrameBuffer, new Rectangle(0, 0, ClientRectangle.Width, ClientRectangle.Height));
          
 
             gfxBuffer.Graphics.FillRectangle(new SolidBrush(Color.White), new Rectangle(ClientRectangle.Width -75, 5, 55, 30));
             gfxBuffer.Graphics.DrawString(String.Format("{0:D2} fps", fps), new Font("Verdana", 8),  new SolidBrush(Color.Black), new Point(ClientRectangle.Width - 75, 10));
 
             gfxBuffer.Render();  
-            */
         }
 #endif
 
         private void OnApplicationExit(object sender, EventArgs e)
         {
             //dmg.rom.SaveMbc1BatteryBackData();
-            //exitThread = true;
-            //Thread.Sleep(500);
+            exitThread = true;
+            Thread.Sleep(500);
         }
 
 

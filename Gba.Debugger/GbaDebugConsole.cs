@@ -19,7 +19,7 @@ namespace GbaDebugger
         // Next sequential instructions. Forst will be next to be executed
         public List<StoredInstruction> NextInstructions { get; private set; }
 
-        //UInt32 lastTicks;
+        UInt32 lastTicks;
 
         public List<string> ConsoleText { get; private set; }
         public List<string> ConsoleCodeText { get; private set; }
@@ -73,6 +73,8 @@ namespace GbaDebugger
             breakpoints.Add(new Breakpoint(0x08000A0C));
             breakpoints.Add(new Breakpoint(0x08000BCC));
 
+            // Out of sync with IO registers!
+            breakpoints.Add(new Breakpoint(0x08000BD8));
 
             //breakpoints.Add(new Breakpoint(0x64, new ConditionalExpression(snes.memory, 0xFF44, ConditionalExpression.EqualityCheck.Equal, 143)));
 
@@ -157,8 +159,8 @@ namespace GbaDebugger
 
 
                 case ConsoleCommand.ticks:
-                    //ConsoleAddString(String.Format("ticks - {0} mcycles {1} tcycles", (snes.cpu.Ticks - lastTicks), ((snes.cpu.Ticks - lastTicks) * 4)));
-                    //lastTicks = snes.cpu.Ticks;
+                    ConsoleAddString(String.Format("ticks - {0}", gba.Cpu.Cycles - lastTicks));
+                    lastTicks = gba.Cpu.Cycles;
                     return true;
 
                

@@ -30,12 +30,18 @@ namespace Gba.Core
 
         bool requestFlushPipeline;
 
-        GameboyAdvance gba;
+        // 16Mhz Cpu
+        public const UInt32 Cycles_Per_Second = 16777216;
+        public UInt32 Cycles { get; private set; }
+
+        public Memory Memory { get; private set; }
+        GameboyAdvance Gba { get; set; }
 
 
         public Cpu(GameboyAdvance gba)
         {
-            this.gba = gba;
+            this.Gba = gba;
+            Memory = gba.Memory;
             InstructionPipeline = new Queue<UInt32>();
             RegisterConditionalHandlers();
         }
@@ -53,6 +59,8 @@ namespace Gba.Core
             //reg.r13_irq = 0x03007FA0;
             //reg.r15 = 0x8000000;
             CPSR = 0x5F;
+
+            Cycles = 0;
 
             RefillPipeline();
         }
@@ -76,19 +84,19 @@ namespace Gba.Core
 
             if (State == CpuState.Thumb)
             {
-                InstructionPipeline.Enqueue(gba.Memory.ReadHalfWord(PC));
+                InstructionPipeline.Enqueue(Gba.Memory.ReadHalfWord(PC));
                 PC += 2;
-                InstructionPipeline.Enqueue(gba.Memory.ReadHalfWord(PC));
+                InstructionPipeline.Enqueue(Gba.Memory.ReadHalfWord(PC));
                 PC += 2;
-                InstructionPipeline.Enqueue(gba.Memory.ReadHalfWord(PC));                
+                InstructionPipeline.Enqueue(Gba.Memory.ReadHalfWord(PC));                
             }
             else
             {
-                InstructionPipeline.Enqueue(gba.Memory.ReadWord(PC));
+                InstructionPipeline.Enqueue(Gba.Memory.ReadWord(PC));
                 PC += 4;
-                InstructionPipeline.Enqueue(gba.Memory.ReadWord(PC));
+                InstructionPipeline.Enqueue(Gba.Memory.ReadWord(PC));
                 PC += 4;
-                InstructionPipeline.Enqueue(gba.Memory.ReadWord(PC));
+                InstructionPipeline.Enqueue(Gba.Memory.ReadWord(PC));
             }
         }
 
@@ -99,15 +107,29 @@ namespace Gba.Core
             if (State == CpuState.Thumb)
             {
                 PC += 2U;
-                InstructionPipeline.Enqueue(gba.Memory.ReadHalfWord(PC));
+                InstructionPipeline.Enqueue(Gba.Memory.ReadHalfWord(PC));
             }
             else
             {
                 PC += 4U;
-                InstructionPipeline.Enqueue(gba.Memory.ReadWord(PC));
+                InstructionPipeline.Enqueue(Gba.Memory.ReadWord(PC));
             }
                 
                      
+        }
+
+
+        public void Cycle(uint cycles)
+        {
+            Cycles += cycles;
+
+            while (cycles > 0)
+            {
+                Gba.LcdController.Step();
+                //dmg.timer.Step();
+
+                cycles--;
+            }
         }
 
 
@@ -133,10 +155,9 @@ namespace Gba.Core
                 requestFlushPipeline = false;
                 RefillPipeline();
             }
-            //PC += (State == CpuState.Arm) ? 4U : 2U;
-            // PC += 4;
 
-            //ExecuteArmInstruction(instruction);
+
+            Cycle(1);
         }
 
 

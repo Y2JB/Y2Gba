@@ -989,7 +989,7 @@ namespace Gba.Core
 					value &= 0xFF;
 
 					//mem_check_8(base_addr, value, false);
-					gba.Memory.WriteByte(baseAddr, (byte)value);
+					Memory.WriteByte(baseAddr, (byte)value);
 				}
 
 				else
@@ -998,7 +998,7 @@ namespace Gba.Core
 					if (destReg == 15) { value += 4; }
 
 					//mem->write_u32(base_addr, value);
-					gba.Memory.WriteWord(baseAddr, value);
+					Memory.WriteWord(baseAddr, value);
 				}
 
 				//Clock CPU and controllers - 1N
@@ -1018,7 +1018,7 @@ namespace Gba.Core
 				{
 					//Clock CPU and controllers - 1I
 					//mem_check_8(base_addr, value, true);
-					value = gba.Memory.ReadByte(baseAddr);
+					value = Memory.ReadByte(baseAddr);
 
 					//clock();
 
@@ -1033,8 +1033,8 @@ namespace Gba.Core
 					//Clock CPU and controllers - 1I
 					//mem_check_32(base_addr, value, true);
 					//base_addr += 8;
-					gba.Memory.ReadWriteWord_Checked(baseAddr, ref value, true);
-					//value = gba.Memory.ReadWord(base_addr);
+					Memory.ReadWriteWord_Checked(baseAddr, ref value, true);
+					//value = Memory.ReadWord(base_addr);
 
 					//clock();
 
@@ -1166,7 +1166,7 @@ namespace Gba.Core
 
 						value &= 0xFFFF;
 						//mem->write_u16(base_addr, value);
-						gba.Memory.WriteHalfWord(baseAddr, (ushort) value);
+						Memory.WriteHalfWord(baseAddr, (ushort) value);
 					}
 
 					//Load halfword
@@ -1179,7 +1179,7 @@ namespace Gba.Core
 						}
 
 						//value = mem->read_u16(base_addr);
-						value = gba.Memory.ReadHalfWord(baseAddr);
+						value = Memory.ReadHalfWord(baseAddr);
 						SetRegisterValue(destReg, value);
 					}
 					break;
@@ -1192,7 +1192,7 @@ namespace Gba.Core
 						return;
 					}
 
-					value = gba.Memory.ReadByte(baseAddr);
+					value = Memory.ReadByte(baseAddr);
 
 					if ((value & 0x80) != 0) 
 					{ 
@@ -1210,7 +1210,7 @@ namespace Gba.Core
 					}
 
 					//value = mem->read_u16(base_addr);
-					value = gba.Memory.ReadHalfWord(baseAddr);
+					value = Memory.ReadHalfWord(baseAddr);
 
 					if ((value & 0x8000) != 0) 
 					{ 
@@ -1330,12 +1330,12 @@ namespace Gba.Core
 							if ((x == transferReg) && (baseReg == transferReg)) 
 							{ 
 								//mem->write_u32(base_addr, old_base); 
-								gba.Memory.WriteWord(baseAddr, oldBase);
+								Memory.WriteWord(baseAddr, oldBase);
 							}
 							else 
 							{ 
 								//mem->write_u32(base_addr, get_reg(x));
-								gba.Memory.WriteWord(baseAddr, GetRegisterValue((UInt32) x));
+								Memory.WriteWord(baseAddr, GetRegisterValue((UInt32) x));
 							}
 						}
 
@@ -1347,7 +1347,7 @@ namespace Gba.Core
 								writeBack = 0; 
 							}
 
-							SetRegisterValue((UInt32) x, gba.Memory.ReadWord(baseAddr));
+							SetRegisterValue((UInt32) x, Memory.ReadWord(baseAddr));
 							if (x == 15) 
 							{ 
 								requestFlushPipeline = true; 
@@ -1385,12 +1385,12 @@ namespace Gba.Core
 							if ((x == transferReg) && (baseReg == transferReg)) 
 							{
 								//mem->write_u32(base_addr, old_base); 
-								gba.Memory.WriteWord(baseAddr, oldBase);
+								Memory.WriteWord(baseAddr, oldBase);
 							}
 							else 
 							{ 
 								//mem->write_u32(base_addr, get_reg(x));
-								gba.Memory.WriteWord(baseAddr, GetRegisterValue((UInt32) x));
+								Memory.WriteWord(baseAddr, GetRegisterValue((UInt32) x));
 							}
 						}
 
@@ -1398,7 +1398,7 @@ namespace Gba.Core
 						else
 						{
 							if ((x == transferReg) && (baseReg == transferReg)) { writeBack = 0; }
-							SetRegisterValue((UInt32) x, gba.Memory.ReadWord(baseAddr));
+							SetRegisterValue((UInt32) x, Memory.ReadWord(baseAddr));
 							if (x == 15) 
 							{ 
 								requestFlushPipeline = true; 
@@ -1427,14 +1427,14 @@ namespace Gba.Core
 				if (loadStore == 0) 
 				{ 
 					//mem->write_u32(base_addr, reg.r15);
-					gba.Memory.WriteWord(baseAddr, PC);
+					Memory.WriteWord(baseAddr, PC);
 				}
 
 				//Store R15
 				else
 				{
 					//reg.r15 = mem->read_u32(base_addr);
-					PC = gba.Memory.ReadWord(baseAddr);
+					PC = Memory.ReadWord(baseAddr);
 					requestFlushPipeline = true;
 				}
 
