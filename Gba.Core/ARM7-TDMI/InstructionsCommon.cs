@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Text;
 
 
@@ -214,5 +215,28 @@ namespace Gba.Core
 			}
 		}
 
+
+		// Used for friendly printing the register lists for some instruictions such as Push & Pop
+		string RegisterListToString(byte registerList, int registerCount)
+		{
+			if(registerCount != 8 && registerCount != 16)
+            {
+				throw new ArgumentException("Only 8 and 16 register count allowed");
+            }
+
+			string regListStr = String.Empty;
+
+			for (int x = 0; x < registerCount; x++)
+			{
+				if ((registerList & (1 << x)) != 0)
+				{
+					regListStr = regListStr + String.Format("{0} ", GetRegisterName((UInt32) x));
+				}
+			}
+
+			// TODO: Support this format 'R1-R5' and 'R2-R7 LR' 
+
+			return regListStr;
+		}
 	}
 }

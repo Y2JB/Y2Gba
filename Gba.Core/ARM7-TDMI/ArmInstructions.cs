@@ -69,7 +69,7 @@ namespace Gba.Core
 					else
 					{
 						//ARM_10;
-						if (!peek) throw new NotImplementedException();
+						HalfwordAndSignedDataTransfer(rawInstruction, peek);
 					}
 				}
 
@@ -149,7 +149,7 @@ namespace Gba.Core
 					else
 					{
 						//ARM_10;
-						if (!peek) throw new NotImplementedException();
+						HalfwordAndSignedDataTransfer(rawInstruction, peek);
 					}
 				}
 
@@ -169,8 +169,7 @@ namespace Gba.Core
 			else if (((rawInstruction >> 25) & 0x7) == 0x4)
 			{
 				//ARM_11
-				if (!peek) throw new NotImplementedException();
-
+				BlockDataTransfer(rawInstruction, peek);
 			}
 
 			else if (((rawInstruction >> 24) & 0xF) == 0xF)
@@ -891,6 +890,8 @@ namespace Gba.Core
 			//clock((reg.r15 + 4), false);
 		}
 
+
+		// ARM_9
 		void DecodeSingleDataTransfer(UInt32 current_arm_instruction, bool peek)
         {
 			// Bit 25
@@ -1019,8 +1020,6 @@ namespace Gba.Core
 					//mem_check_8(base_addr, value, true);
 					value = gba.Memory.ReadByte(baseAddr);
 
-
-
 					//clock();
 
 					//Clock CPU and controllers - 1N
@@ -1074,6 +1073,395 @@ namespace Gba.Core
 				//clock(reg.r15, false);
 			}
 		}
+
+
+
+		// ARM.10 
+		void HalfwordAndSignedDataTransfer(UInt32 rawInstruction, bool peek)
+		{
+			//TODO - Timings
+
+			// Bit 24
+			Byte prePost = (byte) (((rawInstruction & 0x1000000)!=0) ? 1 : 0);
+
+			// Bit 23
+			Byte upDown = (byte)(((rawInstruction & 0x800000) != 0) ? 1 : 0);
+
+			// Bit 22
+			Byte offsetIsRegister = (byte)(((rawInstruction & 0x400000) != 0) ? 1 : 0);
+
+			// Bit 21
+			Byte writeBack = (byte)(((rawInstruction & 0x200000) != 0) ? 1 : 0);
+
+			// Bit 20
+			Byte loadStore = (byte)(((rawInstruction & 0x100000) != 0) ? 1 : 0);
+
+			// Bits 16-19
+			Byte baseReg = (byte) ((rawInstruction >> 16) & 0xF);
+
+			// Bits 12-15
+			Byte destReg = (byte) ((rawInstruction >> 12) & 0xF);
+
+			// Bits 5-6
+			Byte op = (byte) ((rawInstruction >> 5) & 0x3);
+
+			// Write-Back is always enabled for Post-Indexing
+			if (prePost == 0) { writeBack = 1; }
+
+			UInt32 baseOffset = 0;
+			UInt32 baseAddr = GetRegisterValue(baseReg);
+			UInt32 value = 0;
+
+			//Determine offset if offset is a register
+			if (offsetIsRegister == 0)
+			{
+				//Register is Bits 0-3
+				baseOffset = GetRegisterValue((rawInstruction & 0xF));
+
+				if ((rawInstruction & 0xF) == 15) 
+				{ 
+					throw new ArgumentException("ARM.10 Offset Register is PC"); 
+				}
+			}
+
+			//Determine offset if offset is immediate
+			else
+			{
+				//Upper 4 bits are Bits 8-11
+				baseOffset = (rawInstruction >> 8) & 0xF;
+				baseOffset <<= 4;
+
+				//Lower 4 bits are Bits 0-3
+				baseOffset |= (rawInstruction & 0xF);
+			}
+
+			//Increment or decrement before transfer if pre-indexing
+			if (prePost == 1)
+			{
+				if (upDown == 1) { baseAddr += baseOffset; }
+				else { baseAddr -= baseOffset; }
+			}
+
+			//Perform Load or Store ops
+			switch (op)
+			{
+				//Load-Store unsigned halfword
+				case 0x1:					
+					//Store halfword
+					if (loadStore == 0)
+					{
+						if (peek)
+						{
+							peekString = String.Format("STR-(h) {0} , [{1},${2:X}]", GetRegisterName(destReg), GetRegisterName(baseReg), baseOffset);
+							return;
+						}
+
+						value = GetRegisterValue(destReg);
+
+						//If PC is the Destination Register, add 4
+						if (destReg == 15) 
+						{ 
+							value += 4; 
+						}
+
+						value &= 0xFFFF;
+						//mem->write_u16(base_addr, value);
+						gba.Memory.WriteHalfWord(baseAddr, (ushort) value);
+					}
+
+					//Load halfword
+					else
+					{
+						if (peek)
+						{
+							peekString = String.Format("LDR-(h) {0} , [{1},${2:X}]", GetRegisterName(destReg), GetRegisterName(baseReg), baseOffset);
+							return;
+						}
+
+						//value = mem->read_u16(base_addr);
+						value = gba.Memory.ReadHalfWord(baseAddr);
+						SetRegisterValue(destReg, value);
+					}
+					break;
+
+				//Load signed byte (sign extended)
+				case 0x2:
+					if (peek)
+					{
+						peekString = String.Format("LDR-(sb) {0} , [{1},${2:X}]", GetRegisterName(destReg), GetRegisterName(baseReg), baseOffset);
+						return;
+					}
+
+					value = gba.Memory.ReadByte(baseAddr);
+
+					if ((value & 0x80) != 0) 
+					{ 
+						value |= 0xFFFFFF00; 
+					}
+					SetRegisterValue(destReg, value);
+					break;
+
+				//Load signed halfword (sign extended)
+				case 0x3:
+					if (peek)
+					{
+						peekString = String.Format("LDR-(sh) {0} , [{1},${2:X}]", GetRegisterName(destReg), GetRegisterName(baseReg), baseOffset);
+						return;
+					}
+
+					//value = mem->read_u16(base_addr);
+					value = gba.Memory.ReadHalfWord(baseAddr);
+
+					if ((value & 0x8000) != 0) 
+					{ 
+						value |= 0xFFFF0000; 
+					}
+					SetRegisterValue(destReg, value);
+					break;
+
+				//SWP
+				default:
+					//std::cout << "This is actually ARM.12 - Single Data Swap\n";
+					return;
+			}
+
+			//Increment or decrement after transfer if post-indexing
+			if (prePost == 0)
+			{
+				if (upDown == 1) { baseAddr += baseOffset; }
+				else { baseAddr -= baseOffset; }
+			}
+
+			//Write-back into base register
+			if ((writeBack == 1) && (baseReg != destReg)) 
+			{
+				SetRegisterValue(baseReg, baseAddr);
+			}
+		}
+
+
+		// ARM.11 
+		void BlockDataTransfer(UInt32 rawInstruction, bool peek)
+		{
+			//TODO - Clock cycles
+
+			// Bit 24
+			byte prePost = (byte) (((rawInstruction & 0x1000000)!=0) ? 1 : 0);
+
+			// Bit 23
+			byte upDown = (byte) (((rawInstruction & 0x800000) != 0) ? 1 : 0);
+
+			// Bit 22
+			byte psr = (byte) (((rawInstruction & 0x400000) != 0) ? 1 : 0);
+
+			// Bit 21
+			byte writeBack = (byte) (((rawInstruction & 0x200000) != 0) ? 1 : 0);
+
+			// Bit 20
+			byte loadStore = (byte) (((rawInstruction & 0x100000) != 0) ? 1 : 0);
+
+			// Bits 16-19
+			byte baseReg = (byte) ((rawInstruction >> 16) & 0xF);
+
+			// Bits 0-15
+			byte registerList = (byte) (rawInstruction & 0xFFFF);
+
+			//Warnings
+			//if (base_reg == 15) { std::cout << "CPU::Warning - ARM.11 R15 used as Base Register \n"; }
+
+			// Force USR mode if PSR bit is set
+			CpuMode tempMode = Mode;
+			if (psr != 0) 
+			{ 
+				Mode = CpuMode.User; 
+			}
+
+			UInt32 baseAddr = GetRegisterValue(baseReg);
+			UInt32 oldBase = baseAddr;
+			byte transferReg = 0xFF;
+
+
+
+			if (peek)
+			{
+				if (loadStore == 0)
+				{
+
+					peekString = String.Format("PUSH {0}", RegisterListToString(registerList, 16));
+					return;
+
+				}
+				else
+				{
+
+					peekString = String.Format("POP {0}", RegisterListToString(registerList, 16));
+					return;
+				}
+			}
+			
+
+			// Find out the first register in the Register List			
+			for (int x = 0; x < 16; x++)
+			{
+				if ((registerList & (1 << x)) != 0)
+				{
+					transferReg = (byte) x;
+					x = 0xFF;
+					break;
+				}
+			}
+
+			// Load-Store with an ascending stack order, Up-Down = 1
+			if ((upDown == 1) && (registerList != 0))
+			{
+				for (int x = 0; x < 16; x++)
+				{
+					if ((registerList & (1 << x)) != 0)
+					{
+						// Increment before transfer if pre-indexing
+						if (prePost == 1) 
+						{ 
+							baseAddr += 4; 
+						}
+
+						//Store registers
+						if (loadStore == 0)
+						{
+							if ((x == transferReg) && (baseReg == transferReg)) 
+							{ 
+								//mem->write_u32(base_addr, old_base); 
+								gba.Memory.WriteWord(baseAddr, oldBase);
+							}
+							else 
+							{ 
+								//mem->write_u32(base_addr, get_reg(x));
+								gba.Memory.WriteWord(baseAddr, GetRegisterValue((UInt32) x));
+							}
+						}
+
+						//Load registers
+						else
+						{
+							if ((x == transferReg) && (baseReg == transferReg)) 
+							{ 
+								writeBack = 0; 
+							}
+
+							SetRegisterValue((UInt32) x, gba.Memory.ReadWord(baseAddr));
+							if (x == 15) 
+							{ 
+								requestFlushPipeline = true; 
+							}
+						}
+
+						// Increment after transfer if post-indexing
+						if (prePost == 0) 
+						{ 
+							baseAddr += 4; 
+						}
+					}
+
+					// Write back the into base register
+					if (writeBack == 1) 
+					{ 
+						SetRegisterValue(baseReg, baseAddr); 
+					}
+				}
+			}
+
+			// Load-Store with a descending stack order, Up-Down = 0
+			else if ((upDown == 0) && (registerList != 0))
+			{
+				for (int x = 15; x >= 0; x--)
+				{
+					if ((registerList & (1 << x)) != 0)
+					{
+						// Decrement before transfer if pre-indexing
+						if (prePost == 1) { baseAddr -= 4; }
+
+						// Store registers
+						if (loadStore == 0)
+						{
+							if ((x == transferReg) && (baseReg == transferReg)) 
+							{
+								//mem->write_u32(base_addr, old_base); 
+								gba.Memory.WriteWord(baseAddr, oldBase);
+							}
+							else 
+							{ 
+								//mem->write_u32(base_addr, get_reg(x));
+								gba.Memory.WriteWord(baseAddr, GetRegisterValue((UInt32) x));
+							}
+						}
+
+						// Load registers
+						else
+						{
+							if ((x == transferReg) && (baseReg == transferReg)) { writeBack = 0; }
+							SetRegisterValue((UInt32) x, gba.Memory.ReadWord(baseAddr));
+							if (x == 15) 
+							{ 
+								requestFlushPipeline = true; 
+							}
+						}
+
+						// Decrement after transfer if post-indexing
+						if (prePost == 0)
+						{ 
+							baseAddr -= 4; 
+						}
+					}
+
+					//Write back the into base register
+					if (writeBack == 1)
+					{ 
+						SetRegisterValue(baseReg, baseAddr);
+					}
+				}
+			}
+
+			//Special case, empty RList
+			else
+			{
+				//Load R15
+				if (loadStore == 0) 
+				{ 
+					//mem->write_u32(base_addr, reg.r15);
+					gba.Memory.WriteWord(baseAddr, PC);
+				}
+
+				//Store R15
+				else
+				{
+					//reg.r15 = mem->read_u32(base_addr);
+					PC = gba.Memory.ReadWord(baseAddr);
+					requestFlushPipeline = true;
+				}
+
+				//Add 0x40 to base address if ascending stack, writeback into base register
+				if (upDown == 1) 
+				{ 
+					SetRegisterValue(baseReg, (baseAddr + 0x40)); 
+				}
+
+				//Subtract 0x40 from base address if descending stack, writeback into base register
+				else 
+				{ 
+					SetRegisterValue(baseReg, (baseAddr - 0x40)); 
+				}
+
+				//std::cout << "CPU::Warning - ARM.11 Instruction uses empty register list \n";
+			}
+
+
+			// Restore CPU mode if PSR bit is set
+			if (psr != 0) 
+			{ 
+				Mode = tempMode; 
+			}
+		}
+
+
 
 	}
 }

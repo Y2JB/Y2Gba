@@ -17,6 +17,10 @@ namespace Gba.Core
 		// Internal Work Ram
 		byte[] IWRam = new byte[1024 * 32];
 
+		// Palette Ram
+		byte[] PaletteRam = new byte[1024];
+
+
 		public Memory(GameboyAdvance gba)
         {
             this.gba = gba;
@@ -29,6 +33,18 @@ namespace Gba.Core
 			if (address >= 0x08000000 && address <= 0x09FFFFFF)
 			{
 				return gba.Rom.ReadByte(address - 0x08000000);
+			}
+			else if (address >= 0x04000000 && address <= 0x040003FE)
+			{
+				// (REG_IME) Turns all interrupts on or off
+				if (address == 0x04000208)
+				{
+					return 0;
+				}
+				else
+				{
+					return ioReg[address - 0x04000000];
+				}
 			}
 			// Fast Cpu linked RAM
 			else if (address >= 0x03000000 && address <= 0x03007FFF)
@@ -43,7 +59,7 @@ namespace Gba.Core
 			// Palette Ram
 			else if (address >= 0x05000000 && address <= 0x050003FF)
 			{
-				throw new NotImplementedException();
+				return PaletteRam[address - 0x05000000];
 			}
 			// VRam
 			else if (address >= 0x06000000 && address <= 0x06017FFF)
@@ -103,7 +119,7 @@ namespace Gba.Core
 			// Palette Ram
 			else if (address >= 0x05000000 && address <= 0x050003FF)
 			{
-				throw new NotImplementedException();
+				PaletteRam[address - 0x05000000] = value;
 			}
 			// VRam
 			else if (address >= 0x06000000 && address <= 0x06017FFF)

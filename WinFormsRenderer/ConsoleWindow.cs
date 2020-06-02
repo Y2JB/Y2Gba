@@ -37,7 +37,7 @@ namespace WinFormRender
 
             InitializeComponent();
 
-            this.ClientSize = new System.Drawing.Size(1000, 775);
+            this.ClientSize = new System.Drawing.Size(1200, 775);
             this.Text = "GBA Console";
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -51,7 +51,7 @@ namespace WinFormRender
             codeWnd.Location = new System.Drawing.Point(10, 10);
             codeWnd.Multiline = true;
             codeWnd.ReadOnly = true;
-            codeWnd.Width = 640;
+            codeWnd.Width = 800;
             codeWnd.Height = 350;
             codeWnd.Enabled = true;
             codeWnd.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
@@ -60,7 +60,7 @@ namespace WinFormRender
             console.Location = new System.Drawing.Point(10, 370);
             console.Multiline = true;
             console.ReadOnly = true;
-            console.Width = 640;
+            console.Width = 800;
             console.Height = 350;
             console.Enabled = true;
             console.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);

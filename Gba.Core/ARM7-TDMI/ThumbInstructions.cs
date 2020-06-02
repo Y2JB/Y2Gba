@@ -112,7 +112,7 @@ namespace Gba.Core
 			else if ((rawInstruction >> 12) == 0xB)
 			{
 				//THUMB_14
-				if (!peek) throw new NotImplementedException();
+				PushPopRegisters(rawInstruction, peek);
 			}
 
 			else if ((rawInstruction >> 12) == 0xC)
@@ -991,7 +991,159 @@ namespace Gba.Core
 			//clock((reg.r15 + 2), false);
 		}
 
-		// THUMB.15 Multiple Load-Store
+
+		// THUMB.14
+		//  _14_|_1___0___1___1_|Op_|_1___0_|_R_|____________Rlist______________|PUSH/POP
+		void PushPopRegisters(ushort rawInstruction, bool peek)
+		{
+			// Get stack pointer & Link Regoster from current CPU mode
+			UInt32 sp = SP;
+			UInt32 lr = LR;
+
+			// Bits 0-7 List of registers as a bitfield 
+			byte registerList = (byte) (rawInstruction & 0xFF);
+
+			// Bit 8
+			bool pcLr = ((rawInstruction & 0x100)!=0) ? true : false;
+
+			// Bit 11
+			byte op = (byte) (((rawInstruction & 0x800)!=0) ? 1 : 0);
+
+			byte nCount = 0;
+
+			for (int x = 0; x < 8; x++)
+			{
+				if (((registerList >> x) & 0x1) != 0) 
+				{ 
+					nCount++; 
+				}
+			}
+
+			//Perform push-pop ops
+			switch (op)
+			{
+				// PUSH
+				case 0x0:
+					if (peek)
+					{
+						peekString = String.Format("PUSH {0}", RegisterListToString(registerList, 8));
+						return;
+					}
+
+					//Clock CPU and controllers - 1N
+					//clock(reg.r15, true);
+
+					//Optionally store LR onto the stack
+					if (pcLr)
+					{
+						sp -= 4;
+						//mem_check_32(r13, lr, false);
+						gba.Memory.WriteWord(sp, lr);
+						LR = lr;
+
+						//Clock CPU and controllers - 1S
+						//clock(r13, false);
+					}
+
+					//Cycle through the register list
+					for (int x = 7; x >= 0; x--)
+					{
+						if ((registerList & (1 << x)) != 0)
+						{
+							sp -= 4;
+							UInt32 push_value = GetRegisterValue((UInt32)x);
+							//mem_check_32(r13, push_value, false);
+							gba.Memory.WriteWord(sp, push_value);
+
+							//Clock CPU and controllers - (n)S
+							if ((nCount - 1) != 0) 
+							{ 
+								//clock(r13, false); 
+								nCount--; 
+							}
+
+							//Clock CPU and controllers - 1N
+							else 
+							{ 
+								//clock(r13, true); x = 10; 
+								break; 
+							}
+						}
+					}
+
+					break;
+
+				// POP
+				case 0x1:
+					if (peek)
+					{
+						peekString = String.Format("POP {0}", RegisterListToString(registerList, 8));
+						return;
+					}
+
+					//Clock CPU and controllers - 1N
+					//clock(reg.r15, true);
+
+					//Cycle through the register list
+					for (int x = 0; x < 8; x++)
+					{
+						if ((registerList & 0x1) != 0)
+						{
+							UInt32 pop_value = 0;
+							//mem_check_32(r13, pop_value, true);
+							pop_value = gba.Memory.ReadWord(sp);
+							SetRegisterValue((UInt32)x, pop_value);
+							sp += 4;
+
+							//Clock CPU and controllers - (n)S
+							if (nCount > 1) 
+							{ 
+								//clock(r13, false); 
+							}
+						}
+
+						registerList >>= 1;
+					}
+
+					//Optionally load PC from the stack
+					if (pcLr)
+					{
+						//Clock CPU and controllers - 1I
+						//clock();
+
+						//Clock CPU and controllers - 1N
+						//clock(reg.r15, true);
+
+						//Clock CPU and controllers - 2S
+						//mem_check_32(r13, reg.r15, true);
+						PC = gba.Memory.ReadWord(sp);
+						PC &= ~0x1U;
+						sp += 4;
+						requestFlushPipeline = true;
+
+						//clock(reg.r15, false);
+						//clock((reg.r15 + 2), false);
+					}
+
+					//If PC not loaded, last cycles are Internal then Sequential
+					else
+					{
+						//Clock CPU and controllers - 1I
+						//clock();
+
+						//Clock CPU and controllers - 1S
+						//clock((reg.r15 + 2), false);
+					}
+
+					break;
+			}
+
+			//Update stack pointer for current CPU mode
+			SP = sp;
+		}
+
+
+		// THUMB.15
 		// _15_|_1___1___0___0_|Op_|____Rb_____|____________Rlist______________|STM/LDM
 		void MultipleLoadStore(ushort rawInstruction, bool peek)
 		{
@@ -1043,7 +1195,7 @@ namespace Gba.Core
 					{
 						if (peek)
 						{
-							peekString = String.Format("STMIA {0}! {1}-{2}", GetRegisterName(baseReg), GetRegisterName(transferReg), GetRegisterName((UInt32)(transferReg + nCount)));
+							peekString = String.Format("STMIA {0}! {1}", GetRegisterName(baseReg), RegisterListToString(registerList, 8));
 							return;
 						}
 
@@ -1112,17 +1264,17 @@ namespace Gba.Core
 					{
 						if (peek)
 						{
-							peekString = String.Format("LDMIA {0}! {1}-{2}", GetRegisterName(baseReg), GetRegisterName(transferReg), GetRegisterName((UInt32)(transferReg + nCount)));
+							peekString = String.Format("LDMIA {0}! {1}", GetRegisterName(baseReg), RegisterListToString(registerList, 8));
 							return;
 						}
 
 						//Clock CPU and controllers - 1N
 						//clock(reg.r15, true);
 
-						// Cycle through the register list
+						// Walk the register list bitmask
 						for (UInt32 x = 0; x < 8; x++)
 						{
-							if ((registerList & 0x1) != 0)
+							if ((registerList & 1) != 0)
 							{
 								if ((x == transferReg) && (baseReg == transferReg)) { writeBack = false; }
 
