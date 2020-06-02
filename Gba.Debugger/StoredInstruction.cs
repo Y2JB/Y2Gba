@@ -7,16 +7,18 @@ namespace GbaDebugger
     // We can do more expensive processing in here as we only create these when a progam is being debugged
     public class StoredInstruction
     {
-        public string friendlyInstruction { get; set; }
+        public UInt32 RawInstruction { get; set; }
+        public string FriendlyInstruction { get; set; }
 
         // These methods are only used when peeking the instruction, not when exectuing as then the data needs to be fetched 
         public UInt32 PC { get; set; }
 
         //GameboyAdvance gba;
 
-        public StoredInstruction(string friendlyInstruction, UInt32 pc) 
+        public StoredInstruction(UInt32 rawInstruction, string friendlyInstruction, UInt32 pc) 
         {
-            this.friendlyInstruction = friendlyInstruction;
+            this.RawInstruction = rawInstruction;
+            this.FriendlyInstruction = friendlyInstruction;
             this.PC = pc;
         }
 
@@ -25,7 +27,7 @@ namespace GbaDebugger
         {
             //string instructionWithOperand = "UNFORMATED";
 
-            return String.Format("({0:X8})  ->  {1}", PC, friendlyInstruction);
+            return String.Format("({0:X8}) -> <{1:X8}> {2}", PC, RawInstruction, FriendlyInstruction);
         }
     }
 }

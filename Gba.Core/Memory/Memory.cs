@@ -10,7 +10,14 @@ namespace Gba.Core
 
         byte[] ioReg = new byte[1024];
 
-        public Memory(GameboyAdvance gba)
+		// External Work Ram
+		// Memory transfers to and from EWRAM are 16 bits wide and thus consume more cycles than necessary for 32 bit accesses
+		byte[] EWRam = new byte[1024 * 256];
+
+		// Internal Work Ram
+		byte[] IWRam = new byte[1024 * 32];
+
+		public Memory(GameboyAdvance gba)
         {
             this.gba = gba;
         }
@@ -18,11 +25,40 @@ namespace Gba.Core
 
         public byte ReadByte(UInt32 address)
         {
-            if(address >= 0x08000000 && address <= 0x09FFFFFF)
-            {
-                return gba.Rom.ReadByte(address - 0x08000000);
-            }
-            throw new ArgumentException("Bad Memory Read");
+			// ROM
+			if (address >= 0x08000000 && address <= 0x09FFFFFF)
+			{
+				return gba.Rom.ReadByte(address - 0x08000000);
+			}
+			// Fast Cpu linked RAM
+			else if (address >= 0x03000000 && address <= 0x03007FFF)
+			{
+				return IWRam[address - 0x03000000];
+			}
+			// RAM
+			else if (address >= 0x02000000 && address <= 0x0203FFFF)
+			{
+				return EWRam[address - 0x02000000];
+			}
+			// Palette Ram
+			else if (address >= 0x05000000 && address <= 0x050003FF)
+			{
+				throw new NotImplementedException();
+			}
+			// VRam
+			else if (address >= 0x06000000 && address <= 0x06017FFF)
+			{
+				throw new NotImplementedException();
+			}
+			// OAM Ram
+			else if (address >= 0x07000000 && address <= 0x07FFFFFF)
+			{
+				throw new NotImplementedException();
+			}
+			else
+			{
+				throw new ArgumentException("Bad Memory Read");
+			}
         }
 
 
@@ -44,24 +80,61 @@ namespace Gba.Core
         {
             if(address >= 0x04000000 && address <= 0x040003FE)
             {
-                ioReg[address - 0x04000000] = value;
+				// (REG_IME) Turns all interrupts on or off
+				if (address == 0x04000208)
+				{
+
+				}			
+				else
+				{
+					ioReg[address - 0x04000000] = value;
+				}
             }
+			// Fast Cpu linked RAM
+			else if (address >= 0x03000000 && address <= 0x03007FFF)
+			{
+				IWRam[address - 0x03000000] = value;
+			}
+			// RAM
+			else if (address >= 0x02000000 && address <= 0x0203FFFF)
+			{
+				EWRam[address - 0x02000000] = value;
+			}
+			// Palette Ram
+			else if (address >= 0x05000000 && address <= 0x050003FF)
+			{
+				throw new NotImplementedException();
+			}
+			// VRam
+			else if (address >= 0x06000000 && address <= 0x06017FFF)
+			{
+				throw new NotImplementedException();
+			}
+			// OAM Ram
+			else if (address >= 0x07000000 && address <= 0x07FFFFFF)
+			{
+				throw new NotImplementedException();
+			}
+			else
+            {
+				throw new ArgumentException("Bad Memory Write");
+			}
         }
 
 
         public void WriteHalfWord(UInt32 address, ushort value)
         {
             WriteByte(address, (byte)(value & 0x00ff));
-            WriteByte((ushort)(address + 1), (byte)((value & 0xff00) >> 8));
+            WriteByte((address + 1), (byte)((value & 0xff00) >> 8));
         }
 
 
         public void WriteWord(UInt32 address, UInt32 value)
         {
             WriteByte(address, (byte)(value & 0x00ff));
-            WriteByte((ushort)(address + 1), (byte)((value & 0xff00) >> 8));
-            WriteByte((ushort)(address + 2), (byte)((value & 0xff0000) >> 16));
-            WriteByte((ushort)(address + 3), (byte)((value & 0xff000000) >> 24));
+            WriteByte((address + 1), (byte)((value & 0xff00) >> 8));
+            WriteByte((address + 2), (byte)((value & 0xff0000) >> 16));
+            WriteByte((address + 3), (byte)((value & 0xff000000) >> 24));
         }
 
 

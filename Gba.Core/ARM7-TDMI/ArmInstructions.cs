@@ -63,18 +63,20 @@ namespace Gba.Core
 					if (((rawInstruction >> 5) & 0x3) == 0)
 					{
 						//ARM_12;
+						if (!peek) throw new NotImplementedException();
 					}
 
 					else
 					{
 						//ARM_10;
+						if (!peek) throw new NotImplementedException();
 					}
 				}
 
 				else
 				{
 					//ARM_6
-					psr_transfer(rawInstruction, peek);
+					PsrTransfer(rawInstruction, peek);
 				}
 			}
 
@@ -106,7 +108,7 @@ namespace Gba.Core
 					//ARM.7
 					else
 					{
-						//ARM_7;
+						if (!peek) throw new NotImplementedException();
 					}
 				}
 
@@ -125,12 +127,14 @@ namespace Gba.Core
 						else if (((rawInstruction >> 23) & 0x3) == 0x2)
 						{
 							//ARM_12;
+							if (!peek) throw new NotImplementedException();
 						}
 
 						//ARM.7
 						else
 						{
 							//ARM_7;
+							if (!peek) throw new NotImplementedException();
 						}
 					}
 
@@ -145,10 +149,10 @@ namespace Gba.Core
 					else
 					{
 						//ARM_10;
+						if (!peek) throw new NotImplementedException();
 					}
 				}
 
-				//ARM.5
 				else
 				{
 					//ARM_5
@@ -165,13 +169,14 @@ namespace Gba.Core
 			else if (((rawInstruction >> 25) & 0x7) == 0x4)
 			{
 				//ARM_11
-			
+				if (!peek) throw new NotImplementedException();
+
 			}
 
 			else if (((rawInstruction >> 24) & 0xF) == 0xF)
 			{
 				//ARM_13
-				
+				if (!peek) throw new NotImplementedException();
 			}
 		}
 
@@ -204,7 +209,7 @@ namespace Gba.Core
 				case 0x0:
 					if (peek)
 					{
-						peekString = String.Format("B {0:X}", final_addr);
+						peekString = String.Format("B ${0:X}", final_addr);
 						return;
 					}
 					else
@@ -229,7 +234,7 @@ namespace Gba.Core
 				case 0x1:
 					if (peek)
 					{
-						peekString = String.Format("BL {0:X}", final_addr);
+						peekString = String.Format("BL ${0:X}", final_addr);
 						return;
 					}
 					else
@@ -449,7 +454,7 @@ namespace Gba.Core
 				case 0x0:
 					if (peek)
 					{
-						peekString = String.Format("AND {0},{1:X}", GetRegisterName(destReg), operand);
+						peekString = String.Format("AND {0},${1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
@@ -464,7 +469,7 @@ namespace Gba.Core
 				case 0x1:
 					if (peek)
 					{
-						peekString = String.Format("EOR {0},{1:X}", GetRegisterName(destReg), operand);
+						peekString = String.Format("EOR {0},${1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
@@ -479,7 +484,7 @@ namespace Gba.Core
 				case 0x2:
 					if (peek)
 					{
-						peekString = String.Format("SUB {0},{1:X}", GetRegisterName(destReg), operand);
+						peekString = String.Format("SUB {0},${1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
@@ -494,7 +499,7 @@ namespace Gba.Core
 				case 0x3:
 					if (peek)
 					{
-						peekString = String.Format("RSB {0},{1:X}", GetRegisterName(destReg), operand);
+						peekString = String.Format("RSB {0},${1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
@@ -509,7 +514,7 @@ namespace Gba.Core
 				case 0x4:
 					if (peek)
 					{
-						peekString = String.Format("ADD {0},[{1:X},{2:X}]", GetRegisterName(destReg), input, operand);
+						peekString = String.Format("ADD {0},[${1:X},${2:X}]", GetRegisterName(destReg), input, operand);
 						return;
 					}
 
@@ -524,7 +529,7 @@ namespace Gba.Core
 				case 0x5:
 					if (peek)
 					{
-						peekString = String.Format("ADC {0},{1:X}", GetRegisterName(destReg), operand);
+						peekString = String.Format("ADC {0},${1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
@@ -541,7 +546,7 @@ namespace Gba.Core
 				case 0x6:
 					if (peek)
 					{
-						peekString = String.Format("SBC {0},{1:X}", GetRegisterName(destReg), operand);
+						peekString = String.Format("SBC {0},${1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
@@ -552,7 +557,7 @@ namespace Gba.Core
 
 					if (peek)
 					{
-						peekString = String.Format("SBC {0},{1:X}", GetRegisterName(destReg), result);
+						peekString = String.Format("SBC {0},${1:X}", GetRegisterName(destReg), result);
 						return;
 					}
 
@@ -567,7 +572,7 @@ namespace Gba.Core
 				case 0x7:
 					if (peek)
 					{
-						peekString = String.Format("RSC {0},{1:X}", GetRegisterName(destReg), operand);
+						peekString = String.Format("RSC {0},${1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
@@ -585,7 +590,7 @@ namespace Gba.Core
 				case 0x8:
 					if (peek)
 					{
-						peekString = String.Format("TST {0},{1:X}", GetRegisterName(srcReg), operand);
+						peekString = String.Format("TST {0},${1:X}", GetRegisterName(srcReg), operand);
 						return;
 					}
 
@@ -599,7 +604,7 @@ namespace Gba.Core
 				case 0x9:
 					if (peek)
 					{
-						peekString = String.Format("TEQ {0},{1:X}", GetRegisterName(srcReg), operand);
+						peekString = String.Format("TEQ {0},${1:X}", GetRegisterName(srcReg), operand);
 						return;
 					}
 					result = (input ^ operand);
@@ -612,7 +617,7 @@ namespace Gba.Core
 				case 0xA:
 					if (peek)
 					{
-						peekString = String.Format("CMP {0},{1:X}", GetRegisterName(srcReg), operand);
+						peekString = String.Format("CMP {0},${1:X}", GetRegisterName(srcReg), operand);
 						return;
 					}
 					result = (input - operand);
@@ -625,7 +630,7 @@ namespace Gba.Core
 				case 0xB:
 					if (peek)
 					{
-						peekString = String.Format("CMN {0},{1:X}", GetRegisterName(srcReg), operand);
+						peekString = String.Format("CMN {0},${1:X}", GetRegisterName(srcReg), operand);
 						return;
 					}
 
@@ -639,7 +644,7 @@ namespace Gba.Core
 				case 0xC:
 					if (peek)
 					{
-						peekString = String.Format("ORR {0},{1:X}", GetRegisterName(srcReg), operand);
+						peekString = String.Format("ORR {0},${1:X}", GetRegisterName(srcReg), operand);
 						return;
 					}
 
@@ -654,7 +659,7 @@ namespace Gba.Core
 				case 0xD:
 					if (peek)
 					{
-						peekString = String.Format("MOV {0},{1:X}", GetRegisterName(destReg), operand);
+						peekString = String.Format("MOV {0},${1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
@@ -669,7 +674,7 @@ namespace Gba.Core
 				case 0xE:
 					if (peek)
 					{
-						peekString = String.Format("BIC {0},{1:X}", GetRegisterName(destReg), operand);
+						peekString = String.Format("BIC {0},${1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
@@ -684,7 +689,7 @@ namespace Gba.Core
 				case 0xF:
 					if (peek)
 					{
-						peekString = String.Format("MVN {0},{1:X}", GetRegisterName(destReg), operand);
+						peekString = String.Format("MVN {0},${1:X}", GetRegisterName(destReg), operand);
 						return;
 					}
 
@@ -724,7 +729,7 @@ namespace Gba.Core
 		}
 
 		/****** ARM.6 PSR Transfer ******/
-		void psr_transfer(UInt32 rawInstruction, bool peek)
+		void PsrTransfer(UInt32 rawInstruction, bool peek)
 		{
 			//Determine if an immediate or a register will be used as input (MSR only) - Bit 25
 			bool useImmediate = ((rawInstruction & 0x2000000)!=0) ? true : false;
@@ -972,7 +977,7 @@ namespace Gba.Core
 			{
 				if (peek)
 				{
-					peekString = String.Format("STR {0} , [{1},{2:X}]", GetRegisterName(destReg), GetRegisterName(baseReg), baseOffset);
+					peekString = String.Format("STR {0} , [{1},${2:X}]", GetRegisterName(destReg), GetRegisterName(baseReg), baseOffset);
 					return;
 				}
 
@@ -1004,7 +1009,7 @@ namespace Gba.Core
 			{
 				if (peek)
 				{
-					peekString = String.Format("LDR {0} , [{1},{2:X}]", GetRegisterName(destReg), GetRegisterName(baseReg), baseOffset);
+					peekString = String.Format("LDR {0} , [{1},${2:X}]", GetRegisterName(destReg), GetRegisterName(baseReg), baseOffset);
 					return;
 				}
 
@@ -1067,210 +1072,6 @@ namespace Gba.Core
 			{
 				//Clock CPU and controllers - 1S
 				//clock(reg.r15, false);
-			}
-		}
-
-
-		// TODO: This will probably need to be unwound for speed!
-		UInt32 ExtractValue(UInt32 value, int startBit, int bitCount)
-        {
-			UInt32 mask;
-			mask = ((1U << bitCount) - 1U) << startBit;
-			return (UInt32) ((value & mask) >> startBit);
-		}
-
-
-		void UpdateFlagsForLogicOps(UInt32 result, byte shift_out)
-		{
-			// Negative
-			if ((result & 0x80000000) != 0) SetFlag(StatusFlag.Negative);
-			else ClearFlag(StatusFlag.Negative);
-
-			// Zero
-			if (result == 0) SetFlag(StatusFlag.Zero);
-			else ClearFlag(StatusFlag.Zero);
-
-			// Carry
-			if (shift_out == 1) SetFlag(StatusFlag.Carry);
-			else if (shift_out == 0) ClearFlag(StatusFlag.Carry);
-		}
-
-
-		void UpdateFlagsForArithmeticOps(UInt32 input, UInt32 operand, UInt32 result, bool addition)
-		{
-			// Negative
-			if ((result & 0x80000000)!= 0) SetFlag(StatusFlag.Negative);
-			else ClearFlag(StatusFlag.Negative);
-
-			// Zero
-			if (result == 0) SetFlag(StatusFlag.Zero);
-			else ClearFlag(StatusFlag.Zero);
-
-			//Carry - Addition
-			if ((operand > (0xFFFFFFFF - input)) && (addition)) SetFlag(StatusFlag.Carry);
-
-			//Carry - Subtraction
-			else if ((operand <= input) && (!addition)) SetFlag(StatusFlag.Carry);
-
-			else ClearFlag(StatusFlag.Carry);
-
-			//Overflow
-			byte inputMsb = (byte) (((input & 0x80000000)!=0) ? 1 : 0);
-			byte operandMsb = (byte) (((operand & 0x80000000) != 0) ? 1 : 0);
-			byte resultMsb = (byte) (((result & 0x80000000) != 0) ? 1 : 0);
-
-			if (addition)
-			{
-				if (inputMsb != operandMsb) ClearFlag(StatusFlag.Overflow);
-
-				else
-				{
-					if ((resultMsb == inputMsb) && (resultMsb == operandMsb)) ClearFlag(StatusFlag.Overflow);
-					else SetFlag(StatusFlag.Overflow);
-				}
-			}
-			else
-			{
-				if (inputMsb == operandMsb) ClearFlag(StatusFlag.Overflow);
-
-				else
-				{
-					if (resultMsb == operandMsb) SetFlag(StatusFlag.Overflow);
-					else ClearFlag(StatusFlag.Overflow);
-				}
-			}
-		}
-
-
-
-		// Performs 32-bit logical shift left - Returns Carry Out
-		byte LogicalShiftLeft(ref UInt32 input, byte offset)
-		{
-			byte carryOut = 0;
-
-			if (offset > 0)
-			{
-				//Test for carry
-				//Perform LSL #(n-1), if Bit 31 is 1, we know it will carry out
-				UInt32 carry_test = input << (offset - 1);
-				carryOut = (byte) (((carry_test & 0x80000000) != 0) ? 1 : 0);
-
-				if (offset >= 32) { input = 0; }
-				else { input <<= offset; }
-			}
-
-			//LSL #0
-			//No shift performed, carry flag not affected, set it to something not 0 or 1 to check!
-			else { carryOut = 2; }
-
-			return carryOut;
-		}
-
-		// Performs 32-bit logical shift right - Returns Carry Out
-		byte LogicalShiftRight(ref UInt32 input, byte offset)
-		{
-			byte carryOut = 0;
-
-			if (offset > 0)
-			{
-				//Test for carry
-				//Perform LSR #(n-1), if Bit 0 is 1, we know it will carry out
-				UInt32 carry_test = input >> (offset - 1);
-				carryOut = (byte)(((carry_test & 0x1) != 0) ? 1 : 0);
-
-				if (offset >= 32) { input = 0; }
-				else { input >>= offset; }
-			}
-
-			//LSR #0
-			//Same as LSR #32, input becomes zero, carry flag is Bit 31 of input
-			else
-			{
-				carryOut = (byte) (((input & 0x80000000) != 0) ? 1 : 0);
-				input = 0;
-			}
-
-			return carryOut;
-		}
-
-		// Performs 32-bit arithmetic shift right - Returns Carry Out
-		byte ArithmeticShiftRight(ref UInt32 input, byte offset)
-		{
-			byte carryOut = 0;
-
-			if (offset > 0)
-			{
-				byte high_bit = (byte) (((input & 0x80000000)!=0) ? 1 : 0);
-
-				//Basically LSR, but bits become Bit 31
-				for (int x = 0; x < offset; x++)
-				{
-					carryOut = (byte) (((input & 0x1) != 0) ? 1 : 0);
-					input >>= 1;
-					if (high_bit == 1) { input |= 0x80000000; }
-				}
-			}
-
-			//ASR #0
-			//Same as ASR #32, input becomes 0xFFFFFFFF or 0x0 depending on Bit 31 of input
-			//Carry flag set to 0 or 1 depending on Bit 31 of input
-			else
-			{
-				if ((input & 0x80000000) != 0) { input = 0xFFFFFFFF; carryOut = 1; }
-				else { input = 0; carryOut = 0; }
-			}
-
-			return carryOut;
-		}
-
-		// Performs 32-bit rotate right
-		public byte RotateRight(ref UInt32 input, byte offset)
-		{
-			byte carryOut = 0;
-
-			if (offset > 0)
-			{
-				//Perform ROR shift on immediate
-				for (int x = 0; x < offset; x++)
-				{
-					carryOut = (byte) (input & 0x1);
-					input >>= 1;
-
-					if (carryOut != 0) 
-					{ 
-						input |= 0x80000000; 
-					}
-				}
-			}
-
-			//ROR #0
-			//Same as RRX #1, which is similar to ROR #1, except Bit 31 now becomes the old carry flag
-			else
-			{
-				byte old_carry = (byte) (CarryFlag ? 1 : 0);
-				carryOut = (byte) (input & 0x1);
-				input >>= 1;
-
-				if (old_carry != 0) { input |= 0x80000000; }
-			}
-
-			return carryOut;
-		}
-
-
-		// Performs 32-bit rotate right - For ARM.5 Data Processing when Bit 25 is 1
-		void RotateRightSpecial(ref UInt32 input, byte offset)
-		{
-			if (offset > 0)
-			{
-				//Perform ROR shift on immediate
-				for (int x = 0; x < (offset * 2); x++)
-				{
-					byte carry_out = (byte) (input & 0x1);
-					input >>= 1;
-
-					if (carry_out != 0) { input |= 0x80000000; }
-				}
 			}
 		}
 

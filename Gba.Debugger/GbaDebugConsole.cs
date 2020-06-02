@@ -70,7 +70,7 @@ namespace GbaDebugger
             // SB : b $64 if [IO_LY] == 2
             //breakpoints.Add(new Breakpoint(0x0));
             breakpoints.Add(new Breakpoint(0x8000100));
-
+            breakpoints.Add(new Breakpoint(0x8000174));
 
             //breakpoints.Add(new Breakpoint(0x64, new ConditionalExpression(snes.memory, 0xFF44, ConditionalExpression.EqualityCheck.Equal, 143)));
 
@@ -172,8 +172,9 @@ namespace GbaDebugger
         // This is 'step over'
         bool NextCommand()
         {
-            //oneTimeBreakpoints.Add(new Breakpoint((ushort)(gba.Cpu.PC + 1 + NextInstructions[0].OperandLength)));
-            //EmulatorMode = Mode.Running;
+            UInt32 instrSize = (UInt32)(gba.Cpu.State == Cpu.CpuState.Arm ? 4 : 2);
+            oneTimeBreakpoints.Add(new Breakpoint(gba.Cpu.PC_Adjusted + instrSize));
+            EmulatorMode = Mode.Running;
             return true;
         }
 
@@ -198,7 +199,8 @@ namespace GbaDebugger
                 {
                     if (parameters.Length == 1)
                     {
-                        ConsoleAddString(String.Format("Ram[0x{0:X4}] == 0x{1:X2}", p1, gba.Memory.ReadByte(p1)));
+                        string memStr = String.Format("{0:X8} - {1:X2} {2:X2} {3:X2} {4:X2} {5:X2} {6:X2} {7:X2} {8:X2}", p1, gba.Memory.ReadByte(p1), gba.Memory.ReadByte(p1 + 1), gba.Memory.ReadByte(p1 + 2), gba.Memory.ReadByte(p1 + 3), gba.Memory.ReadByte(p1 + 4), gba.Memory.ReadByte(p1 + 5), gba.Memory.ReadByte(p1 + 6), gba.Memory.ReadByte(p1 + 7));
+                        ConsoleAddString(memStr);
                         return true;
                     }
                     else
@@ -466,7 +468,7 @@ namespace GbaDebugger
         public void OnPreBreakpointStep()
         {
             // Pop the current instruction and store it in our history 
-            executionHistory.Enqueue(new StoredInstruction(NextInstructions[0].friendlyInstruction, NextInstructions[0].PC));
+            executionHistory.Enqueue(new StoredInstruction(NextInstructions[0].RawInstruction, NextInstructions[0].FriendlyInstruction, NextInstructions[0].PC));
             NextInstructions.RemoveAt(0);
 
             // Only show last x instructions
@@ -497,21 +499,21 @@ namespace GbaDebugger
             // Inefficient but we are not running at this point so what the hell
             rawInstr = gba.Cpu.InstructionPipeline.ElementAt(0);
             instructionText = gba.Cpu.State == Cpu.CpuState.Arm ? gba.Cpu.PeekArmInstruction(rawInstr) : gba.Cpu.PeekThumbInstruction((ushort)rawInstr);
-            newInstruction = new StoredInstruction(instructionText, gba.Cpu.PC_Adjusted);
+            newInstruction = new StoredInstruction(rawInstr, instructionText, gba.Cpu.PC_Adjusted);
             NextInstructions.Add(newInstruction);
 
             adjust += instrSize;
 
             rawInstr = gba.Cpu.InstructionPipeline.ElementAt(1);
             instructionText = gba.Cpu.State == Cpu.CpuState.Arm ? gba.Cpu.PeekArmInstruction(rawInstr) : gba.Cpu.PeekThumbInstruction((ushort)rawInstr);
-            newInstruction = new StoredInstruction(instructionText, (UInt32) (gba.Cpu.PC_Adjusted + adjust));
+            newInstruction = new StoredInstruction(rawInstr, instructionText, (UInt32) (gba.Cpu.PC_Adjusted + adjust));
             NextInstructions.Add(newInstruction);
 
             adjust += instrSize;
 
             rawInstr = gba.Cpu.InstructionPipeline.ElementAt(2);
             instructionText = gba.Cpu.State == Cpu.CpuState.Arm ? gba.Cpu.PeekArmInstruction(rawInstr) : gba.Cpu.PeekThumbInstruction((ushort)rawInstr);
-            newInstruction = new StoredInstruction(instructionText, (UInt32)(gba.Cpu.PC_Adjusted + adjust));
+            newInstruction = new StoredInstruction(rawInstr, instructionText, (UInt32)(gba.Cpu.PC_Adjusted + adjust));
             NextInstructions.Add(newInstruction);
             /*
             UInt32 lookAheadBytes = 0;
