@@ -46,13 +46,13 @@ namespace Gba.Core
 			if (((rawInstruction >> 8) & 0xFFFFF) == 0x12FFF)
 			{
 				//ARM_3
-				DecodeBranchExchange(rawInstruction, peek);
+				BranchExchange(rawInstruction, peek);
 			}
 
 			else if (((rawInstruction >> 25) & 0x7) == 0x5)
 			{
 				//ARM_4
-				DecodeBranchLink(rawInstruction, peek);
+				BranchLink(rawInstruction, peek);
 			}		
 
 			else if ((rawInstruction & 0xD900000) == 0x1000000)
@@ -88,27 +88,27 @@ namespace Gba.Core
 					if ((rawInstruction & 0x2000000) != 0)
 					{
 						//instruction_operation[pipeline_id] = ARM_5;
-						DecodeDataProcessing(rawInstruction, peek);
+						DataProcessing(rawInstruction, peek);
 					}
 
 					//ARM.5
 					else if (((rawInstruction & 0x100000) != 0) && (((rawInstruction >> 23) & 0x3) == 0x2))
 					{
 						//ARM_5
-						DecodeDataProcessing(rawInstruction, peek);
+						DataProcessing(rawInstruction, peek);
 					}
 
 					//ARM.5
 					else if (((rawInstruction >> 23) & 0x3) != 0x2)
 					{
 						// ARM_5
-						DecodeDataProcessing(rawInstruction, peek);
+						DataProcessing(rawInstruction, peek);
 					}
 
 					//ARM.7
 					else
 					{
-						if (!peek) throw new NotImplementedException();
+						MultiplyAndMultiplyAccumulate(rawInstruction, peek);
 					}
 				}
 
@@ -120,7 +120,7 @@ namespace Gba.Core
 						if ((rawInstruction & 0x2000000) != 0)
 						{
 							//ARM_5
-							DecodeDataProcessing(rawInstruction, peek);
+							DataProcessing(rawInstruction, peek);
 						}
 
 						//ARM.12
@@ -134,7 +134,7 @@ namespace Gba.Core
 						else
 						{
 							//ARM_7;
-							if (!peek) throw new NotImplementedException();
+							MultiplyAndMultiplyAccumulate(rawInstruction, peek);
 						}
 					}
 
@@ -142,7 +142,7 @@ namespace Gba.Core
 					else if ((rawInstruction & 0x2000000) != 0)
 					{
 						//ARM_5
-						DecodeDataProcessing(rawInstruction, peek);
+						DataProcessing(rawInstruction, peek);
 					}
 
 					//ARM.10
@@ -156,14 +156,14 @@ namespace Gba.Core
 				else
 				{
 					//ARM_5
-					DecodeDataProcessing(rawInstruction, peek);
+					DataProcessing(rawInstruction, peek);
 				}
 			}
 
 			else if (((rawInstruction >> 26) & 0x3) == 0x1)
 			{
 				//ARM_9
-				DecodeSingleDataTransfer(rawInstruction, peek);
+				SingleDataTransfer(rawInstruction, peek);
 			}
 
 			else if (((rawInstruction >> 25) & 0x7) == 0x4)
@@ -180,7 +180,7 @@ namespace Gba.Core
 		}
 
 
-		void DecodeBranchLink(UInt32 current_arm_instruction, bool peek)
+		void BranchLink(UInt32 current_arm_instruction, bool peek)
 		{			
 			//Grab offset
 			UInt32 offset = (current_arm_instruction & 0xFFFFFF);
@@ -199,9 +199,6 @@ namespace Gba.Core
 
 			final_addr += offset;
 
-			// JB: Cpu.PC = Cpu.PC + 8 + (offset * 4);
-			//final_addr += 8;
-
 			switch (op)
 			{
 				//Branch
@@ -216,11 +213,9 @@ namespace Gba.Core
 						//Clock CPU and controllers - 1N
 						//clock(reg.r15, true);
 
-						// JB: -4 so the pipeline will pull in this instruction next
 						PC = (final_addr);
 
 						requestFlushPipeline = true;
-						//needs_flush = true;
 
 						//Clock CPU and controllers - 2S
 						//clock(reg.r15, false);
@@ -245,7 +240,6 @@ namespace Gba.Core
 						PC = final_addr;
 
 						requestFlushPipeline = true;
-						//needs_flush = true;
 
 						//Clock CPU and controllers - 2S
 						//clock(reg.r15, false);
@@ -259,7 +253,7 @@ namespace Gba.Core
 
 
 
-		void DecodeBranchExchange(UInt32 rawinstruction, bool peek)
+		void BranchExchange(UInt32 rawinstruction, bool peek)
 		{
 			// |_Cond__|0_0_0_1_0_0_1_0_1_1_1_1_1_1_1_1_1_1_1_1|0_0|L|1|__Rn___| BX,BLX
 
@@ -297,7 +291,6 @@ namespace Gba.Core
 						PC = result;
 
 						requestFlushPipeline = true;
-						//needs_flush = true;
 
 						//Clock CPU and controllers - 2S
 						//clock(reg.r15, false);
@@ -317,23 +310,21 @@ namespace Gba.Core
 
 
 		// ARM 5
-		void DecodeDataProcessing(UInt32 rawInstruction, bool peek)
+		void DataProcessing(UInt32 rawInstruction, bool peek)
 		{
-			//Determine if an immediate value or a register should be used as the operand
-			bool use_immediate = ((rawInstruction & 0x2000000)!=0) ? true : false;
+			// Determine if an immediate value or a register should be used as the operand
+			bool useImmediate = ((rawInstruction & 0x2000000)!=0) ? true : false;
 
-			//Determine if condition codes should be updated
+			// Determine if condition codes should be updated
 			bool setCondition = ((rawInstruction & 0x100000) != 0) ? true : false;
 
 			byte op = (byte)((rawInstruction >> 21) & 0xF);
 
-			//Grab source register
 			byte srcReg = (byte)((rawInstruction >> 16) & 0xF);
 
-			//Grab destination register
 			byte destReg = (byte)((rawInstruction >> 12) & 0xF);
 
-			//When use_immediate is 0, determine whether the register should be shifted by another register or an immediate
+			// When use_immediate is 0, determine whether the register should be shifted by another register or an immediate
 			bool shiftImmediate = ((rawInstruction & 0x10) != 0) ? false : true;
 
 			UInt32 result = 0;
@@ -341,17 +332,17 @@ namespace Gba.Core
 			UInt32 operand = 0;
 			byte shiftOut = 2;
 
-			//Use immediate as operand
-			if (use_immediate)
+			// Use immediate as operand
+			if (useImmediate)
 			{
 				operand = (rawInstruction & 0xFF);
 				byte offset = (byte)((rawInstruction >> 8) & 0xF);
 
-				//Shift immediate - ROR special case - Carry flag not affected
+				// Shift immediate - ROR special case - Carry flag not affected
 				RotateRightSpecial(ref operand, offset);
 			}
 
-			//Use register as operand
+			// Use register as operand
 			else
 			{
 				operand = GetRegisterValue(rawInstruction & 0xF);
@@ -364,7 +355,7 @@ namespace Gba.Core
 					offset = (byte)((rawInstruction >> 7) & 0x1F);
 				}
 
-				//Shift the register-operand by another register
+				// Shift the register-operand by another register
 				else
 				{
 					offset = (byte) (GetRegisterValue((UInt32)((rawInstruction >> 8) & 0xF)));
@@ -372,14 +363,14 @@ namespace Gba.Core
 					if (srcReg == 15) { input += 4; }
 					if ((rawInstruction & 0xF) == 15) { operand += 4; }
 
-					//Valid registers to shift by are R0-R14
+					// Valid registers to shift by are R0-R14
 					if (((rawInstruction >> 8) & 0xF) == 0xF) 
 					{
 						throw new ArgumentException("Data Processing: Bad Shift");
 					}
 				}
 
-				//Shift the register
+				// Shift the register
 				switch (shiftType)
 				{
 					//LSL
@@ -700,23 +691,25 @@ namespace Gba.Core
 					break;
 			}
 
-			//Timings for PC as destination register
+			// Timings for PC as destination register
 			if (destReg == 15)
 			{
 				//Clock CPU and controllers - 2S
-				//needs_flush = true;
+				requestFlushPipeline = true;
 				//clock(reg.r15, false);
 				//clock((reg.r15 + 4), false);
 
-				//Switch to THUMB mode if necessary
-				if (((R15 & 0x1)!= 0) || (State == CpuState.Thumb))
+				// Switch to THUMB mode if necessary
+				if (((PC & 0x1) != 0) || (State == CpuState.Thumb))
 				{
 					State = CpuState.Thumb;
-					CPSR |= 0x20;
-					R15 &= (UInt32)(~1U);
+					SetFlag(StatusFlag.ThumbExecution);
+					PC &= (UInt32)(~1U);
 				}
-
-				else { R15 &= (UInt32)(~3U); }
+				else 
+				{ 
+					PC &= (UInt32)(~3U); 
+				}
 			}
 
 			//Timings for regular registers
@@ -865,7 +858,7 @@ namespace Gba.Core
 								//std::cout << "CPU::Warning - ARM.6 Setting THUMB mode\n";
 								State = CpuState.Thumb;
 								PC &= ~0x1U;
-								//needs_flush = true;
+								requestFlushPipeline = true;
 							}
 						}
 						//Write into SPSR
@@ -891,8 +884,247 @@ namespace Gba.Core
 		}
 
 
+		// ARM.7 
+		void MultiplyAndMultiplyAccumulate(UInt32 rawInstruction, bool peek)
+		{
+			//TODO - Timings
+			//TODO - The rest of the opcodes
+			//TODO - Find out what GBATEK means when it says the carry flag is 'destroyed'.
+			//TODO - Set conditions
+
+			//Grab operand register Rm - Bits 0-3
+			byte opRmReg = (byte) ((rawInstruction) & 0xF);
+
+			//Grab operand register Rs - Bits 8-11
+			byte opRsReg = (byte) ((rawInstruction >> 8) & 0xF);
+
+			//Grab accumulate register Rn - Bits 12-15
+			byte accuReg = (byte) ((rawInstruction >> 12) & 0xF);
+
+			//Grab destination register Rd - Bits 16-19
+			byte destReg = (byte) ((rawInstruction >> 16) & 0xF);
+
+			//Determine if condition codes should be updated - Bit 20
+			bool setCondition = ((rawInstruction & 0x100000)!=0) ? true : false;
+
+			//Grab opcode - Bits 21-24
+			byte opCode = (byte) ((rawInstruction >> 21) & 0xF);
+
+			//Make sure no operand or destination register is R15
+			//if (op_rm_reg == 15) { std::cout << "CPU::Warning - ARM.7 R15 used as Rm\n"; }
+			//if (op_rs_reg == 15) { std::cout << "CPU::Warning - ARM.7 R15 used as Rs\n"; }
+			//if (accu_reg == 15) { std::cout << "CPU::Warning - ARM.7 R15 used as Rn\n"; }
+			//if (dest_reg == 15) { std::cout << "CPU::Warning - ARM.7 R15 used as Rd\n"; }
+
+			UInt32 Rm = GetRegisterValue(opRmReg);
+			UInt32 Rs = GetRegisterValue(opRsReg);
+			UInt32 Rn = GetRegisterValue(accuReg);
+			UInt32 Rd = GetRegisterValue(destReg);
+
+			UInt64 value_64 = 1;
+			UInt64 hiLo = 0;
+			Int64 value_s64 = 1;
+			UInt32 value_32 = 0;
+
+			//Perform multiplication ops
+			switch (opCode)
+			{
+				//MUL
+				case 0x0:
+					if (peek)
+					{
+						peekString = String.Format("MUL {0:X},{1:X},{2:X}", GetRegisterName(destReg), GetRegisterName(opRmReg), GetRegisterName(opRsReg));
+						return;
+					}
+
+					value_32 = (Rm * Rs);
+					SetRegisterValue(destReg, value_32);
+
+					if (setCondition)
+					{
+						//Negative flag
+						if ((value_32 & 0x80000000) != 0) SetFlag(StatusFlag.Negative);
+						else ClearFlag(StatusFlag.Negative);
+
+						//Zero flag
+						if (value_32 == 0) SetFlag(StatusFlag.Zero);
+						else ClearFlag(StatusFlag.Zero);
+					}
+
+					break;
+
+				//MLA
+				case 0x1:
+					if (peek)
+					{
+						peekString = String.Format("MLA {0:X},{1:X} (+{2:X})", GetRegisterName(destReg), GetRegisterName(opRsReg), GetRegisterName(accuReg));
+						return;
+					}
+
+					value_32 = (Rm * Rs) + Rn;
+					SetRegisterValue(destReg, value_32);
+
+					if (setCondition)
+					{
+						//Negative flag
+						if ((value_32 & 0x80000000) != 0) SetFlag(StatusFlag.Negative);
+						else ClearFlag(StatusFlag.Negative);
+
+						if (value_32 == 0) SetFlag(StatusFlag.Zero);
+						else ClearFlag(StatusFlag.Zero);
+					}
+
+					break;
+
+				//UMULL
+				case 0x4:
+					if (peek)
+					{
+						peekString = String.Format("UMULL {0:X}, (1:X)", GetRegisterName(destReg), GetRegisterName(accuReg));
+						return;
+					}
+
+					value_64 = (value_64 * Rm * Rs);
+
+					//Set Rn to low 32-bits, Rd to high 32-bits
+					Rn = (UInt32) (value_64 & 0xFFFFFFFF);
+					Rd = (UInt32) (value_64 >> 32);
+
+					SetRegisterValue(accuReg, Rn);
+					SetRegisterValue(destReg, Rd);
+
+					if (setCondition)
+					{
+						//Negative flag
+						if ((value_64 & 0x8000000000000000) != 0) SetFlag(StatusFlag.Negative);
+						else ClearFlag(StatusFlag.Negative);
+
+						//Zero flag
+						if (value_64 == 0) SetFlag(StatusFlag.Zero);
+						else ClearFlag(StatusFlag.Zero);
+					}
+
+					break;
+
+				//UMLAL
+				case 0x5:
+					if (peek)
+					{
+						peekString = String.Format("UMLAL {0:X}, (1:X)", GetRegisterName(destReg), GetRegisterName(accuReg));
+						return;
+					}
+
+					//This looks weird, but it is a workaround for compilers that support 64-bit unsigned ints, but complain about shifts greater than 32
+					hiLo = Rd;
+					hiLo <<= 16;
+					hiLo <<= 16;
+					hiLo |= Rn;
+
+					value_64 = (value_64 * Rm * Rs) + hiLo;
+
+					//Set Rn to low 32-bits, Rd to high 32-bits
+					Rn = (UInt32) (value_64 & 0xFFFFFFFF);
+					Rd = (UInt32) (value_64 >> 32);
+
+					SetRegisterValue(accuReg, Rn);
+					SetRegisterValue(destReg, Rd);
+
+					if (setCondition)
+					{
+						//Negative flag
+						if ((value_64 & 0x8000000000000000) != 0) SetFlag(StatusFlag.Negative);
+						else ClearFlag(StatusFlag.Negative);
+
+						//Zero flag
+						if (value_64 == 0) SetFlag(StatusFlag.Zero);
+						else ClearFlag(StatusFlag.Zero);
+					}
+
+					break;
+
+
+				//SMULL
+				case 0x6:
+					if (peek)
+					{
+						peekString = String.Format("SMULL {0:X}, (1:X)", GetRegisterName(destReg), GetRegisterName(accuReg));
+						return;
+					}
+
+					//Messy casting... It works though, and this is what we need
+					value_s64 = (value_s64 * (Int32)Rm * (Int32)Rs);
+					value_64 = (UInt64) value_s64;
+
+					//Set Rn to low 32-bits, Rd to high 32-bits
+					Rn = (UInt32) (value_s64 & 0xFFFFFFFF);
+					Rd = (UInt32) (value_s64 >> 32);
+
+					SetRegisterValue(accuReg, Rn);
+					SetRegisterValue(destReg, Rd);
+
+					if (setCondition)
+					{
+						//Negative flag
+						//if ((value_s64 & 0x8000000000000000) != 0) SetFlag(StatusFlag.Negative);
+						if (value_s64 < 0) SetFlag(StatusFlag.Negative);
+						else ClearFlag(StatusFlag.Negative);
+
+						//Zero flag
+						if (value_s64 == 0) SetFlag(StatusFlag.Zero);
+						else ClearFlag(StatusFlag.Zero);
+					}
+
+					break;
+
+				//SMLAL
+				case 0x7:
+					if (peek)
+					{
+						peekString = String.Format("SMLAL {0:X}, (1:X)", GetRegisterName(destReg), GetRegisterName(accuReg));
+						return;
+					}
+
+					//This looks weird, but it is a workaround for compilers that support 64-bit unsigned ints, but complain about shifts greater than 32
+					hiLo = Rd;
+					hiLo <<= 16;
+					hiLo <<= 16;
+					hiLo |= Rn;
+
+					//Messy casting... It works though, and this is what we need
+					value_s64 = (value_s64 * (Int32)Rm * (Int32)Rs) + (Int32)hiLo;
+					value_64 = (UInt64) value_s64;
+
+					//Set Rn to low 32-bits, Rd to high 32-bits
+					Rn = (UInt32) (value_s64 & 0xFFFFFFFF);
+					Rd = (UInt32) (value_s64 >> 32);
+
+					SetRegisterValue(accuReg, Rn);
+					SetRegisterValue(destReg, Rd);
+
+					if (setCondition)
+					{
+						//Negative flag
+						//if (((value_s64 & 0x8000000000000000) != 0) != 0) SetFlag(StatusFlag.Negative);
+						if (value_s64 < 0) SetFlag(StatusFlag.Negative);
+						else ClearFlag(StatusFlag.Negative);
+
+						//Zero flag
+						if (value_s64 == 0) SetFlag(StatusFlag.Zero);
+						else ClearFlag(StatusFlag.Zero);
+					}
+
+					break;
+
+
+				//default:
+				//	std::cout << "CPU::Warning:: - ARM.7 Invalid or unimplemented opcode : " << std::hex << (int)op_code << "\n"; std::cout << "OP -> 0x" << current_arm_instruction << "\n";
+				//	std::cout << "PC -> 0x" << std::hex << reg.r15 << "\n";
+			}
+		}
+
+
 		// ARM_9
-		void DecodeSingleDataTransfer(UInt32 current_arm_instruction, bool peek)
+		void SingleDataTransfer(UInt32 current_arm_instruction, bool peek)
         {
 			// Bit 25
 			byte offsetIsRegister = (byte) (((current_arm_instruction & 0x2000000) !=0) ? 1 : 0);
@@ -1063,7 +1295,7 @@ namespace Gba.Core
 				//Clock CPU and controllser - 2S
 				//clock(reg.r15, false);
 				//clock((reg.r15 + 4), false);
-				//needs_flush = true;
+				requestFlushPipeline = true;
 			}
 
 			//Timings for LDR - No PC
@@ -1282,7 +1514,7 @@ namespace Gba.Core
 
 
 
-			if (peek)
+			if (peek && registerList != 0)
 			{
 				if (loadStore == 0)
 				{
@@ -1423,6 +1655,25 @@ namespace Gba.Core
 			//Special case, empty RList
 			else
 			{
+				// JB: NB - This is different to how No$ does it and will result in different SP
+
+				if (peek)
+				{
+					if (loadStore == 0)
+					{
+
+						peekString = String.Format("PUSH {0}", "PC");
+						return;
+
+					}
+					else
+					{
+
+						peekString = String.Format("POP {0}", "PC");
+						return;
+					}
+				}
+
 				//Load R15
 				if (loadStore == 0) 
 				{ 

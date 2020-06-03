@@ -156,7 +156,7 @@ namespace Gba.Core
                 RefillPipeline();
             }
 
-
+            // Even if conditional prevented execution? 
             Cycle(1);
         }
 

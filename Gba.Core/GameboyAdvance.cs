@@ -51,10 +51,11 @@ namespace Gba.Core
         {
             Cpu.Step();
 
-            if (EmulatorTimer.ElapsedMilliseconds - oneSecondTimer >= 1000)
-            {
-                oneSecondTimer = EmulatorTimer.ElapsedMilliseconds;
-            }
+            // Expensive!
+            //if (EmulatorTimer.ElapsedMilliseconds - oneSecondTimer >= 1000)
+            //{
+            //    oneSecondTimer = EmulatorTimer.ElapsedMilliseconds;
+            //}
         }
     }
 }

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Gba.Core
 { 
-    public class Memory : IArmMemoryReaderWriter
+    public class Memory : IMemoryReaderWriter
     {
         GameboyAdvance gba;
 
@@ -17,6 +17,8 @@ namespace Gba.Core
 		// Internal Work Ram
 		byte[] IWRam = new byte[1024 * 32];
 
+		// VRam 96K
+		byte[] VRam = new byte[1024 * 96];
 
 		public Memory(GameboyAdvance gba)
         {
@@ -33,13 +35,32 @@ namespace Gba.Core
 			}
 			else if (address >= 0x04000000 && address <= 0x040003FE)
 			{
+				if (address == 0x4000004)
+				{
+					return gba.LcdController.DispStatRegister.Register0;
+				}
+				else if (address == 0x4000005)
+                {
+					return gba.LcdController.DispStatRegister.Register1;
+				}
+				// VCOUNT 
+				else if (address == 0x04000006)
+				{
+					return gba.LcdController.CurrentScanline;
+				}
+				else if (address == 0x04000007)
+				{
+					// High byte of current scanline is unused
+					return 0;
+				}
 				// (REG_IME) Turns all interrupts on or off
-				if (address == 0x04000208)
+				else if (address == 0x04000208)
 				{
 					return 0;
 				}
 				else
 				{
+					// TODO: this should throw?
 					return ioReg[address - 0x04000000];
 				}
 			}
@@ -92,7 +113,7 @@ namespace Gba.Core
         public void WriteByte(UInt32 address, byte value)
         {
             if(address >= 0x04000000 && address <= 0x040003FE)
-            {
+            {				
 				// (REG_IME) Turns all interrupts on or off
 				if (address == 0x04000208)
 				{
@@ -121,7 +142,7 @@ namespace Gba.Core
 			// VRam
 			else if (address >= 0x06000000 && address <= 0x06017FFF)
 			{
-				throw new NotImplementedException();
+				VRam[address - 0x06000000] = value;
 			}
 			// OAM Ram
 			else if (address >= 0x07000000 && address <= 0x07FFFFFF)

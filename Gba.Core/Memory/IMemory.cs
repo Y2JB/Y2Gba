@@ -2,22 +2,23 @@
 
 namespace Gba.Core
 {
+    /*
     // NB: Thumb Word is 16 bits
     public interface IThumbMemoryReader
     {
         byte ReadByte(UInt32 address);
         ushort ReadWord(UInt32 address);
     }
+    */
 
-
-    public interface IArmMemoryReader
+    public interface IMemoryReader
     {
         byte ReadByte(UInt32 address);
         ushort ReadHalfWord(UInt32 address);
         UInt32 ReadWord(UInt32 address);
     }
 
-    public interface IArmMemoryWriter
+    public interface IMemoryWriter
     {
         void WriteByte(UInt32 address, byte value);
         void WriteHalfWord(UInt32 address, ushort value);
@@ -25,7 +26,7 @@ namespace Gba.Core
     }
 
 
-    public interface IArmMemoryReaderWriter : IArmMemoryReader, IArmMemoryWriter
+    public interface IMemoryReaderWriter : IMemoryReader, IMemoryWriter
     {
     }
 

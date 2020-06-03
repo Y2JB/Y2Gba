@@ -19,7 +19,7 @@ namespace WinFormRender
         RichTextBox console = new RichTextBox();
         RichTextBox codeWnd = new RichTextBox();
         TextBox commandInput = new TextBox();
-        TextBox dmgSnapshot = new TextBox();
+        TextBox emuSnapshot = new TextBox();
         Button okButton = new Button();
 
         GameboyAdvance Gba;
@@ -72,13 +72,13 @@ namespace WinFormRender
             this.Controls.Add(commandInput);
             commandInput.Focus();
 
-            dmgSnapshot.Location = new System.Drawing.Point(console.Location.X + console.Width + 10, 10);
-            dmgSnapshot.Multiline = true;
-            dmgSnapshot.Width = 350;
-            dmgSnapshot.Height = 720;
-            dmgSnapshot.Enabled = false;
-            dmgSnapshot.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
-            this.Controls.Add(dmgSnapshot);
+            emuSnapshot.Location = new System.Drawing.Point(console.Location.X + console.Width + 10, 10);
+            emuSnapshot.Multiline = true;
+            emuSnapshot.Width = 350;
+            emuSnapshot.Height = 720;
+            emuSnapshot.Enabled = false;
+            emuSnapshot.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
+            this.Controls.Add(emuSnapshot);
 
             RefreshDmgSnapshot();
         }
@@ -86,18 +86,26 @@ namespace WinFormRender
 
         public void RefreshDmgSnapshot()
         {
-            dmgSnapshot.Text = String.Format("CPU State");
+            emuSnapshot.Text = String.Format("CPU State");
 
-            dmgSnapshot.AppendText(Environment.NewLine);
-            dmgSnapshot.AppendText((dbgConsole.EmulatorMode == GbaDebugConsole.Mode.BreakPoint) ? "BREAK" : "RUNNING");
+            // Emu State
+            emuSnapshot.AppendText(Environment.NewLine);
+            emuSnapshot.AppendText((dbgConsole.EmulatorMode == GbaDebugConsole.Mode.BreakPoint) ? "BREAK" : "RUNNING");
 
-            dmgSnapshot.AppendText(Environment.NewLine);
-            dmgSnapshot.AppendText((Gba.Cpu.State == Cpu.CpuState.Arm) ? "ARM" : "THUMB");
+            // Cpu State
+            emuSnapshot.AppendText(Environment.NewLine);
+            emuSnapshot.AppendText((Gba.Cpu.State == Cpu.CpuState.Arm) ? "ARM" : "THUMB");
 
-            dmgSnapshot.AppendText(Environment.NewLine);
-            dmgSnapshot.AppendText(Gba.Cpu.ToString());
+            // Registers
+            emuSnapshot.AppendText(Environment.NewLine);
+            emuSnapshot.AppendText(Gba.Cpu.ToString());
 
-           
+
+            // LCD 
+            string lcdState = String.Format("LCD: {0} ({1} / {2})", Gba.LcdController.Mode.ToString(),  Gba.LcdController.LcdCycles, Gba.LcdController.TotalTicksForState());
+            emuSnapshot.AppendText(Environment.NewLine);
+            emuSnapshot.AppendText(lcdState);
+
             RefreshConsoleText();
         }
 

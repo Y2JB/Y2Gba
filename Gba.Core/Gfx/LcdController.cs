@@ -19,7 +19,9 @@ namespace Gba.Core
         public const UInt32 VBlank_Length = 83776;          // ScanLine_Length * 68
         public const UInt32 ScreenRefresh_Length = 280896;  // VDraw_Length + VBlank_Length
 
-        public UInt32 CurrentScanline { get; private set; }
+        public DisplayStatusRegister DispStatRegister { get; private set; }
+
+        public byte CurrentScanline { get; private set; }
 
         public enum LcdMode
         {
@@ -29,7 +31,7 @@ namespace Gba.Core
         }
         public LcdMode Mode { get; private set; }
 
-        UInt32 lcdCycles;
+        public UInt32 LcdCycles { get; private set; }
 
         public Palettes Palettes { get; private set; }
 
@@ -44,6 +46,7 @@ namespace Gba.Core
         public LcdController(GameboyAdvance gba)
         {
             Gba = gba;
+            
         }
 
 
@@ -55,9 +58,10 @@ namespace Gba.Core
             drawBuffer = frameBuffer1;
 
             this.Palettes = new Palettes();
+            DispStatRegister = new DisplayStatusRegister(this);
 
             Mode = LcdMode.ScanlineRendering;
-            lcdCycles = 0;
+            LcdCycles = 0;
             CurrentScanline = 0;
         }
 
@@ -65,23 +69,23 @@ namespace Gba.Core
         // Step one cycle
         public void Step()
         {
-            lcdCycles++;
+            LcdCycles++;
 
             switch (Mode)
             {
                 case LcdMode.ScanlineRendering:
-                    if (lcdCycles >= HDraw_Length)
+                    if (LcdCycles >= HDraw_Length)
                     {
-                        lcdCycles -= HDraw_Length;
+                        LcdCycles -= HDraw_Length;
                         Mode = LcdMode.HBlank;
                     }
                     break;
 
 
                 case LcdMode.HBlank:
-                    if(lcdCycles >= HBlank_Length)
+                    if(LcdCycles >= HBlank_Length)
                     {
-                        lcdCycles -= HBlank_Length;
+                        LcdCycles -= HBlank_Length;
 
                         CurrentScanline++;
                         if (CurrentScanline == 160)
@@ -106,8 +110,11 @@ namespace Gba.Core
 
                             // lock to 60fps - 1000 / 60.0
                             double fps60 = 16.6666666;
+                            double frameTime = Gba.EmulatorTimer.Elapsed.TotalMilliseconds - lastFrameTime;
                             while (Gba.EmulatorTimer.Elapsed.TotalMilliseconds - lastFrameTime < fps60)
-                            { }
+                            {
+                                int x = 10;
+                            }
 
                             lastFrameTime = Gba.EmulatorTimer.Elapsed.TotalMilliseconds;
 
@@ -126,7 +133,7 @@ namespace Gba.Core
 
                 case LcdMode.VBlank:
 
-                    if(lcdCycles >= VBlank_Length)
+                    if(LcdCycles >= VBlank_Length)
                     {
                         // 160 + 68 lines per screen
                         if(CurrentScanline != 227)
@@ -134,7 +141,7 @@ namespace Gba.Core
                             throw new InvalidOperationException("LCD: Scanlines / cycles mismatch"); 
                         }
 
-                        lcdCycles -= VBlank_Length;
+                        LcdCycles -= VBlank_Length;
 
                         CurrentScanline = 0;
                         Mode = LcdMode.ScanlineRendering;
@@ -145,7 +152,7 @@ namespace Gba.Core
                     else
                     {
                         // We are within vblank
-                        if(lcdCycles % ScanLine_Length == 0)
+                        if(LcdCycles % ScanLine_Length == 0)
                         {
                             CurrentScanline++;
                         }
@@ -153,6 +160,21 @@ namespace Gba.Core
                     break;
           
             }
+        }
+
+        public UInt32 TotalTicksForState()
+        {
+            switch (Mode)
+            {
+                case LcdMode.HBlank:
+                    return HBlank_Length;
+                case LcdMode.VBlank:
+                    return VBlank_Length;
+                case LcdMode.ScanlineRendering:
+                    return ScanLine_Length;
+            }
+
+            throw new ArgumentException("bad mode");
         }
 
     }

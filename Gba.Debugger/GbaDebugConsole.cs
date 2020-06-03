@@ -69,12 +69,19 @@ namespace GbaDebugger
 
             // SB : b $64 if [IO_LY] == 2
             //breakpoints.Add(new Breakpoint(0x0));
-            breakpoints.Add(new Breakpoint(0x8000100));
-            breakpoints.Add(new Breakpoint(0x08000A0C));
-            breakpoints.Add(new Breakpoint(0x08000BCC));
+            //breakpoints.Add(new Breakpoint(0x8000100));
+            //breakpoints.Add(new Breakpoint(0x08000A0C));
+            //breakpoints.Add(new Breakpoint(0x08000BCC));
+
+            //breakpoints.Add(new Breakpoint(0x08000bcc));
 
             // Out of sync with IO registers!
-            breakpoints.Add(new Breakpoint(0x08000BD8));
+            //breakpoints.Add(new Breakpoint(0x08000BD8));
+
+            breakpoints.Add(new Breakpoint(0x08000FC8));
+
+            // SP has gone slightly wonky here compared to No$
+            breakpoints.Add(new Breakpoint(0x08000c00)); 
 
             //breakpoints.Add(new Breakpoint(0x64, new ConditionalExpression(snes.memory, 0xFF44, ConditionalExpression.EqualityCheck.Equal, 143)));
 
@@ -237,13 +244,13 @@ namespace GbaDebugger
                 return false;
             }
 
-            ushort p1 = 0;
+            UInt32 p1 = 0;
             bool parsedParams;
-            parsedParams = ParseUShortParameter(parameters[0], out p1);
+            parsedParams = ParseU32Parameter(parameters[0], out p1);
 
 
             // Parse condtiion
-            global::GbaDebugger.ConditionalExpression expression = null;
+           GbaDebugger.ConditionalExpression expression = null;
 
             /*
             if (parameters.Length > 1)
@@ -387,16 +394,16 @@ namespace GbaDebugger
 
 
         // Try to parse a base 10 or base 16 number from string
-        bool ParseUShortParameter(string p, out ushort value)
+        bool ParseU32Parameter(string p, out UInt32 value)
         {
-            if (ushort.TryParse(p, out value) == false)
+            if (UInt32.TryParse(p, out value) == false)
             {
                 // Is it hex?
                 if (p.StartsWith("0x", StringComparison.CurrentCultureIgnoreCase))
                 {
                     p = p.Substring(2);
                 }
-                return ushort.TryParse(p, NumberStyles.HexNumber, CultureInfo.CurrentCulture, out value);
+                return UInt32.TryParse(p, NumberStyles.HexNumber, CultureInfo.CurrentCulture, out value);
             }
             return true;
         }

@@ -21,10 +21,10 @@ namespace GbaDebugger
         UInt32 lhs, rhs;
         EqualityCheck equalitycheck;
 
-        IArmMemoryReaderWriter memory;
+        IMemoryReaderWriter memory;
 
 
-        public ConditionalExpression(IArmMemoryReaderWriter memory, UInt32 lhs, EqualityCheck op, UInt32 rhs)
+        public ConditionalExpression(IMemoryReaderWriter memory, UInt32 lhs, EqualityCheck op, UInt32 rhs)
         {
             this.memory = memory;
             this.lhs = lhs;
@@ -32,7 +32,7 @@ namespace GbaDebugger
             this.equalitycheck = op;
         }
 
-        public ConditionalExpression(IArmMemoryReaderWriter memory, string[] terms)
+        public ConditionalExpression(IMemoryReaderWriter memory, string[] terms)
         {
             this.memory = memory;
             if (terms.Length != 4)

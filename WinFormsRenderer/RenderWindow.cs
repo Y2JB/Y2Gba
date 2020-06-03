@@ -191,28 +191,24 @@ namespace WinFormRender
 
             while (IsApplicationIdle())
             {
-                if (timer.ElapsedMilliseconds - elapsedMs >= 1000)
-                {
-                    elapsedMs = timer.ElapsedMilliseconds;
-
-                    fps = framesDrawn;
-                    framesDrawn = 0;
-                }
-
-               
                 if (dbgConsole.EmulatorMode == GbaDebugConsole.Mode.Running)
                 {
-                    gba.Step();
-
-                    if (dbgConsole.CheckForBreakpoints())
+                    // Process several instructions before going to check the Windows message queue
+                    for (int i = 0; i < 512; i++)
                     {
-                        consoleWindow.RefreshDmgSnapshot();
+                        gba.Step();
+
+                        if (dbgConsole.CheckForBreakpoints())
+                        {
+                            consoleWindow.RefreshDmgSnapshot();
+                            break;
+                        }
                     }
                 }
 
                 else if (dbgConsole.EmulatorMode == GbaDebugConsole.Mode.BreakPoint)
                 {
-                    Thread.Sleep(10);
+                    Thread.Sleep(1);
                     if (dbgConsole.BreakpointStepAvailable)
                     {
                         dbgConsole.OnPreBreakpointStep();
@@ -222,8 +218,7 @@ namespace WinFormRender
                         consoleWindow.RefreshDmgSnapshot();
                         consoleWindow.RefreshConsoleText();
                     }
-                }              
-                
+                }
             }
         }
 
@@ -270,6 +265,14 @@ namespace WinFormRender
 
         private void Draw()
         {
+            if (timer.ElapsedMilliseconds - elapsedMs >= 1000)
+            {
+                elapsedMs = timer.ElapsedMilliseconds;
+
+                fps = framesDrawn;
+                framesDrawn = 0;
+            }
+
             /*
             // If the Bg viewer is open, then update it at 5fps
             if (bgWnd.Visible &&
