@@ -40,10 +40,10 @@ namespace Gba.Core
 
         public Palettes Palettes { get; private set; }
 
-        public Bitmap FrameBuffer { get; private set; }
-        Bitmap drawBuffer;
-        Bitmap frameBuffer0;
-        Bitmap frameBuffer1;
+        public DirectBitmap FrameBuffer { get; private set; }
+        DirectBitmap drawBuffer;
+        DirectBitmap frameBuffer0;
+        DirectBitmap frameBuffer1;
         double lastFrameTime;
 
         GameboyAdvance Gba { get; set; }
@@ -57,8 +57,8 @@ namespace Gba.Core
 
         public void Reset()
         {
-            frameBuffer0 = new Bitmap(Screen_X_Resolution, Screen_Y_Resolution);
-            frameBuffer1 = new Bitmap(Screen_X_Resolution, Screen_Y_Resolution);
+            frameBuffer0 = new DirectBitmap(Screen_X_Resolution, Screen_Y_Resolution);
+            frameBuffer1 = new DirectBitmap(Screen_X_Resolution, Screen_Y_Resolution);
             FrameBuffer = frameBuffer0;
             drawBuffer = frameBuffer1;
 

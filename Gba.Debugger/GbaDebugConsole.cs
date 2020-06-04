@@ -40,6 +40,7 @@ namespace GbaDebugger
             breakpoint,
             delete,
             mem,                            // mem 0 = read(0)   mem 0 10 = wrtie(0, 10)
+            dump,
             help,
             set,                            // set (register) n/nn
             ticks,
@@ -83,7 +84,9 @@ namespace GbaDebugger
             // SP has gone slightly wonky here compared to No$
             //breakpoints.Add(new Breakpoint(0x08000c00)); 
 
-            //breakpoints.Add(new Breakpoint(0x080010B4));
+            breakpoints.Add(new Breakpoint(0x08000A24));
+            breakpoints.Add(new Breakpoint(0x08000b90));
+            
 
             //breakpoints.Add(new Breakpoint(0x64, new ConditionalExpression(snes.memory, 0xFF44, ConditionalExpression.EqualityCheck.Equal, 143)));
 
@@ -149,6 +152,8 @@ namespace GbaDebugger
                 case ConsoleCommand.mem:
                     return MemCommand(parameters);
 
+                case ConsoleCommand.dump:
+                    return DumpCommand(parameters);
 
                 //case ConsoleCommand.set:
                 //    return SetCommand(parameters);
@@ -236,6 +241,30 @@ namespace GbaDebugger
             return false;
         }
 
+
+        bool DumpCommand(string[] parameters)
+        {
+            if (parameters.Length == 1)
+            {
+                switch(parameters[0])
+                {
+                    case "palettes":
+                        gba.LcdController.Palettes.DumpPaletteToPng(0);
+                        gba.LcdController.Palettes.DumpPaletteToPng(1);
+                        ConsoleAddString("Palettes dumped.");
+                        return true;
+
+                    case "tiles":
+                        throw new NotImplementedException();
+                        //ConsoleAddString("Tiles dumped.");
+                        //return true;
+                }
+            }
+
+            // Fail
+            ConsoleAddString(String.Format("dump usage: 'dump <item>'. Supported items 'palettes', 'tiles'"));
+            return false;
+        }
 
         // b 0xC06A if 0xff40 == 2
         bool BreakpointCommand(string[] parameters)

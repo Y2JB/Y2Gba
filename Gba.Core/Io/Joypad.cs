@@ -74,8 +74,8 @@ namespace Gba.Core
         GameboyAdvance gba;
         
 
-        UInt32 lastCpuTickCount;
-        UInt32 elapsedTicks;
+        //UInt32 lastCpuTickCount;
+        //UInt32 elapsedTicks;
 
 
         public Joypad(GameboyAdvance gba)

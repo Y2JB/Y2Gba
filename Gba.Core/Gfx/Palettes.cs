@@ -14,8 +14,8 @@ namespace Gba.Core
         public Palettes()
         {
             PaletteRam = new byte[1024];
-            Palette0 = new Color[0xFF];
-            Palette1 = new Color[0xFF];
+            Palette0 = new Color[512];
+            Palette1 = new Color[512];
         }
 
         public void SetPaletteEntry(int palette, int index, ushort colour)
@@ -34,18 +34,23 @@ namespace Gba.Core
         {
             PaletteRam[index] = b;
 
-            // Align to 2 byte boundary
-            UInt32 tileIndex = (index / 2);
+            if((index % 2) == 1)
+            {
+                index--;
+            }
 
-            ushort colour = (ushort)(PaletteRam[tileIndex] | (PaletteRam[tileIndex + 1] << 8));
+            ushort colour = (ushort)(PaletteRam[index] | (PaletteRam[index + 1] << 8));
+
+            // Align to 2 byte boundary
+            index /= 2;
 
             if (index < 512)
             {           
-                Palette0[tileIndex] = Colour555To888(colour);
+                Palette0[index] = Colour555To888(colour);
             }
             else
             {
-                Palette1[tileIndex - 512] = Colour555To888(colour);
+                Palette1[index - 512] = Colour555To888(colour);
             }
         }
 
@@ -54,10 +59,9 @@ namespace Gba.Core
         {
             // High bit is unused, make sure it's zero
             colour &= 0x7FFF;
-            byte r8 = (byte) (((((colour >> 10) & 0x10) * 527) + 23) >> 6);
-            byte g8 = (byte) (((((colour >> 5) & 0x10) * 527) + 23) >> 6);
-            byte b8 = (byte) ((((colour & 0x10) * 527) + 23) >> 6);
-
+            byte b8 = (byte) (255 / 31 * (colour >> 10));
+            byte g8 = (byte)(255 / 31 * ((colour & 0x3E0) >> 5));
+            byte r8 = (byte)(255 / 31 * (colour & 0x1F));
             return Color.FromArgb(255, r8, g8, b8);
         }
 
@@ -87,12 +91,12 @@ namespace Gba.Core
                 {
                     Pen pen = new Pen(Color.DarkRed, 0.5f);
 
-                    for (int x = 0; x < 8; x++)
+                    for (int x = 0; x <= 8; x++)
                     {
                         graphics.DrawLine(pen, x * Rect_Size, 0, x * Rect_Size, 256);
                     }
 
-                    for (int y = 0; y < 8; y++)
+                    for (int y = 0; y <= 8; y++)
                     {
                         graphics.DrawLine(pen, 0, y * Rect_Size, 256, y * Rect_Size);
                     }

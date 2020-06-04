@@ -26,7 +26,8 @@ namespace Gba.Core
         public CpuMode Mode { get; private set; }
 
         public const int Pipeline_Size = 3;
-        public Queue<UInt32> InstructionPipeline { get; private set; }
+        public UInt32[] InstructionPipeline { get; private set; }
+        int nextPipelineInsturction;
 
         bool requestFlushPipeline;
 
@@ -42,7 +43,7 @@ namespace Gba.Core
         {
             this.Gba = gba;
             Memory = gba.Memory;
-            InstructionPipeline = new Queue<UInt32>();
+            InstructionPipeline = new UInt32[Pipeline_Size];            
             RegisterConditionalHandlers();
         }
 
@@ -62,14 +63,17 @@ namespace Gba.Core
 
             Cycles = 0;
 
+            nextPipelineInsturction = 0;
             RefillPipeline();
         }
 
 
         // Throw away what's in the pipeline and refill before executing another instruction
         public void FlushPipeline()
-        {
-            InstructionPipeline.Clear();
+        {            
+            InstructionPipeline[0] = 0;
+            InstructionPipeline[1] = 0;
+            InstructionPipeline[2] = 0;
         }
 
 
@@ -77,26 +81,23 @@ namespace Gba.Core
         // If a branch or some other op has invalidated the pipeline, refill it fro scratch before we execute anything else
         public void RefillPipeline()
         {
-            if (InstructionPipeline.Count != 0)
-            {
-                throw new ArgumentException("Refill but pipeline isn't empty??");
-            }
+            nextPipelineInsturction = 0;
 
             if (State == CpuState.Thumb)
             {
-                InstructionPipeline.Enqueue(Gba.Memory.ReadHalfWord(PC));
+                InstructionPipeline[0] = Gba.Memory.ReadHalfWord(PC);
                 PC += 2;
-                InstructionPipeline.Enqueue(Gba.Memory.ReadHalfWord(PC));
+                InstructionPipeline[1] = Gba.Memory.ReadHalfWord(PC);
                 PC += 2;
-                InstructionPipeline.Enqueue(Gba.Memory.ReadHalfWord(PC));                
+                InstructionPipeline[2] = Gba.Memory.ReadHalfWord(PC);
             }
             else
             {
-                InstructionPipeline.Enqueue(Gba.Memory.ReadWord(PC));
+                InstructionPipeline[0] = Gba.Memory.ReadWord(PC);
                 PC += 4;
-                InstructionPipeline.Enqueue(Gba.Memory.ReadWord(PC));
+                InstructionPipeline[1] = Gba.Memory.ReadWord(PC);
                 PC += 4;
-                InstructionPipeline.Enqueue(Gba.Memory.ReadWord(PC));
+                InstructionPipeline[2] = Gba.Memory.ReadWord(PC);
             }
         }
 
@@ -104,18 +105,20 @@ namespace Gba.Core
         // After an instruction executes we move the pieline forward one instruction
         public void PipelineAdvance()
         {
+            // nextPipelineInsturction becomes the back of the queue, then we adjust it
             if (State == CpuState.Thumb)
             {
                 PC += 2U;
-                InstructionPipeline.Enqueue(Gba.Memory.ReadHalfWord(PC));
+                InstructionPipeline[nextPipelineInsturction] = Gba.Memory.ReadHalfWord(PC);
             }
             else
             {
                 PC += 4U;
-                InstructionPipeline.Enqueue(Gba.Memory.ReadWord(PC));
+                InstructionPipeline[nextPipelineInsturction] = Gba.Memory.ReadWord(PC);
             }
-                
-                     
+
+            nextPipelineInsturction++;
+            if (nextPipelineInsturction >= Pipeline_Size) nextPipelineInsturction = 0;
         }
 
 
@@ -138,11 +141,11 @@ namespace Gba.Core
         {
             if (State == CpuState.Thumb)
             {
-                DecodeAndExecuteThumbInstruction((ushort)InstructionPipeline.Dequeue());
+                DecodeAndExecuteThumbInstruction((ushort)InstructionPipeline[nextPipelineInsturction]);
             }
             else
             {
-                DecodeAndExecuteArmInstruction(InstructionPipeline.Dequeue());
+                DecodeAndExecuteArmInstruction(InstructionPipeline[nextPipelineInsturction]);
             }
 
 

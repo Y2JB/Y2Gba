@@ -198,6 +198,7 @@ namespace WinFormRender
                     {
                         gba.Step();
 
+
                         if (dbgConsole.CheckForBreakpoints())
                         {
                             consoleWindow.RefreshDmgSnapshot();
@@ -241,7 +242,7 @@ namespace WinFormRender
                     lock (gba.FrameBuffer)
                     {
                     
-                        gfxBuffer.Graphics.DrawImage(gba.FrameBuffer, gameRect);
+                        gfxBuffer.Graphics.DrawImage(gba.FrameBuffer.Bitmap, gameRect);
 
 
                         // Only show fps if we are dipping and then use a colour code

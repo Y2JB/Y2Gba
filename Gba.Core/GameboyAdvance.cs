@@ -19,7 +19,7 @@ namespace Gba.Core
 
 
         // Renderer hooks
-        public Bitmap FrameBuffer { get { return LcdController.FrameBuffer; } }
+        public DirectBitmap FrameBuffer { get { return LcdController.FrameBuffer; } }
         public Action OnFrame { get; set; }
 
         public bool PoweredOn { get; private set; }
@@ -38,6 +38,7 @@ namespace Gba.Core
 
             this.Rom = new Rom("../../../../roms/armwrestler.gba");
             //this.Rom = new Rom("../../../../roms/NCE-heart.gba");
+            //this.Rom = new Rom("../../../../roms/Super Dodgeball Advance.gba");
             
             this.Memory = new Memory(this);
             this.Cpu = new Cpu(this);

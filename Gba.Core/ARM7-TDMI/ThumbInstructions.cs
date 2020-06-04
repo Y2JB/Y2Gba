@@ -69,9 +69,8 @@ namespace Gba.Core
 				if ((rawInstruction & 0x200) != 0)
 				{
 					//THUMB_8
-					throw new NotImplementedException();
+					LoadStoreSignExtended(rawInstruction, peek);
 				}
-
 				else
 				{
 					//THUMB_7
@@ -88,25 +87,25 @@ namespace Gba.Core
 			else if ((rawInstruction >> 12) == 0x8)
 			{
 				//THUMB_10
-				if (!peek) throw new NotImplementedException();
+				LoadStoreHalfword(rawInstruction, peek);
 			}
 
 			else if ((rawInstruction >> 12) == 0x9)
 			{
 				//THUMB_11
-				if (!peek) throw new NotImplementedException();
+				LoadStoreSpRelative(rawInstruction, peek);
 			}
 
 			else if ((rawInstruction >> 12) == 0xA)
 			{
 				//THUMB_12
-				if (!peek) throw new NotImplementedException();
+				GetRelativeAddress(rawInstruction, peek);
 			}
 
 			else if ((rawInstruction >> 8) == 0xB0)
 			{
 				//THUMB_13
-				if (!peek) throw new NotImplementedException();
+				AddOffsetSp(rawInstruction, peek);
 			}
 
 			else if ((rawInstruction >> 12) == 0xB)
@@ -130,7 +129,7 @@ namespace Gba.Core
 			else if ((rawInstruction >> 11) == 0x1C)
 			{
 				//THUMB_18
-				throw new NotImplementedException();
+				UnconditionalBranch(rawInstruction, peek);
 			}
 
 			else if ((rawInstruction >> 11) >= 0x1E)
@@ -992,6 +991,567 @@ namespace Gba.Core
 		}
 
 
+		// THUMB.7 
+		// __7_|_0___1___0___1_|__Op___|_0_|___Ro______|____Rb_____|____Rd_____|LDR/STR
+		void LoadStoreRegOffset(ushort rawInstruction, bool peek)
+		{
+			// Bits 0-2
+			byte srcDestReg = (byte)(rawInstruction & 0x7);
+
+			// Bits 3-5
+			byte baseReg = (byte)((rawInstruction >> 3) & 0x7);
+
+			// Bits 6-8
+			byte offsetReg = (byte)((rawInstruction >> 6) & 0x7);
+
+			// Bits 10-11
+			byte op = (byte)((rawInstruction >> 10) & 0x3);
+
+			UInt32 value = 0;
+			UInt32 opAddr = GetRegisterValue(baseReg) + GetRegisterValue(offsetReg);
+
+			//Perform Load-Store ops
+			switch (op)
+			{
+				//STR
+				case 0x0:
+					if (peek)
+					{
+						peekString = String.Format("STR {0},{1}", GetRegisterName(srcDestReg), GetRegisterName(opAddr));
+						return;
+					}
+
+					//Clock CPU and controllers - 1N
+					//clock(reg.r15, true);
+
+					//Clock CPU and controllers - 1N
+					value = GetRegisterValue(srcDestReg);
+					//mem->write_u32(op_addr, value);
+					Memory.WriteWord(opAddr, value);
+					//clock(op_addr, true);
+
+					break;
+
+				//STRB
+				case 0x1:
+					if (peek)
+					{
+						peekString = String.Format("STRB {0},{1}", GetRegisterName(srcDestReg), GetRegisterName(opAddr));
+						return;
+					}
+
+					//Clock CPU and controllers - 1N
+					//clock(reg.r15, true);
+
+					//Clock CPU and controllers - 1N
+					value = GetRegisterValue(srcDestReg);
+					value &= 0xFF;
+					//mem_check_8(op_addr, value, false);
+					Memory.WriteByte(opAddr, (byte)value);
+					//clock(op_addr, true);
+
+					break;
+
+				//LDR
+				case 0x2:
+					if (peek)
+					{
+						peekString = String.Format("LDR {0},[${1:X}]", GetRegisterName(srcDestReg), opAddr);
+						return;
+					}
+
+					//Clock CPU and controllers - 1N
+					//clock(reg.r15, true);
+
+					//Clock CPU and controllers - 1I
+					//mem_check_32(op_addr, value, true);
+					value = Memory.ReadWord(opAddr);
+					//clock();
+
+					//Clock CPU and controllers - 1S
+					SetRegisterValue(srcDestReg, value);
+					//clock((reg.r15 + 2), false);
+
+					break;
+
+				//LDRB
+				case 0x3:
+					if (peek)
+					{
+						peekString = String.Format("LDRB {0},[${1:X}]", GetRegisterName(srcDestReg), opAddr);
+						return;
+					}
+					//Clock CPU and controllers - 1N
+					//clock(reg.r15, true);
+
+					//Clock CPU and controllers - 1I
+					//mem_check_8(op_addr, value, true);
+					value = Memory.ReadByte(opAddr);
+					//clock();
+
+					//Clock CPU and controllers - 1S
+					SetRegisterValue(srcDestReg, value);
+					//clock((reg.r15 + 2), false);
+
+					break;
+			}
+		}
+
+		// THUMB.8 
+		void LoadStoreSignExtended(ushort rawInstruction, bool peek)
+		{
+			// Bits 0-2
+			byte srcDestReg = (byte) (rawInstruction & 0x7);
+
+			// Bits 3-5
+			byte baseReg = (byte) ((rawInstruction >> 3) & 0x7);
+
+			// Bits 6-8
+			byte offsetReg = (byte) ((rawInstruction >> 6) & 0x7);
+
+			// Bits 10-11
+			byte op = (byte) ((rawInstruction >> 10) & 0x3);
+
+			UInt32 value = 0;
+			UInt32 opAddr = GetRegisterValue(baseReg) + GetRegisterValue(offsetReg);
+
+			//Perform Load-Store ops
+			switch (op)
+			{
+				//STRH
+				case 0x0:
+					if (peek)
+					{
+						peekString = String.Format("STRH {0}, ({1} + {2})", GetRegisterName(srcDestReg), GetRegisterName(baseReg), GetRegisterName(offsetReg));
+						return;
+					}
+					//Clock CPU and controllers - 1N
+					//clock(reg.r15, true);
+
+					//Clock CPU and controllers - 1N
+					value = GetRegisterValue(srcDestReg);
+					value &= 0xFFFF;
+					//mem_check_16(op_addr, value, false);
+					Memory.WriteHalfWord(opAddr, (ushort) value);
+					//clock(reg.r15, true);
+					break;
+
+				//LDSB
+				case 0x1:
+					if (peek)
+					{
+						peekString = String.Format("LDSB {0}, ({1} + {2})", GetRegisterName(srcDestReg), GetRegisterName(baseReg), GetRegisterName(offsetReg));
+						return;
+					}
+					//Clock CPU and controllers - 1N
+					//clock(reg.r15, true);
+
+					//Clock CPU and controllers - 1I
+					//value = mem->read_u8(op_addr);
+					value = Memory.ReadByte(opAddr);
+					//clock();
+
+					// Sign extend from Bit 7
+					if ((value & 0x80) != 0) 
+					{ 
+						value |= 0xFFFFFF00; 
+					}
+
+					// Clock CPU and controllers - 1S
+					SetRegisterValue(srcDestReg, value);
+					//clock((reg.r15 + 2), false);
+					break;
+
+				//LDRH
+				case 0x2:
+					if (peek)
+					{
+						peekString = String.Format("LDRH {0}, ({1} + {2})", GetRegisterName(srcDestReg), GetRegisterName(baseReg), GetRegisterName(offsetReg));
+						return;
+					}
+					//Since value is u32 and 0, it is already zero-extended :)
+
+					//Clock CPU and controllers - 1N
+					//clock(reg.r15, true);
+
+					//Clock CPU and controllers - 1I
+					//mem_check_16(op_addr, value, true);
+					value = Memory.ReadHalfWord(opAddr);
+					//clock();
+
+					//Clock CPU and controllers - 1S
+					SetRegisterValue(srcDestReg, value);
+					//clock((reg.r15 + 2), false);
+					break;
+
+				//LDSH
+				case 0x3:
+					if (peek)
+					{
+						peekString = String.Format("LDSH {0}, ({1} + {2})", GetRegisterName(srcDestReg), GetRegisterName(baseReg), GetRegisterName(offsetReg));
+						return;
+					}
+					//Clock CPU and controllers - 1N
+					//clock(reg.r15, true);
+
+					//Clock CPU and controllers - 1I
+					//mem_check_16(op_addr, value, true);
+					value = Memory.ReadHalfWord(opAddr);
+					//clock();
+
+					//Sign extend from Bit 15
+					if ((value & 0x8000) != 0) 
+					{ 
+						value |= 0xFFFF0000; 
+					}
+
+					//Clock CPU and controllers - 1S
+					SetRegisterValue(srcDestReg, value);
+					//clock((reg.r15 + 2), false);
+					break;
+			}
+		}
+
+
+		// THUMB.9
+		// __9_|_0___1___1_|__Op___|_______Offset______|____Rb_____|____Rd_____|""{B}
+		void LoadStoreImmediateOffset(ushort rawInstruction, bool peek)
+		{
+			// Bits 0-2
+			byte srcDestReg = (byte)(rawInstruction & 0x7);
+
+			// Bits 3-5
+			byte baseReg = (byte)((rawInstruction >> 3) & 0x7);
+
+			// Bits 6-10
+			ushort offset = (byte)((rawInstruction >> 6) & 0x1F);
+
+			// Bits 11-12
+			byte op = (byte)((rawInstruction >> 11) & 0x3);
+
+			UInt32 value = 0;
+			UInt32 opAddr = GetRegisterValue(baseReg);
+
+			switch (op)
+			{
+				// STR
+				case 0x0:
+					//Clock CPU and controllers - 1N
+					value = GetRegisterValue(srcDestReg);
+					offset <<= 2;
+					opAddr += offset;
+					//clock(reg.r15, true);
+
+					if (peek)
+					{
+						peekString = String.Format("STR {0}, [{1} + ${2}]", GetRegisterName(srcDestReg), GetRegisterName(baseReg), offset);
+						return;
+					}
+
+					//Clock CPU and controllers - 1N
+					//mem_check_32(op_addr, value, false);
+					Memory.WriteWord(opAddr, value);
+					//clock(op_addr, true);
+
+					break;
+
+				// LDR
+				case 0x1:
+					//Clock CPU and controllers - 1N
+					offset <<= 2;
+					opAddr += offset;
+					//clock(reg.r15, true);
+
+					if (peek)
+					{
+						peekString = String.Format("LDR {0}, [{1} + ${2}]", GetRegisterName(srcDestReg), GetRegisterName(baseReg), offset);
+						return;
+					}
+
+					//Clock CPU and controllers - 1I
+					//mem_check_32(op_addr, value, true);
+					value = Memory.ReadWord(opAddr);
+					//clock();
+
+					//Clock CPU and controllers - 1S
+					SetRegisterValue(srcDestReg, value);
+					//clock((reg.r15 + 2), false);
+
+					break;
+
+				// STRB
+				case 0x2:
+					//Clock CPU and controllers - 1N
+					value = GetRegisterValue(srcDestReg);
+					opAddr += offset;
+					//clock(reg.r15, true);
+
+					if (peek)
+					{
+						peekString = String.Format("STR {0}, [{1} + ${2}]", GetRegisterName(srcDestReg), GetRegisterName(baseReg), offset);
+						return;
+					}
+
+					//Clock CPU and controllers - 1N
+					//mem_check_8(op_addr, value, false);
+					Memory.WriteByte(opAddr, (byte)value);
+					//clock(op_addr, true);
+
+					break;
+
+				// LDRB
+				case 0x3:
+					//Clock CPU and controllers - 1N
+					opAddr += offset;
+					//clock(reg.r15, true);
+
+					if (peek)
+					{
+						peekString = String.Format("LDR {0}, [{1} + ${2}]", GetRegisterName(srcDestReg), GetRegisterName(baseReg), offset);
+						return;
+					}
+
+					//Clock CPU and controllers - 1I
+					//mem_check_8(op_addr, value, true);
+					value = Memory.ReadByte(opAddr);
+					//clock();
+
+					//Clock CPU and controllers - 1S
+					SetRegisterValue(srcDestReg, value);
+					//clock((reg.r15 + 2), false);
+
+					break;
+			}
+		}
+
+
+		// THUMB.10 
+		void LoadStoreHalfword(ushort rawInstruction, bool peek)
+		{
+			// Bits 0-2
+			byte srcDestReg = (byte) (rawInstruction & 0x7);
+
+			// Bits 3-5
+			byte baseReg = (byte) ((rawInstruction >> 3) & 0x7);
+
+			// Bits 6-10
+			ushort offset = (ushort) ((rawInstruction >> 6) & 0x1F);
+
+			// Bit 11
+			byte op = (byte) (((rawInstruction & 0x800) != 0) ? 1 : 0);
+
+			UInt32 value = 0;
+			UInt32 opAddr = GetRegisterValue(baseReg);
+
+			offset <<= 1;
+			opAddr += offset;
+
+			//Perform Load-Store ops
+			switch (op)
+			{
+				//STRH
+				case 0x0:
+					if (peek)
+					{
+						peekString = String.Format("STRh {0}, {1}", GetRegisterName(baseReg), GetRegisterName(srcDestReg));
+						return;
+					}
+
+					//Clock CPU and controllers - 1N
+					//clock(reg.r15, true);
+
+					//Clock CPU and controllers - 1N
+					value = GetRegisterValue(srcDestReg);
+					//mem_check_16(op_addr, value, false);
+					Memory.WriteHalfWord(opAddr, (ushort) value);
+					//clock(op_addr, true);
+
+					break;
+
+				//LDRH
+				case 0x1:
+					if (peek)
+					{
+						peekString = String.Format("LDRh {0}, {1}", GetRegisterName(srcDestReg), GetRegisterName(baseReg));
+						return;
+					}
+
+					//Clock CPU and controllers - 1N
+					//clock(reg.r15, true);
+
+					//Clock CPU and controllers - 1I
+					//mem_check_16(op_addr, value, true);
+					value = Memory.ReadHalfWord(opAddr);
+					//clock();
+
+					//Clock CPU and controllers - 1S
+					SetRegisterValue(srcDestReg, value);
+					//clock((reg.r15 + 2), false);
+
+					break;
+			}
+		}
+
+
+		// THUMB.11
+		void LoadStoreSpRelative(ushort rawInstruction, bool peek)
+		{
+			// Bits 0-7
+			ushort offset = (ushort) (rawInstruction & 0xFF);
+
+			// Bits 8-10
+			byte srcDestReg = (byte) ((rawInstruction >> 8) & 0x7);
+
+			// Bit 11
+			byte op = (byte) (((rawInstruction & 0x800)!= 0) ? 1 : 0);
+
+			UInt32 value = 0;
+			UInt32 opAddr = SP;
+
+			offset <<= 2;
+			opAddr += offset;
+
+			//Perform Load-Store ops
+			switch (op)
+			{
+				//STR
+				case 0x0:
+					if (peek)
+					{
+						peekString = String.Format("STR SP,{0}", GetRegisterName(srcDestReg));
+						return;
+					}
+
+					//Clock CPU and controllers - 1N
+					//clock(reg.r15, true);
+
+					//Clock CPU and controllers - 1N
+					value = GetRegisterValue(srcDestReg);
+					//mem_check_32(op_addr, value, false);
+					Memory.WriteWord(opAddr, value);
+					//clock(op_addr, true);
+
+					break;
+
+				//LDR
+				case 0x1:
+					if (peek)
+					{
+						peekString = String.Format("LDR {0},SP", GetRegisterName(srcDestReg));
+						return;
+					}
+					//Clock CPU and controllers - 1N
+					//clock(reg.r15, true);
+
+					//Clock CPU and controllers - 1I
+					//mem_check_32(op_addr, value, true);
+					value = Memory.ReadWord(opAddr);
+					//clock();
+
+					//Clock CPU and controllers - 1S
+					SetRegisterValue(srcDestReg, value);
+					//clock((reg.r15 + 2), false);
+
+					break;
+			}
+		}
+
+
+		// THUMB.12
+		void GetRelativeAddress(ushort rawInstruction, bool peek)
+		{
+			// Bits 0-7
+			ushort offset = (ushort) (rawInstruction & 0xFF);
+
+			// Bits 8-10
+			byte dest_reg = (byte) ((rawInstruction >> 8) & 0x7);
+
+			// Bit 11
+			byte op = (byte) (((rawInstruction & 0x800) != 0) ? 1 : 0);
+
+			UInt32 value = 0;
+			offset <<= 2;
+
+			//Perform get relative address ops
+			switch (op)
+			{
+				//Rd = PC + nn
+				case 0x0:
+					if (peek)
+					{
+						peekString = String.Format("ADD {0}, (PC + {1})", GetRegisterName(dest_reg), offset);
+						return;
+					}
+
+					value = (UInt32) ((PC & ~0x2) + offset);
+					SetRegisterValue(dest_reg, value);
+					break;
+
+				//Rd = SP + nn
+				case 0x1:
+					if (peek)
+					{
+						peekString = String.Format("ADD {0}, (SP + {1})", GetRegisterName(dest_reg), offset);
+						return;
+					}
+
+					value = SP + offset;
+					SetRegisterValue(dest_reg, value);
+					break;
+			}
+
+			//Clock CPU and controllers - 1S
+			//clock(reg.r15, false);
+		}
+
+
+		// THUMB.13
+		void AddOffsetSp(ushort rawInstruction, bool peek)
+		{
+			// Bits 0-6
+			ushort offset = (ushort) (rawInstruction & 0x7F);
+
+			// Bit 7
+			byte op = (byte) (((rawInstruction & 0x80)!=0) ? 1 : 0);
+
+			offset <<= 2;
+
+			// Stack pointer from current CPU mode
+			UInt32 r13 = SP;
+
+			// Perform add offset ops
+			switch (op)
+			{
+				//SP = SP + nn
+				case 0x0:
+					if (peek)
+					{
+						peekString = String.Format("ADD SP, {0}", offset);
+						return;
+					}
+
+					r13 += offset;
+					break;
+
+				//SP = SP - nn
+				case 0x1:
+					if (peek)
+					{
+						peekString = String.Format("ADD SP, -{0}", offset);
+						return;
+					}
+					r13 -= offset;
+					break;
+			}
+
+			//Update stack pointer for current CPU mode
+			SP = r13;
+
+			//Clock CPU and controllers - 1S
+			//clock(reg.r15, false);
+		}
+
+
 		// THUMB.14
 		//  _14_|_1___0___1___1_|Op_|_1___0_|_R_|____________Rlist______________|PUSH/POP
 		void PushPopRegisters(ushort rawInstruction, bool peek)
@@ -1325,225 +1885,7 @@ namespace Gba.Core
 					break;
 			}
 		}
-
-
-		// THUMB.7 
-		// __7_|_0___1___0___1_|__Op___|_0_|___Ro______|____Rb_____|____Rd_____|LDR/STR
-		void LoadStoreRegOffset(ushort rawInstruction, bool peek)
-		{
-			// Bits 0-2
-			byte srcDestReg = (byte)(rawInstruction & 0x7);
-
-			// Bits 3-5
-			byte baseReg = (byte)((rawInstruction >> 3) & 0x7);
-
-			// Bits 6-8
-			byte offsetReg = (byte)((rawInstruction >> 6) & 0x7);
-
-			// Bits 10-11
-			byte op = (byte)((rawInstruction >> 10) & 0x3);
-
-			UInt32 value = 0;
-			UInt32 opAddr = GetRegisterValue(baseReg) + GetRegisterValue(offsetReg);
-
-			//Perform Load-Store ops
-			switch (op)
-			{
-				//STR
-				case 0x0:
-					if (peek)
-					{
-						peekString = String.Format("STR {0},{1}", GetRegisterName(srcDestReg), GetRegisterName(opAddr));
-						return;
-					}
-
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
-
-					//Clock CPU and controllers - 1N
-					value = GetRegisterValue(srcDestReg);
-					//mem->write_u32(op_addr, value);
-					Memory.WriteWord(opAddr, value);
-					//clock(op_addr, true);
-
-					break;
-
-				//STRB
-				case 0x1:
-					if (peek)
-					{
-						peekString = String.Format("STRB {0},{1}", GetRegisterName(srcDestReg), GetRegisterName(opAddr));
-						return;
-					}
-
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
-
-					//Clock CPU and controllers - 1N
-					value = GetRegisterValue(srcDestReg);
-					value &= 0xFF;
-					//mem_check_8(op_addr, value, false);
-					Memory.WriteByte(opAddr, (byte)value);
-					//clock(op_addr, true);
-
-					break;
-
-				//LDR
-				case 0x2:
-					if (peek)
-					{
-						peekString = String.Format("LDR {0},[${1:X}]", GetRegisterName(srcDestReg), opAddr);
-						return;
-					}
-
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
-
-					//Clock CPU and controllers - 1I
-					//mem_check_32(op_addr, value, true);
-					value = Memory.ReadWord(opAddr);
-					//clock();
-
-					//Clock CPU and controllers - 1S
-					SetRegisterValue(srcDestReg, value);
-					//clock((reg.r15 + 2), false);
-
-					break;
-
-				//LDRB
-				case 0x3:
-					if (peek)
-					{
-						peekString = String.Format("LDRB {0},[${1:X}]", GetRegisterName(srcDestReg), opAddr);
-						return;
-					}
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
-
-					//Clock CPU and controllers - 1I
-					//mem_check_8(op_addr, value, true);
-					value = Memory.ReadByte(opAddr);
-					//clock();
-
-					//Clock CPU and controllers - 1S
-					SetRegisterValue(srcDestReg, value);
-					//clock((reg.r15 + 2), false);
-
-					break;
-			}
-		}
-
-
-		// THUMB.9
-		// __9_|_0___1___1_|__Op___|_______Offset______|____Rb_____|____Rd_____|""{B}
-		void LoadStoreImmediateOffset(ushort rawInstruction, bool peek)
-		{
-			// Bits 0-2
-			byte srcDestReg = (byte) (rawInstruction & 0x7);
-
-			// Bits 3-5
-			byte baseReg = (byte) ((rawInstruction >> 3) & 0x7);
-
-			// Bits 6-10
-			ushort offset = (byte)((rawInstruction >> 6) & 0x1F);
-
-			// Bits 11-12
-			byte op = (byte) ((rawInstruction >> 11) & 0x3);
-
-			UInt32 value = 0;
-			UInt32 opAddr = GetRegisterValue(baseReg);
-
-			switch (op)
-			{
-				// STR
-				case 0x0:
-					//Clock CPU and controllers - 1N
-					value = GetRegisterValue(srcDestReg);
-					offset <<= 2;
-					opAddr += offset;
-					//clock(reg.r15, true);
-
-					if (peek)
-					{
-						peekString = String.Format("STR {0}, [{1} + ${2}]", GetRegisterName(srcDestReg), GetRegisterName(baseReg), offset);
-						return;
-					}
-
-					//Clock CPU and controllers - 1N
-					//mem_check_32(op_addr, value, false);
-					Memory.WriteWord(opAddr, value);
-					//clock(op_addr, true);
-
-					break;
-
-				// LDR
-				case 0x1:
-					//Clock CPU and controllers - 1N
-					offset <<= 2;
-					opAddr += offset;
-					//clock(reg.r15, true);
-
-					if (peek)
-					{
-						peekString = String.Format("LDR {0}, [{1} + ${2}]", GetRegisterName(srcDestReg), GetRegisterName(baseReg), offset);
-						return;
-					}
-
-					//Clock CPU and controllers - 1I
-					//mem_check_32(op_addr, value, true);
-					value = Memory.ReadWord(opAddr);
-					//clock();
-
-					//Clock CPU and controllers - 1S
-					SetRegisterValue(srcDestReg, value);
-					//clock((reg.r15 + 2), false);
-
-					break;
-
-				// STRB
-				case 0x2:
-					//Clock CPU and controllers - 1N
-					value = GetRegisterValue(srcDestReg);
-					opAddr += offset;
-					//clock(reg.r15, true);
-
-					if (peek)
-					{
-						peekString = String.Format("STR {0}, [{1} + ${2}]", GetRegisterName(srcDestReg), GetRegisterName(baseReg), offset);
-						return;
-					}
-
-					//Clock CPU and controllers - 1N
-					//mem_check_8(op_addr, value, false);
-					Memory.WriteByte(opAddr, (byte) value);
-					//clock(op_addr, true);
-
-					break;
-
-				// LDRB
-				case 0x3:
-					//Clock CPU and controllers - 1N
-					opAddr += offset;
-					//clock(reg.r15, true);
-
-					if (peek)
-					{
-						peekString = String.Format("LDR {0}, [{1} + ${2}]", GetRegisterName(srcDestReg), GetRegisterName(baseReg), offset);
-						return;
-					}
-
-					//Clock CPU and controllers - 1I
-					//mem_check_8(op_addr, value, true);
-					value = Memory.ReadByte(opAddr);
-					//clock();
-
-					//Clock CPU and controllers - 1S
-					SetRegisterValue(srcDestReg, value);
-					//clock((reg.r15 + 2), false);
-
-					break;
-			}
-		}
+		
 
 		// THUMB.16 
 		// _16_|_1___1___0___1_|_____Cond______|_________Signed_Offset_________|B{cond}
@@ -1812,6 +2154,46 @@ namespace Gba.Core
 				//Clock CPU and controllers - 1S
 				//clock(reg.r15, false);
 			}
+		}
+
+
+		// THUMB.18 
+		void UnconditionalBranch(ushort rawInstruction, bool peek)
+		{
+			// Bits 0-10
+			ushort offset = (ushort) (rawInstruction & 0x7FF);
+
+			short jumpAddr = 0;
+
+			//Calculate jump address
+			//Convert Two's Complement
+			if ((offset & 0x400) != 0)
+			{
+				offset--;
+				offset = (ushort) ~offset;
+				offset &= 0x7FF;
+
+				jumpAddr = (short)(offset * -2);
+			}
+
+			else { jumpAddr = (short) (offset * 2); }
+
+			if (peek)
+			{
+				peekString = String.Format("B {0}", jumpAddr);
+				return;
+			}
+
+			requestFlushPipeline = true;
+
+			//Clock CPU and controllers - 1N
+			//clock(reg.r15, true);
+
+			//Clock CPU and controllers - 2S 
+			int pc = (int)PC + jumpAddr;
+			PC = (UInt32) pc;
+			//clock(reg.r15, false);
+			//clock((reg.r15 + 2), false);
 		}
 
 
