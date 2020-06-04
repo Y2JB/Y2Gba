@@ -78,10 +78,12 @@ namespace GbaDebugger
             // Out of sync with IO registers!
             //breakpoints.Add(new Breakpoint(0x08000BD8));
 
-            breakpoints.Add(new Breakpoint(0x08000FC8));
+           // breakpoints.Add(new Breakpoint(0x08000FC8));
 
             // SP has gone slightly wonky here compared to No$
-            breakpoints.Add(new Breakpoint(0x08000c00)); 
+            //breakpoints.Add(new Breakpoint(0x08000c00)); 
+
+            //breakpoints.Add(new Breakpoint(0x080010B4));
 
             //breakpoints.Add(new Breakpoint(0x64, new ConditionalExpression(snes.memory, 0xFF44, ConditionalExpression.EqualityCheck.Equal, 143)));
 

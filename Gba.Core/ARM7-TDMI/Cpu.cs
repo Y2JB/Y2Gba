@@ -126,6 +126,7 @@ namespace Gba.Core
             while (cycles > 0)
             {
                 Gba.LcdController.Step();
+                Gba.Joypad.Step();
                 //dmg.timer.Step();
 
                 cycles--;

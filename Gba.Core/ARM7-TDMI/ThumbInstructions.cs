@@ -1026,7 +1026,7 @@ namespace Gba.Core
 				case 0x0:
 					if (peek)
 					{
-						peekString = String.Format("PUSH {0}", RegisterListToString(registerList, 8));
+						peekString = String.Format("PUSH {0}", RegisterListToString(registerList));
 						return;
 					}
 
@@ -1077,7 +1077,7 @@ namespace Gba.Core
 				case 0x1:
 					if (peek)
 					{
-						peekString = String.Format("POP {0}", RegisterListToString(registerList, 8));
+						peekString = String.Format("POP {0}", RegisterListToString(registerList));
 						return;
 					}
 
@@ -1195,7 +1195,7 @@ namespace Gba.Core
 					{
 						if (peek)
 						{
-							peekString = String.Format("STMIA {0}! {1}", GetRegisterName(baseReg), RegisterListToString(registerList, 8));
+							peekString = String.Format("STMIA {0}! {1}", GetRegisterName(baseReg), RegisterListToString(registerList));
 							return;
 						}
 
@@ -1264,7 +1264,7 @@ namespace Gba.Core
 					{
 						if (peek)
 						{
-							peekString = String.Format("LDMIA {0}! {1}", GetRegisterName(baseReg), RegisterListToString(registerList, 8));
+							peekString = String.Format("LDMIA {0}! {1}", GetRegisterName(baseReg), RegisterListToString(registerList));
 							return;
 						}
 

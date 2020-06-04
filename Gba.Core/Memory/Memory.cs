@@ -18,7 +18,8 @@ namespace Gba.Core
 		byte[] IWRam = new byte[1024 * 32];
 
 		// VRam 96K
-		byte[] VRam = new byte[1024 * 96];
+		byte[] vram = new byte[1024 * 96];
+		public byte[] VRam { get { return vram; } }
 
 		public Memory(GameboyAdvance gba)
         {
@@ -48,11 +49,27 @@ namespace Gba.Core
 				{
 					return gba.LcdController.CurrentScanline;
 				}
-				else if (address == 0x04000007)
+				else if (address == 0x4000130)
 				{
-					// High byte of current scanline is unused
-					return 0;
+					// PAD: U,D,L,R,A,B,Str,Sel
+					return gba.Joypad.Register0;
 				}
+				else if (address == 0x4000131)
+				{
+					// PAD: L&R
+					return gba.Joypad.Register1;
+				}
+
+				// BG Control Registers
+				else if (address == 0x04000008) return gba.LcdController.BgControlRegisters[0].Register0;
+				else if (address == 0x04000009) return gba.LcdController.BgControlRegisters[0].Register1;
+				else if (address == 0x0400000A) return gba.LcdController.BgControlRegisters[1].Register0;
+				else if (address == 0x0400000B) return gba.LcdController.BgControlRegisters[1].Register1;
+				else if (address == 0x0400000C) return gba.LcdController.BgControlRegisters[2].Register0;
+				else if (address == 0x0400000D) return gba.LcdController.BgControlRegisters[2].Register1;
+				else if (address == 0x0400000E) return gba.LcdController.BgControlRegisters[3].Register0;
+				else if (address == 0x0400000F) return gba.LcdController.BgControlRegisters[3].Register1;
+
 				// (REG_IME) Turns all interrupts on or off
 				else if (address == 0x04000208)
 				{
@@ -113,8 +130,28 @@ namespace Gba.Core
         public void WriteByte(UInt32 address, byte value)
         {
             if(address >= 0x04000000 && address <= 0x040003FE)
-            {				
-				// (REG_IME) Turns all interrupts on or off
+            {
+				if (address == 0x04000000)
+                {
+					gba.LcdController.DisplayControlRegister.Register0 = value;
+				}
+				else if (address >= 0x04000001)
+                {
+					gba.LcdController.DisplayControlRegister.Register1 = value;
+				}
+				else if (address >= 0x04000008 && address <= 0x0400000F)
+				{
+					// BG Control Registers
+					if (address == 0x04000008) gba.LcdController.BgControlRegisters[0].Register0 = value;
+					else if (address == 0x04000009) gba.LcdController.BgControlRegisters[0].Register1 = value;
+					else if (address == 0x0400000A) gba.LcdController.BgControlRegisters[1].Register0 = value;
+					else if (address == 0x0400000B) gba.LcdController.BgControlRegisters[1].Register1 = value;
+					else if (address == 0x0400000C) gba.LcdController.BgControlRegisters[2].Register0 = value;
+					else if (address == 0x0400000D) gba.LcdController.BgControlRegisters[2].Register1 = value;
+					else if (address == 0x0400000E) gba.LcdController.BgControlRegisters[3].Register0 = value;
+					else if (address == 0x0400000F) gba.LcdController.BgControlRegisters[3].Register1 = value;
+				}
+				// REG_IME Turns all interrupts on or off
 				if (address == 0x04000208)
 				{
 
@@ -122,6 +159,7 @@ namespace Gba.Core
 				else
 				{
 					ioReg[address - 0x04000000] = value;
+					//throw new NotImplementedException();
 				}
             }
 			// Fast Cpu linked RAM

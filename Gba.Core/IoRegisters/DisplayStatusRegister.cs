@@ -54,90 +54,9 @@ namespace Gba.Core
             this.lcd = lcd;
         }
 
-        public bool VBlankFLag { get { return (Register0 & 0x01) != 0; } }
-        public bool HBlankFLag { get { return (Register0 & 0x01) != 0; } }
-
+        public bool VBlankIrqEnabled { get { return (Register0 & 0x08) != 0; } }
+        public bool HBlankIrqEnabled { get { return (Register0 & 0x10) != 0; } }
+        public bool VCounterIrqEnabled { get { return (Register0 & 0x20) != 0; } }
     }
-
-/*
-    // Bit 6 - LYC=LY Coincidence Interrupt(1=Enable) (Read/Write)
-    // Bit 5 - Mode 2 OAM Interrupt(1=Enable) (Read/Write)
-    // Bit 4 - Mode 1 V-Blank Interrupt(1=Enable) (Read/Write)
-    // Bit 3 - Mode 0 H-Blank Interrupt(1=Enable) (Read/Write)
-    // Bit 2 - Coincidence Flag(0:LYC<> LY, 1:LYC= LY) (Read Only)
-    // Bit 1-0 - Mode Flag(Mode 0-3) (Read Only)
-    //       0: During H-Blank
-    //       1: During V-Blank
-    //       2: During Searching OAM
-    //       3: During Transferring Data to LCD Driver
-    // 0xFF41
-    public class LcdStatusRegister
-    {
-        byte register;
-        public byte Register
-        {
-            get
-            {
-                byte low3Bits = 0;
-
-                // See the ppu.Enable function for some details on this
-                byte mode = (byte)(ppu.Mode == PpuMode.Glitched_OAM ? PpuMode.HBlank : ppu.Mode);
-                byte ppuMode = mode;
-                low3Bits |= ppuMode;
-
-                // Bit 2 (Coincidence Flag) is set to 1 if register(0xFF44) is the same value as (0xFF45) otherwise it is set to 0
-                if (ppu.CurrentScanline == LYC)
-                {
-                    low3Bits |= 0x04;
-                }
-
-                return (byte)(register | low3Bits);
-            }
-
-            set
-            {
-                // Mask off the read only bits
-                register = (byte)(value & 0xF8);
-
-                // Set the unused bit
-                register |= 0x80;
-            }
-
-        }
-
-        // Set at 0xFF45 by the program to drive the coincidence interrupt
-        public byte LYC { get; set; }
-
-
-        IPpu ppu;
-
-        public LcdStatusRegister(IPpu ppu)
-        {
-            this.ppu = ppu;
-        }
-
-        public bool LycLyCoincidenceInterruptEnable { get { return (Register & (byte)(1 << 6)) != 0; } }
-        public bool OamInterruptEnable { get { return (Register & (byte)(1 << 5)) != 0; } }
-        public bool VBlankInterruptEnable { get { return (Register & (byte)(1 << 4)) != 0; } }
-        public bool HBlankInterruptEnable { get { return (Register & (byte)(1 << 3)) != 0; } }
-
-        public byte CoincidenceFlag { get { return (byte)((Register & (byte)(1 << 2)) == 0 ? 0 : 1); } }
-
-        public byte ModeFlag { get { return (byte)(Register & (byte)(0x3)); } }
-
-
-        public override string ToString()
-        {
-            // See the ppu.Enable function for some details on this
-            string mode = (ppu.Mode == PpuMode.Glitched_OAM ? PpuMode.HBlank.ToString() : ppu.Mode.ToString());
-
-            return String.Format("STAT:{0}Current Mode: {1}{2}LYC Flag: {3}{4}HBlank IRQ: {5}{6}VBlank IRQ: {7}{8}OAM IRQ: {9}{10}LYC IRQ: {11}{12}LYC: {13}{14}",
-                Environment.NewLine, mode, Environment.NewLine, CoincidenceFlag.ToString(), Environment.NewLine, HBlankInterruptEnable.ToString(),
-                Environment.NewLine, VBlankInterruptEnable.ToString(), Environment.NewLine, OamInterruptEnable.ToString(), Environment.NewLine,
-                LycLyCoincidenceInterruptEnable.ToString(), Environment.NewLine, LYC.ToString(), Environment.NewLine);
-        }
-    }
-*/
-
 
 }

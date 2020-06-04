@@ -19,7 +19,12 @@ namespace Gba.Core
         public const UInt32 VBlank_Length = 83776;          // ScanLine_Length * 68
         public const UInt32 ScreenRefresh_Length = 280896;  // VDraw_Length + VBlank_Length
 
+
+        // IO Registers (driven by the memory controller))
+        public DisplayControlRegister DisplayControlRegister { get; private set; }
         public DisplayStatusRegister DispStatRegister { get; private set; }
+        public BgControlRegister[] BgControlRegisters { get; private set; }
+        
 
         public byte CurrentScanline { get; private set; }
 
@@ -58,7 +63,10 @@ namespace Gba.Core
             drawBuffer = frameBuffer1;
 
             this.Palettes = new Palettes();
+
+            DisplayControlRegister = new DisplayControlRegister(this);
             DispStatRegister = new DisplayStatusRegister(this);
+            BgControlRegisters = new BgControlRegister[4];
 
             Mode = LcdMode.ScanlineRendering;
             LcdCycles = 0;
@@ -75,7 +83,7 @@ namespace Gba.Core
             {
                 case LcdMode.ScanlineRendering:
                     if (LcdCycles >= HDraw_Length)
-                    {
+                    {                    
                         LcdCycles -= HDraw_Length;
                         Mode = LcdMode.HBlank;
                     }
@@ -91,6 +99,8 @@ namespace Gba.Core
                         if (CurrentScanline == 160)
                         {
                             Mode = LcdMode.VBlank;
+
+                            Render();
 
                             // We can set the renderer drawing the frame as soon as we enter vblank
                             lock (FrameBuffer)
@@ -110,10 +120,9 @@ namespace Gba.Core
 
                             // lock to 60fps - 1000 / 60.0
                             double fps60 = 16.6666666;
-                            double frameTime = Gba.EmulatorTimer.Elapsed.TotalMilliseconds - lastFrameTime;
+                            //double frameTime = Gba.EmulatorTimer.Elapsed.TotalMilliseconds - lastFrameTime;
                             while (Gba.EmulatorTimer.Elapsed.TotalMilliseconds - lastFrameTime < fps60)
                             {
-                                int x = 10;
                             }
 
                             lastFrameTime = Gba.EmulatorTimer.Elapsed.TotalMilliseconds;
@@ -177,5 +186,38 @@ namespace Gba.Core
             throw new ArgumentException("bad mode");
         }
 
+
+        private void Render()
+        {
+            switch(DisplayControlRegister.BgMode)
+            {
+                case 0x0:
+                    break;
+
+                case 0x4:
+                    RenderMode4();
+                    break;
+
+                default:
+                    throw new NotImplementedException("Unknown or unimplemented video mode");
+            }
+        }
+
+        // Mode 4 is another bitmap mode. It also has a 240×160 frame-buffer, but instead of 16bpp pixels it uses 8bpp pixels. 
+        // These 8 bits are a palette index to the background palette located at 0500:0000 (our palette 0)
+        private void RenderMode4()
+        {
+            byte[] vram = Gba.Memory.VRam;
+            Color[] palette = Palettes.Palette0;
+
+            for (int y = 0; y < Screen_Y_Resolution; y++)
+            {
+                for (int x = 0; x < Screen_X_Resolution; x++)
+                {
+                    int index = vram[(y * Screen_X_Resolution) + x];
+                    drawBuffer.SetPixel(x, y, palette[index]);
+                }
+            }
+        }
     }
 }

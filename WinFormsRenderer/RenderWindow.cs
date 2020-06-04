@@ -148,41 +148,41 @@ namespace WinFormRender
 
         private void OnKeyDown(Object o, KeyEventArgs a)
         {
-            /*
             if (InvokeRequired)
             {
                 Invoke(new Action<object, KeyEventArgs>(OnKeyDown), o, a);
                 return;
             }
-            if (a.KeyCode == Keys.Up) dmg.pad.UpdateKeyState(Joypad.GbKey.Up, true);
-            else if (a.KeyCode == Keys.Down) dmg.pad.UpdateKeyState(Joypad.GbKey.Down, true);
-            else if (a.KeyCode == Keys.Left) dmg.pad.UpdateKeyState(Joypad.GbKey.Left, true);
-            else if (a.KeyCode == Keys.Right) dmg.pad.UpdateKeyState(Joypad.GbKey.Right, true);
-            else if (a.KeyCode == Keys.Z) dmg.pad.UpdateKeyState(Joypad.GbKey.B, true);
-            else if (a.KeyCode == Keys.X) dmg.pad.UpdateKeyState(Joypad.GbKey.A, true);
-            else if (a.KeyCode == Keys.Enter) dmg.pad.UpdateKeyState(Joypad.GbKey.Start, true);
-            else if (a.KeyCode == Keys.Back) dmg.pad.UpdateKeyState(Joypad.GbKey.Select, true);
-            */
+            if (a.KeyCode == Keys.Up) gba.Joypad.UpdateKeyState(Joypad.GbaKey.Up, true);
+            else if (a.KeyCode == Keys.Down) gba.Joypad.UpdateKeyState(Joypad.GbaKey.Down, true);
+            else if (a.KeyCode == Keys.Left) gba.Joypad.UpdateKeyState(Joypad.GbaKey.Left, true);
+            else if (a.KeyCode == Keys.Right) gba.Joypad.UpdateKeyState(Joypad.GbaKey.Right, true);
+            else if (a.KeyCode == Keys.Z) gba.Joypad.UpdateKeyState(Joypad.GbaKey.B, true);
+            else if (a.KeyCode == Keys.X) gba.Joypad.UpdateKeyState(Joypad.GbaKey.A, true);
+            else if (a.KeyCode == Keys.A) gba.Joypad.UpdateKeyState(Joypad.GbaKey.L, true);
+            else if (a.KeyCode == Keys.S) gba.Joypad.UpdateKeyState(Joypad.GbaKey.R, true);
+            else if (a.KeyCode == Keys.Enter) gba.Joypad.UpdateKeyState(Joypad.GbaKey.Start, true);
+            else if (a.KeyCode == Keys.Back) gba.Joypad.UpdateKeyState(Joypad.GbaKey.Select, true);
         }
 
         private void OnKeyUp(Object o, KeyEventArgs a)
         {
-            /*
             if (InvokeRequired)
             {
                 Invoke(new Action<object, KeyEventArgs>(OnKeyUp), o, a);
                 return;
             }
 
-            if (a.KeyCode == Keys.Up) dmg.pad.UpdateKeyState(Joypad.GbKey.Up, false);
-            else if (a.KeyCode == Keys.Down) dmg.pad.UpdateKeyState(Joypad.GbKey.Down, false);
-            else if (a.KeyCode == Keys.Left) dmg.pad.UpdateKeyState(Joypad.GbKey.Left, false);
-            else if (a.KeyCode == Keys.Right) dmg.pad.UpdateKeyState(Joypad.GbKey.Right, false);
-            else  if (a.KeyCode == Keys.Z) dmg.pad.UpdateKeyState(Joypad.GbKey.B, false);
-            else if (a.KeyCode == Keys.X) dmg.pad.UpdateKeyState(Joypad.GbKey.A, false);
-            else if (a.KeyCode == Keys.Enter) dmg.pad.UpdateKeyState(Joypad.GbKey.Start, false);
-            else if (a.KeyCode == Keys.Back) dmg.pad.UpdateKeyState(Joypad.GbKey.Select, false);
-            */
+            if (a.KeyCode == Keys.Up) gba.Joypad.UpdateKeyState(Joypad.GbaKey.Up, false);
+            else if (a.KeyCode == Keys.Down) gba.Joypad.UpdateKeyState(Joypad.GbaKey.Down, false);
+            else if (a.KeyCode == Keys.Left) gba.Joypad.UpdateKeyState(Joypad.GbaKey.Left, false);
+            else if (a.KeyCode == Keys.Right) gba.Joypad.UpdateKeyState(Joypad.GbaKey.Right, false);
+            else  if (a.KeyCode == Keys.Z) gba.Joypad.UpdateKeyState(Joypad.GbaKey.B, false);
+            else if (a.KeyCode == Keys.X) gba.Joypad.UpdateKeyState(Joypad.GbaKey.A, false);
+            else if (a.KeyCode == Keys.A) gba.Joypad.UpdateKeyState(Joypad.GbaKey.L, false);
+            else if (a.KeyCode == Keys.S) gba.Joypad.UpdateKeyState(Joypad.GbaKey.R, false);
+            else if (a.KeyCode == Keys.Enter) gba.Joypad.UpdateKeyState(Joypad.GbaKey.Start, false);
+            else if (a.KeyCode == Keys.Back) gba.Joypad.UpdateKeyState(Joypad.GbaKey.Select, false);
         }
 
         

@@ -22,7 +22,15 @@ namespace Gba.Core
 		public string PeekArmInstruction(UInt32 rawInstruction)
         {
 			peekString = "*UNKNOWN_INSTRUCTION*";
-			DecodeArmInstruction(rawInstruction, true);
+			// When peeking, we can try and decode data and other sillyness that we will never get to.
+			try
+			{
+				DecodeArmInstruction(rawInstruction, true);
+			}
+			catch (Exception)
+            {
+				peekString = "*UNKNOWN_INSTRUCTION*";
+			}
 			return peekString;
         }
 
@@ -1496,7 +1504,7 @@ namespace Gba.Core
 			byte baseReg = (byte) ((rawInstruction >> 16) & 0xF);
 
 			// Bits 0-15
-			byte registerList = (byte) (rawInstruction & 0xFFFF);
+			ushort registerList = (ushort) (rawInstruction & 0xFFFF);
 
 			//Warnings
 			//if (base_reg == 15) { std::cout << "CPU::Warning - ARM.11 R15 used as Base Register \n"; }
@@ -1519,14 +1527,14 @@ namespace Gba.Core
 				if (loadStore == 0)
 				{
 
-					peekString = String.Format("PUSH {0}", RegisterListToString(registerList, 16));
+					peekString = String.Format("PUSH {0}", RegisterListToString(registerList));
 					return;
 
 				}
 				else
 				{
 
-					peekString = String.Format("POP {0}", RegisterListToString(registerList, 16));
+					peekString = String.Format("POP {0}", RegisterListToString(registerList));
 					return;
 				}
 			}
@@ -1674,14 +1682,13 @@ namespace Gba.Core
 					}
 				}
 
-				//Load R15
+				//Store R15
 				if (loadStore == 0) 
 				{ 
 					//mem->write_u32(base_addr, reg.r15);
 					Memory.WriteWord(baseAddr, PC);
 				}
-
-				//Store R15
+				//Load R15
 				else
 				{
 					//reg.r15 = mem->read_u32(base_addr);

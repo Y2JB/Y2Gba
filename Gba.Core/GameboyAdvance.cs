@@ -12,8 +12,9 @@ namespace Gba.Core
         public Cpu Cpu { get; private set; }
         public LcdController LcdController { get; private set; }
         public Memory Memory { get; private set; }
+        public Joypad Joypad { get; private set; }
 
-        long oneSecondTimer;
+        //long oneSecondTimer;
         public Stopwatch EmulatorTimer { get; private set; }
 
 
@@ -30,20 +31,25 @@ namespace Gba.Core
             PoweredOn = false;
         }
 
+
         public void PowerOn()
         {
             PoweredOn = true;
 
             this.Rom = new Rom("../../../../roms/armwrestler.gba");
+            //this.Rom = new Rom("../../../../roms/NCE-heart.gba");
+            
             this.Memory = new Memory(this);
             this.Cpu = new Cpu(this);
             this.LcdController = new LcdController(this);
+            this.Joypad = new Joypad(this);
 
             EmulatorTimer.Reset();
             EmulatorTimer.Start();
 
             Cpu.Reset();
             LcdController.Reset();
+            Joypad.Reset();
         }
 
 
