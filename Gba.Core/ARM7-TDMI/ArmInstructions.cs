@@ -40,6 +40,8 @@ namespace Gba.Core
 			// Extract conditional
 			ConditionalExecution conditional = (ConditionalExecution)((rawInstruction & 0xF0000000) >> 28);
 
+			// TODO: Conditional needs adding to Peek
+
 			// Conditional early out 
 			if (peek == false && 
 				conditional != ConditionalExecution.AL)
@@ -71,7 +73,7 @@ namespace Gba.Core
 					if (((rawInstruction >> 5) & 0x3) == 0)
 					{
 						//ARM_12;
-						if (!peek) throw new NotImplementedException();
+						SingleDataSwap(rawInstruction, peek);
 					}
 
 					else
@@ -95,7 +97,6 @@ namespace Gba.Core
 					//ARM.5
 					if ((rawInstruction & 0x2000000) != 0)
 					{
-						//instruction_operation[pipeline_id] = ARM_5;
 						DataProcessing(rawInstruction, peek);
 					}
 
@@ -135,7 +136,7 @@ namespace Gba.Core
 						else if (((rawInstruction >> 23) & 0x3) == 0x2)
 						{
 							//ARM_12;
-							if (!peek) throw new NotImplementedException();
+							SingleDataSwap(rawInstruction, peek);
 						}
 
 						//ARM.7
@@ -183,11 +184,12 @@ namespace Gba.Core
 			else if (((rawInstruction >> 24) & 0xF) == 0xF)
 			{
 				//ARM_13
-				if (!peek) throw new NotImplementedException();
+				SoftwareInterrupt(rawInstruction, peek);
 			}
 		}
 
 
+		// Arm.4
 		void BranchLink(UInt32 current_arm_instruction, bool peek)
 		{			
 			//Grab offset
@@ -260,7 +262,7 @@ namespace Gba.Core
 		}
 
 
-
+		// Arm.3
 		void BranchExchange(UInt32 rawinstruction, bool peek)
 		{
 			// |_Cond__|0_0_0_1_0_0_1_0_1_1_1_1_1_1_1_1_1_1_1_1|0_0|L|1|__Rn___| BX,BLX
@@ -1720,7 +1722,78 @@ namespace Gba.Core
 			}
 		}
 
+		// ARM.12
+		void SingleDataSwap(UInt32 rawInstruction, bool peek)
+		{
+			//TODO - Timings
 
+			// Bits 0-3
+			byte srcReg = (byte) (rawInstruction & 0xF);
+
+			// Bits 12-15
+			byte destReg = (byte) ((rawInstruction >> 12) & 0xF);
+
+			// Bits 16-19
+			byte baseReg = (byte) ((rawInstruction >> 16) & 0xF);
+
+			// byte or word being swapped - Bit 22
+			byte byteOrWord = (byte) (((rawInstruction & 0x400000)!=0) ? 1 : 0);
+
+			UInt32 base_addr = GetRegisterValue(baseReg);
+			UInt32 dest_value = 0;
+			UInt32 swap_value = 0;
+
+			//Swap a single byte
+			if (byteOrWord == 1)
+			{
+				if (peek)
+				{
+					peekString = String.Format("SWPb {0} , {1}", GetRegisterName(destReg), GetRegisterName(srcReg));
+					return;
+				}
+
+				// Get the values to swap
+				dest_value = Memory.ReadByte(base_addr);
+				swap_value = (GetRegisterValue(srcReg) & 0xFF);
+
+				//Swap the values
+				Memory.WriteByte(base_addr, (byte) swap_value);
+				SetRegisterValue(destReg, dest_value);
+			}
+
+			//Swap a single word
+			else
+			{
+				if (peek)
+				{
+					peekString = String.Format("SWP {0} , {1}", GetRegisterName(destReg), GetRegisterName(srcReg));
+					return;
+				}
+
+				//Grab values before swapping
+				dest_value = Memory.ReadWord(base_addr);
+				swap_value = GetRegisterValue(srcReg);
+
+				//Swap the values
+				Memory.WriteWord(base_addr, swap_value);
+				SetRegisterValue(destReg, dest_value);
+			}
+		}
+
+
+		// ARM.13 
+		void SoftwareInterrupt(UInt32 rawInstruction, bool peek)
+		{
+			//TODO - Timings
+			//TODO - LLE version of SWIs
+
+			//Grab SWI comment - Bits 0-23
+			UInt32 comment = (rawInstruction & 0xFFFFFF);
+			comment >>= 16;
+
+			throw new NotImplementedException();
+			//process_swi(comment);
+		}
 
 	}
 }
