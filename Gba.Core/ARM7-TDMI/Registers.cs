@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace Gba.Core
-{
+{    
     public partial class Cpu
     {
         UInt32[] registers = new UInt32[16];

@@ -4,6 +4,7 @@ using System.Text;
 
 namespace Gba.Core
 {
+    // GBA Cpu is ArmV4
     public partial class Cpu
     {
         public enum CpuState
@@ -17,7 +18,7 @@ namespace Gba.Core
         {
             User,
             System,
-            FIQ,            // Fast Interrupt Request
+            FIQ,            // Fast Interrupt Request (Not used on GBA)
             Supervisor,
             Abort,
             IRQ,
@@ -27,7 +28,7 @@ namespace Gba.Core
 
         public const int Pipeline_Size = 3;
         public UInt32[] InstructionPipeline { get; private set; }
-        int nextPipelineInsturction;
+        public int NextPipelineInsturction { get; private set; }
 
         bool requestFlushPipeline;
 
@@ -63,7 +64,7 @@ namespace Gba.Core
 
             Cycles = 0;
 
-            nextPipelineInsturction = 0;
+            NextPipelineInsturction = 0;
             RefillPipeline();
         }
 
@@ -81,7 +82,7 @@ namespace Gba.Core
         // If a branch or some other op has invalidated the pipeline, refill it fro scratch before we execute anything else
         public void RefillPipeline()
         {
-            nextPipelineInsturction = 0;
+            NextPipelineInsturction = 0;
 
             if (State == CpuState.Thumb)
             {
@@ -109,16 +110,16 @@ namespace Gba.Core
             if (State == CpuState.Thumb)
             {
                 PC += 2U;
-                InstructionPipeline[nextPipelineInsturction] = Gba.Memory.ReadHalfWord(PC);
+                InstructionPipeline[NextPipelineInsturction] = Gba.Memory.ReadHalfWord(PC);
             }
             else
             {
                 PC += 4U;
-                InstructionPipeline[nextPipelineInsturction] = Gba.Memory.ReadWord(PC);
+                InstructionPipeline[NextPipelineInsturction] = Gba.Memory.ReadWord(PC);
             }
 
-            nextPipelineInsturction++;
-            if (nextPipelineInsturction >= Pipeline_Size) nextPipelineInsturction = 0;
+            NextPipelineInsturction++;
+            if (NextPipelineInsturction >= Pipeline_Size) NextPipelineInsturction = 0;
         }
 
 
@@ -141,11 +142,11 @@ namespace Gba.Core
         {
             if (State == CpuState.Thumb)
             {
-                DecodeAndExecuteThumbInstruction((ushort)InstructionPipeline[nextPipelineInsturction]);
+                DecodeAndExecuteThumbInstruction((ushort)InstructionPipeline[NextPipelineInsturction]);
             }
             else
             {
-                DecodeAndExecuteArmInstruction(InstructionPipeline[nextPipelineInsturction]);
+                DecodeAndExecuteArmInstruction(InstructionPipeline[NextPipelineInsturction]);
             }
 
 

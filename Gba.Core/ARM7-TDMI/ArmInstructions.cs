@@ -1229,7 +1229,8 @@ namespace Gba.Core
 					value &= 0xFF;
 
 					//mem_check_8(base_addr, value, false);
-					Memory.WriteByte(baseAddr, (byte)value);
+					Memory.ReadWriteByte_Checked(baseAddr, ref value, false);
+					//Memory.WriteByte(baseAddr, (byte)value);
 				}
 
 				else
@@ -1258,7 +1259,8 @@ namespace Gba.Core
 				{
 					//Clock CPU and controllers - 1I
 					//mem_check_8(base_addr, value, true);
-					value = Memory.ReadByte(baseAddr);
+					Memory.ReadWriteByte_Checked(baseAddr, ref value, true);
+					//value = Memory.ReadByte(baseAddr);
 
 					//clock();
 
@@ -1272,7 +1274,6 @@ namespace Gba.Core
 				{
 					//Clock CPU and controllers - 1I
 					//mem_check_32(base_addr, value, true);
-					//base_addr += 8;
 					Memory.ReadWriteWord_Checked(baseAddr, ref value, true);
 					//value = Memory.ReadWord(base_addr);
 

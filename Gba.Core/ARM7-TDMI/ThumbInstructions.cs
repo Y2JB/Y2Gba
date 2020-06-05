@@ -256,7 +256,7 @@ namespace Gba.Core
 					result = input - operand;
 					break;
 
-				//Add with 3-bit immediate as operand
+				// Add with 3-bit immediate as operand
 				case 0x2:
 					if (peek)
 					{
@@ -267,7 +267,7 @@ namespace Gba.Core
 					result = input + operand;
 					break;
 
-				//Subtract with 3-bit immediate as operand
+				// Subtract with 3-bit immediate as operand
 				case 0x3:
 					if (peek)
 					{
@@ -982,7 +982,8 @@ namespace Gba.Core
 
 			//Clock CPU and controllers - 1I
 			//mem_check_32(load_addr, value, true);
-			value = Memory.ReadWord(load_addr);
+			Memory.ReadWriteWord_Checked(load_addr, ref value, true);
+			//value = Memory.ReadWord(load_addr);
 			//clock();
 
 			//Clock CPU and controllers - 1S
@@ -1047,7 +1048,8 @@ namespace Gba.Core
 					value = GetRegisterValue(srcDestReg);
 					value &= 0xFF;
 					//mem_check_8(op_addr, value, false);
-					Memory.WriteByte(opAddr, (byte)value);
+					Memory.ReadWriteByte_Checked(opAddr, ref value, false);
+					//Memory.WriteByte(opAddr, (byte)value);
 					//clock(op_addr, true);
 
 					break;
@@ -1065,7 +1067,8 @@ namespace Gba.Core
 
 					//Clock CPU and controllers - 1I
 					//mem_check_32(op_addr, value, true);
-					value = Memory.ReadWord(opAddr);
+					//value = Memory.ReadWord(opAddr);
+					Memory.ReadWriteWord_Checked(opAddr, ref value, true);
 					//clock();
 
 					//Clock CPU and controllers - 1S
@@ -1086,7 +1089,8 @@ namespace Gba.Core
 
 					//Clock CPU and controllers - 1I
 					//mem_check_8(op_addr, value, true);
-					value = Memory.ReadByte(opAddr);
+					Memory.ReadWriteByte_Checked(opAddr, ref value, true);
+					//value = Memory.ReadByte(opAddr);
 					//clock();
 
 					//Clock CPU and controllers - 1S
@@ -1122,7 +1126,7 @@ namespace Gba.Core
 				case 0x0:
 					if (peek)
 					{
-						peekString = String.Format("STRH {0}, ({1} + {2})", GetRegisterName(srcDestReg), GetRegisterName(baseReg), GetRegisterName(offsetReg));
+						peekString = String.Format("STRh {0}, ({1} + {2})", GetRegisterName(srcDestReg), GetRegisterName(baseReg), GetRegisterName(offsetReg));
 						return;
 					}
 					//Clock CPU and controllers - 1N
@@ -1132,7 +1136,8 @@ namespace Gba.Core
 					value = GetRegisterValue(srcDestReg);
 					value &= 0xFFFF;
 					//mem_check_16(op_addr, value, false);
-					Memory.WriteHalfWord(opAddr, (ushort) value);
+					Memory.ReadWriteHalfWord_Checked(opAddr, ref value, false);
+					//Memory.WriteHalfWord(opAddr, (ushort) value);
 					//clock(reg.r15, true);
 					break;
 
@@ -1176,7 +1181,8 @@ namespace Gba.Core
 
 					//Clock CPU and controllers - 1I
 					//mem_check_16(op_addr, value, true);
-					value = Memory.ReadHalfWord(opAddr);
+					Memory.ReadWriteHalfWord_Checked(opAddr, ref value, true);
+					//value = Memory.ReadHalfWord(opAddr);
 					//clock();
 
 					//Clock CPU and controllers - 1S
@@ -1196,10 +1202,11 @@ namespace Gba.Core
 
 					//Clock CPU and controllers - 1I
 					//mem_check_16(op_addr, value, true);
-					value = Memory.ReadHalfWord(opAddr);
+					Memory.ReadWriteHalfWord_Checked(opAddr, ref value, true);
+					//value = Memory.ReadHalfWord(opAddr);
 					//clock();
 
-					//Sign extend from Bit 15
+					// Sign extend from Bit 15
 					if ((value & 0x8000) != 0) 
 					{ 
 						value |= 0xFFFF0000; 
@@ -1270,7 +1277,8 @@ namespace Gba.Core
 
 					//Clock CPU and controllers - 1I
 					//mem_check_32(op_addr, value, true);
-					value = Memory.ReadWord(opAddr);
+					Memory.ReadWriteWord_Checked(opAddr, ref value, true);
+					//value = Memory.ReadWord(opAddr);
 					//clock();
 
 					//Clock CPU and controllers - 1S
@@ -1294,7 +1302,8 @@ namespace Gba.Core
 
 					//Clock CPU and controllers - 1N
 					//mem_check_8(op_addr, value, false);
-					Memory.WriteByte(opAddr, (byte)value);
+					Memory.ReadWriteByte_Checked(opAddr, ref value, false);
+					//Memory.WriteByte(opAddr, (byte)value);
 					//clock(op_addr, true);
 
 					break;
@@ -1313,7 +1322,8 @@ namespace Gba.Core
 
 					//Clock CPU and controllers - 1I
 					//mem_check_8(op_addr, value, true);
-					value = Memory.ReadByte(opAddr);
+					Memory.ReadWriteByte_Checked(opAddr, ref value, true);
+					//value = Memory.ReadByte(opAddr);
 					//clock();
 
 					//Clock CPU and controllers - 1S
@@ -1363,7 +1373,8 @@ namespace Gba.Core
 					//Clock CPU and controllers - 1N
 					value = GetRegisterValue(srcDestReg);
 					//mem_check_16(op_addr, value, false);
-					Memory.WriteHalfWord(opAddr, (ushort) value);
+					Memory.ReadWriteHalfWord_Checked(opAddr, ref value, false);
+					//Memory.WriteHalfWord(opAddr, (ushort) value);
 					//clock(op_addr, true);
 
 					break;
@@ -1381,7 +1392,8 @@ namespace Gba.Core
 
 					//Clock CPU and controllers - 1I
 					//mem_check_16(op_addr, value, true);
-					value = Memory.ReadHalfWord(opAddr);
+					Memory.ReadWriteHalfWord_Checked(opAddr, ref value, true);
+					//value = Memory.ReadHalfWord(opAddr);
 					//clock();
 
 					//Clock CPU and controllers - 1S
@@ -1774,11 +1786,13 @@ namespace Gba.Core
 
 								if ((x == transferReg) && (baseReg == transferReg))
 								{
-									Memory.WriteWord(baseAddr, oldBase);
+									//Memory.WriteWord(baseAddr, oldBase);
+									Memory.ReadWriteWord_Checked(baseAddr, ref oldBase, false);
 								}
 								else
 								{
-									Memory.WriteWord(baseAddr, regValue);
+									//Memory.WriteWord(baseAddr, regValue);
+									Memory.ReadWriteWord_Checked(baseAddr, ref regValue, false);
 								}
 
 								// Update base register
@@ -2130,9 +2144,11 @@ namespace Gba.Core
 				//SWI
 				case 0xF:
 					throw new NotImplementedException();
-					//Process SWIs via HLE
-					//TODO: Make and LLE version
+					//Process SWIs via High Level Emulation (HLE)
+					//TODO: Make an LLE version
 					//process_swi((current_thumb_instruction & 0xFF));
+
+					// JB: DO THIS!
 					//if (config::use_bios) { return; }
 					//break;
 			}

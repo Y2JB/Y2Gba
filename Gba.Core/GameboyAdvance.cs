@@ -13,14 +13,17 @@ namespace Gba.Core
         public LcdController LcdController { get; private set; }
         public Memory Memory { get; private set; }
         public Joypad Joypad { get; private set; }
+        public Bios Bios { get; private set; }
 
         //long oneSecondTimer;
         public Stopwatch EmulatorTimer { get; private set; }
 
-
         // Renderer hooks
         public DirectBitmap FrameBuffer { get { return LcdController.FrameBuffer; } }
         public Action OnFrame { get; set; }
+
+        // TODO: TTY output than can be passed on to the Emu container
+        //public List<string> Tty { get; private set; }
 
         public bool PoweredOn { get; private set; }
 
@@ -44,7 +47,8 @@ namespace Gba.Core
             this.Cpu = new Cpu(this);
             this.LcdController = new LcdController(this);
             this.Joypad = new Joypad(this);
-
+            this.Bios = new Bios(this);
+            
             EmulatorTimer.Reset();
             EmulatorTimer.Start();
 
