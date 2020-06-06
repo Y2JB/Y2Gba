@@ -8,8 +8,32 @@ namespace Gba.Core
     {
         UInt32[] registers = new UInt32[16];
 
+        UInt32 r8Fiq;
+        UInt32 r9Fiq;
+        UInt32 r10Fiq;
+        UInt32 r11Fiq;
+        UInt32 r12Fiq;
+
         // Flags - Current Program Status Register
         UInt32 CPSR;
+
+        UInt32 SP_Fiq;
+        UInt32 SP_Svc;
+        UInt32 SP_Abt;
+        UInt32 SP_Irq;
+        UInt32 SP_Und;
+
+        UInt32 LR_Fiq;
+        UInt32 LR_Svc;
+        UInt32 LR_Abt;
+        UInt32 LR_Irq;
+        UInt32 LR_Und;
+
+        UInt32 SPSR_Fiq;
+        UInt32 SPSR_Svc;
+        UInt32 SPSR_Abt;
+        UInt32 SPSR_Irq;
+        UInt32 SPSR_Und;
 
         enum RegisterName
         {
@@ -36,13 +60,192 @@ namespace Gba.Core
 
         public UInt32 GetRegisterValue(UInt32 index)
         {
-            return registers[index];
+            if(index <= 7) return registers[index];
+
+            switch (index)
+            {
+
+                case 8:
+                    switch (Mode)
+                    {
+                        case CpuMode.FIQ: return r8Fiq;
+                        default: return registers[index]; 
+                    }
+
+                case 9:
+                    switch (Mode)
+                    {
+                        case CpuMode.FIQ: return r9Fiq;
+                        default: return registers[index]; 
+                    }
+
+                case 10:
+                    switch (Mode)
+                    {
+                        case CpuMode.FIQ: return r10Fiq;
+                        default: return registers[index]; 
+                    }
+
+                case 11:
+                    switch (Mode)
+                    {
+                        case CpuMode.FIQ: return r11Fiq;
+                        default: return registers[index]; 
+                    }
+
+                case 12:
+                    switch (Mode)
+                    {
+                        case CpuMode.FIQ: return r12Fiq;
+                        default: return registers[index]; 
+                    }
+
+                case 13:
+                    switch (Mode)
+                    {
+                        case CpuMode.User:
+                        case CpuMode.System:
+                            return registers[13];
+                        case CpuMode.FIQ:
+                            return SP_Fiq;
+                        case CpuMode.Supervisor:
+                            return SP_Svc;
+                        case CpuMode.Abort:
+                            return SP_Abt;
+                        case CpuMode.IRQ:
+                            return SP_Irq;
+                        case CpuMode.Undefined:
+                            return SP_Und;
+                        default: throw new ArgumentException("Invalid register get");
+                    }
+
+                case 14:
+                    switch (Mode)
+                    {
+                        case CpuMode.User:
+                        case CpuMode.System:
+                            return registers[14];
+                        case CpuMode.FIQ:
+                            return LR_Fiq;
+                        case CpuMode.Supervisor:
+                            return LR_Svc;
+                        case CpuMode.Abort:
+                            return LR_Abt;
+                        case CpuMode.IRQ:
+                            return LR_Irq;
+                        case CpuMode.Undefined:
+                            return LR_Und;
+                        default:
+                            throw new ArgumentException("Invalid register get");
+                    }
+
+                case 15:
+                    return PC;
+            }
+
+            throw new ArgumentException("Invalid register get");
         }
 
 
         public void SetRegisterValue(UInt32 index, UInt32 value)
         {
-            registers[index] = value;
+            if (index <= 7)
+            {
+                registers[index] = value;
+                return;
+            }
+
+            switch (index)
+            {
+
+                case 8:
+                    switch (Mode)
+                    {
+                        case CpuMode.FIQ: r8Fiq = value; break;
+                        default: registers[index] = value; break;
+                    }
+                    break;
+
+                case 9:
+                    switch (Mode)
+                    {
+                        case CpuMode.FIQ: r9Fiq = value; break;
+                        default: registers[index] = value; break;
+                    }
+                    break;
+
+                case 10:
+                    switch (Mode)
+                    {
+                        case CpuMode.FIQ: r10Fiq = value; break;
+                        default: registers[index] = value; break;
+                    }
+                    break;
+
+                case 11:
+                    switch (Mode)
+                    {
+                        case CpuMode.FIQ: r11Fiq = value; break;
+                        default: registers[index] = value; break;
+                    }
+                    break;
+
+                case 12:
+                    switch (Mode)
+                    {
+                        case CpuMode.FIQ: r12Fiq = value; break;
+                        default: registers[index] = value; break;
+                    }
+                    break;
+
+                case 13:
+                    switch (Mode)
+                    {
+                        case CpuMode.User:
+                        case CpuMode.System:
+                            registers[13] = value; break;
+                        case CpuMode.FIQ:
+                            SP_Fiq = value; break;
+                        case CpuMode.Supervisor:
+                            SP_Svc = value; break;
+                        case CpuMode.Abort:
+                            SP_Abt = value; break;
+                        case CpuMode.IRQ:
+                            SP_Irq = value; break;
+                        case CpuMode.Undefined:
+                            SP_Und = value; break;
+                        default: throw new ArgumentException("Invalid register set");
+                    }
+                    break;
+
+                case 14:
+                    switch (Mode)
+                    {
+                        case CpuMode.User:
+                        case CpuMode.System:
+                            registers[14] = value; break;
+                        case CpuMode.FIQ:
+                            LR_Fiq = value; break;
+                        case CpuMode.Supervisor:
+                            LR_Svc = value; break;
+                        case CpuMode.Abort:
+                            LR_Abt = value; break;
+                        case CpuMode.IRQ:
+                            LR_Irq = value; break;
+                        case CpuMode.Undefined:
+                            LR_Und = value; break;
+                        default:
+                            throw new ArgumentException("Invalid register set");
+                    }
+                    break;
+
+                case 15:
+                    PC = value;
+                    break;
+
+                default:
+                    throw new ArgumentException("Invalid register set");
+            }
         }
 
 
@@ -58,10 +261,10 @@ namespace Gba.Core
         public UInt32 PC { get { return registers[15]; } set { registers[15] = value; } }
         
         // Link register, used to store return address when making a function call. Program must manage it when doing nested calls.
-        public UInt32 LR { get { return registers[14]; } set { registers[14] = value; } }
+        public UInt32 LR { get { return R14; } set { R14 = value; } }
 
         // Used as Stack Pointer (SP) in THUMB state. While in ARM state the user may decided to use R13 and/or other register(s) as stack pointer(s), or as general purpose register.
-        public UInt32 SP { get { return registers[13]; } set { registers[13] = value; } }
+        public UInt32 SP { get { return R13; } set { R13 = value; } }
 
         public UInt32 R0 { get { return registers[0]; } set { registers[0] = value; } }
         public UInt32 R1 { get { return registers[1]; } set { registers[1] = value; } }
@@ -76,18 +279,114 @@ namespace Gba.Core
         public UInt32 R10 { get { return registers[10]; } set { registers[10] = value; } }
         public UInt32 R11 { get { return registers[11]; } set { registers[11] = value; } }
         public UInt32 R12 { get { return registers[12]; } set { registers[12] = value; } }
-        public UInt32 R13 { get { return registers[13]; } set { registers[13] = value; } }
-        public UInt32 R14 { get { return registers[14]; } set { registers[14] = value; } }
         public UInt32 R15 { get { return registers[15]; } set { registers[15] = value; } }
 
 
-        public UInt32 PC_Adjusted { get { if (State == CpuState.Arm) return (PC - 8); else return (PC - 4); } }
+        public UInt32 R13 
+        { 
+            get 
+            {                
+                switch (Mode)
+                {
+                    case CpuMode.User:
+                    case CpuMode.System:
+                        return registers[13];
+                    case CpuMode.FIQ:
+                        return SP_Fiq;
+                    case CpuMode.Supervisor:
+                        return SP_Svc;
+                    case CpuMode.Abort:
+                        return SP_Abt;
+                    case CpuMode.IRQ:
+                        return SP_Irq;
+                    case CpuMode.Undefined:
+                        return SP_Und;
+                }
+                throw new ArgumentException("Invalid SP register request");
+            } 
+            set 
+            {
+                switch (Mode)
+                {
+                    case CpuMode.User:
+                    case CpuMode.System:
+                        registers[13] = value;
+                        break;
+                    case CpuMode.FIQ:
+                        SP_Fiq = value;
+                        break;
+                    case CpuMode.Supervisor:
+                        SP_Svc = value;
+                        break;
+                    case CpuMode.Abort:
+                        SP_Abt = value;
+                        break;
+                    case CpuMode.IRQ:
+                        SP_Irq = value;
+                        break;
+                    case CpuMode.Undefined:
+                        SP_Und = value;
+                        break;
 
-        UInt32 SPSR_Fiq;
-        UInt32 SPSR_Svc;
-        UInt32 SPSR_Abt;
-        UInt32 SPSR_Irq;
-        UInt32 SPSR_Und;
+                    default:
+                        throw new ArgumentException("Invalid SP register set request");
+                }              
+            } 
+        }
+
+        public UInt32 R14
+        {
+            get
+            {
+                switch (Mode)
+                {
+                    case CpuMode.User:
+                    case CpuMode.System:
+                        return registers[14];
+                    case CpuMode.FIQ:
+                        return LR_Fiq;
+                    case CpuMode.Supervisor:
+                        return LR_Svc;
+                    case CpuMode.Abort:
+                        return LR_Abt;
+                    case CpuMode.IRQ:
+                        return LR_Irq;
+                    case CpuMode.Undefined:
+                        return LR_Und;
+                }
+                throw new ArgumentException("Invalid LR register request");
+            }
+            set
+            {
+                switch (Mode)
+                {
+                    case CpuMode.User:
+                    case CpuMode.System:
+                        registers[14] = value;
+                        break;
+                    case CpuMode.FIQ:
+                        LR_Fiq = value;
+                        break;
+                    case CpuMode.Supervisor:
+                        LR_Svc = value;
+                        break;
+                    case CpuMode.Abort:
+                        LR_Abt = value;
+                        break;
+                    case CpuMode.IRQ:
+                        LR_Irq = value;
+                        break;
+                    case CpuMode.Undefined:
+                        LR_Und = value;
+                        break;
+
+                    default:
+                        throw new ArgumentException("Invalid LR register set request");
+                }
+            }
+        }
+
+        public UInt32 PC_Adjusted { get { if (State == CpuState.Arm) return (PC - 8); else return (PC - 4); } }
 
         public UInt32 SPSR 
         { 

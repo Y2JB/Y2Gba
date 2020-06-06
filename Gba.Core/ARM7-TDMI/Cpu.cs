@@ -56,9 +56,9 @@ namespace Gba.Core
 
             PC = 0x08000000;
             SP = 0x03007F00;
-            //R13 = reg.r13_fiq = reg.r13_abt = reg.r13_und = 0x03007F00;
-            //reg.r13_svc = 0x03007FE0;
-            //reg.r13_irq = 0x03007FA0;
+            R13 = SP_Fiq = SP_Abt = SP_Und = 0x03007F00;
+            SP_Svc = 0x03007FE0;
+            SP_Irq = 0x03007FA0;
             //reg.r15 = 0x8000000;
             CPSR = 0x5F;
 
@@ -169,8 +169,9 @@ namespace Gba.Core
    
         public override String ToString()
         {
-            return String.Format("PC - 0x{0:X8}{1}R0  - {2:X8}{3}R1  - {4:X8}{5}R2  - {6:X8}{7}R3  - {8:X8}{9}R4  - {10:X8}{11}R5  - {12:X8}{13}R6  - {14:X8}{15}R7  - {16:X8}{17}R8  - {18:X8}{19}R9  - {20:X8}{21}R10 - {22:X8}{23}R11 - {24:X8}{25}R12 - {26:X8}{27}SP - {28:X8}{29}LR - {30:X8}{31}CPSR - {32:X8}{33}PC(Adjusted) - {34:X8}{35}",
-                PC, Environment.NewLine,
+            return String.Format("Mode - {0}{1}R0  - {2:X8}{3}R1  - {4:X8}{5}R2  - {6:X8}{7}R3  - {8:X8}{9}R4  - {10:X8}{11}R5  - {12:X8}{13}R6  - {14:X8}{15}R7  - {16:X8}{17}R8  - {18:X8}{19}R9  - {20:X8}{21}R10 - {22:X8}{23}R11 - {24:X8}{25}R12 - {26:X8}{27}SP  - {28:X8}{29}LR  - {30:X8}{31}PC  - {32:X8}{33}PCX - {34:X8}{35}CPSR - {36:X8}{37}SPSR - {38:X8}{39}",
+                
+                Mode, Environment.NewLine,
                 R0, Environment.NewLine, 
                 R1, Environment.NewLine, 
                 R2, Environment.NewLine, 
@@ -185,9 +186,11 @@ namespace Gba.Core
                 R11, Environment.NewLine, 
                 R12, Environment.NewLine,                 
                 SP, Environment.NewLine,
-                LR, Environment.NewLine,
+                LR, Environment.NewLine,                
+                PC, Environment.NewLine,
+                PC_Adjusted, Environment.NewLine,
                 CPSR, Environment.NewLine,
-                PC_Adjusted, Environment.NewLine);
+                SPSR, Environment.NewLine);
         }
     }
 }

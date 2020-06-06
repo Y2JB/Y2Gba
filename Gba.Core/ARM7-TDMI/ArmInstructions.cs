@@ -86,7 +86,7 @@ namespace Gba.Core
 				else
 				{
 					//ARM_6
-					PsrTransfer(rawInstruction, peek);
+					PsrFlagsTransfer(rawInstruction, peek);
 				}
 			}
 
@@ -334,7 +334,7 @@ namespace Gba.Core
 
 			byte destReg = (byte)((rawInstruction >> 12) & 0xF);
 
-			// When use_immediate is 0, determine whether the register should be shifted by another register or an immediate
+			// When useImmediate is 0, determine whether the register should be shifted by another register or an immediate
 			bool shiftImmediate = ((rawInstruction & 0x10) != 0) ? false : true;
 
 			UInt32 result = 0;
@@ -348,8 +348,9 @@ namespace Gba.Core
 				operand = (rawInstruction & 0xFF);
 				byte offset = (byte)((rawInstruction >> 8) & 0xF);
 
+				// JB: I think this was a bug. We do update carry as long as set condition is true 
 				// Shift immediate - ROR special case - Carry flag not affected
-				RotateRightSpecial(ref operand, offset);
+				shiftOut = RotateRightSpecial(ref operand, offset);
 			}
 
 			// Use register as operand
@@ -594,9 +595,9 @@ namespace Gba.Core
 						return;
 					}
 
-					result = (input & operand);
+					result = (UInt32) (input & operand);
 
-					//Update condtion codes
+					//Update condtion codes (TST does not affect Carry directly but the ROR can)
 					if (setCondition) { UpdateFlagsForLogicOps(result, shiftOut); }
 					break;
 
@@ -730,16 +731,16 @@ namespace Gba.Core
 			}
 		}
 
-		/****** ARM.6 PSR Transfer ******/
-		void PsrTransfer(UInt32 rawInstruction, bool peek)
+		// ARM.6 PSR (Program Status Register) Transfer
+		void PsrFlagsTransfer(UInt32 rawInstruction, bool peek)
 		{
-			//Determine if an immediate or a register will be used as input (MSR only) - Bit 25
+			// Determine if an immediate or a register will be used as input (MSR only) - Bit 25
 			bool useImmediate = ((rawInstruction & 0x2000000)!=0) ? true : false;
 
-			//Determine access is for CPSR or SPSR - Bit 22
+			// Determine access is for CPSR or SPSR - Bit 22
 			byte psr = (byte) (((rawInstruction & 0x400000) != 0) ? 1 : 0);
 
-			//Grab opcode
+			// opcode
 			byte op = (byte) (((rawInstruction & 0x200000) !=0) ? 1 : 0);
 
 			switch (op)
@@ -747,7 +748,7 @@ namespace Gba.Core
 				//MRS
 				case 0x0:
 					{
-						//Grab destination register - Bits 12-15
+						// Bits 12-15
 						byte destReg = (byte) ((rawInstruction >> 12) & 0xF);
 
 						if (destReg == 15) 
@@ -760,7 +761,7 @@ namespace Gba.Core
 						{
 							if (peek)
 							{
-								peekString = String.Format("MRS {0},CPSR", GetRegisterName(destReg));
+								peekString = String.Format("MOV {0}, CPSR", GetRegisterName(destReg));
 								return;
 							}
 							SetRegisterValue(destReg, CPSR); 
@@ -770,7 +771,7 @@ namespace Gba.Core
 						{
 							if (peek)
 							{
-								peekString = String.Format("MRS {0},SPSR", GetRegisterName(destReg));
+								peekString = String.Format("MOV {0}, SPSR", GetRegisterName(destReg));
 								return;
 							}
 							SetRegisterValue(destReg, SPSR); 
@@ -786,13 +787,13 @@ namespace Gba.Core
 						//Create Op Field mask
 						UInt32 opFieldMask = 0;
 
-						//Flag field - Bit 19
+						// Flag field - Bit 19
 						if (((rawInstruction & 0x80000) != 0)) 
 						{ 
 							opFieldMask |= 0xFF000000; 
 						}
 
-						//Status field - Bit 18
+						// Status field - Bit 18
 						if (((rawInstruction & 0x40000) != 0))
 						{
 							opFieldMask |= 0x00FF0000;
@@ -815,13 +816,19 @@ namespace Gba.Core
 						//Use shifted 8-bit immediate as input
 						if (useImmediate)
 						{
-							//Grab shift offset - Bits 8-11
+							// shift offset - Bits 8-11
 							byte offset = (byte) ((rawInstruction >> 8) & 0xF);
 
-							//Grab 8-bit immediate - Bits 0-7
+							// 8-bit immediate - Bits 0-7
 							input = (rawInstruction) & 0xFF;
 
 							RotateRightSpecial(ref input, offset);
+
+							if (peek)
+							{
+								peekString = String.Format("MOV CPSR, {0:X8}", input);
+								return;
+							}
 						}
 
 						//Use register as input
@@ -829,6 +836,12 @@ namespace Gba.Core
 						{
 							//Grab source register - Bits 0-3
 							byte srcReg = (byte) (rawInstruction & 0xF);
+
+							if (peek)
+							{
+								peekString = String.Format("MOV CPSR, {0}", GetRegisterName(srcReg));
+								return;
+							}
 
 							if (srcReg == 15) 
 							{ 
@@ -839,19 +852,14 @@ namespace Gba.Core
 							input &= opFieldMask;
 						}
 
-						//Write into CPSR
+						// Write into CPSR
 						if (psr == 0)
-						{
-							if (peek)
-							{
-								peekString = String.Format("MSR CPSR");
-								return;
-							}
-
+						{						
 							CPSR &= ~opFieldMask;
 							CPSR |= input;
 						
 							//Set the CPU mode accordingly
+							
 							switch ((CPSR & 0x1F))
 							{
 								case 0x10: Mode = CpuMode.User; break;
@@ -1090,7 +1098,7 @@ namespace Gba.Core
 				case 0x7:
 					if (peek)
 					{
-						peekString = String.Format("SMLAL {0:X}, (1:X)", GetRegisterName(destReg), GetRegisterName(accuReg));
+						peekString = String.Format("SMLAL {0:X}, {1:X}", GetRegisterName(destReg), GetRegisterName(accuReg));
 						return;
 					}
 
@@ -1101,7 +1109,7 @@ namespace Gba.Core
 					hiLo |= Rn;
 
 					//Messy casting... It works though, and this is what we need
-					value_s64 = (value_s64 * (Int32)Rm * (Int32)Rs) + (Int32)hiLo;
+					value_s64 = (value_s64 * (Int32)Rm * (Int32)Rs) + (Int64)hiLo;
 					value_64 = (UInt64) value_s64;
 
 					//Set Rn to low 32-bits, Rd to high 32-bits

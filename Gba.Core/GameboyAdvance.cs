@@ -42,6 +42,7 @@ namespace Gba.Core
             this.Rom = new Rom("../../../../roms/armwrestler.gba");
             //this.Rom = new Rom("../../../../roms/NCE-heart.gba");
             //this.Rom = new Rom("../../../../roms/Super Dodgeball Advance.gba");
+            //this.Rom = new Rom("../../../../roms/Kirby.gba");
             
             this.Memory = new Memory(this);
             this.Cpu = new Cpu(this);

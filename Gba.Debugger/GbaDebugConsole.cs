@@ -38,6 +38,7 @@ namespace GbaDebugger
             @continue,
             brk,
             breakpoint,
+            list,                           // list breakpoints
             delete,
             mem,                            // mem 0 = read(0)   mem 0 10 = wrtie(0, 10)
             dump,
@@ -79,14 +80,20 @@ namespace GbaDebugger
             // Out of sync with IO registers!
             //breakpoints.Add(new Breakpoint(0x08000BD8));
 
-           // breakpoints.Add(new Breakpoint(0x08000FC8));
+            //breakpoints.Add(new Breakpoint(0x08000F70));
+            breakpoints.Add(new Breakpoint(0x08000F38));
+            breakpoints.Add(new Breakpoint(0x08000F70));
+            breakpoints.Add(new Breakpoint(0x08000F94));
 
             // SP has gone slightly wonky here compared to No$
             //breakpoints.Add(new Breakpoint(0x08000c00)); 
 
-            breakpoints.Add(new Breakpoint(0x08000A24));
-            breakpoints.Add(new Breakpoint(0x08000b90));
-            
+            //breakpoints.Add(new Breakpoint(0x08000A24));
+            //breakpoints.Add(new Breakpoint(0x08001678));
+            //breakpoints.Add(new Breakpoint(0x08003FA6));
+            //breakpoints.Add(new Breakpoint(0x08000FAE));
+            //breakpoints.Add(new Breakpoint(0x08004008));
+
 
             //breakpoints.Add(new Breakpoint(0x64, new ConditionalExpression(snes.memory, 0xFF44, ConditionalExpression.EqualityCheck.Equal, 143)));
 
@@ -167,16 +174,17 @@ namespace GbaDebugger
                 case ConsoleCommand.breakpoint:
                     return BreakpointCommand(parameters);
 
+                case ConsoleCommand.list:
+                    return ListCommand(parameters);
+
                 case ConsoleCommand.delete:
                     breakpoints.Clear();
                     return true;
-
 
                 case ConsoleCommand.ticks:
                     ConsoleAddString(String.Format("ticks - {0}", gba.Cpu.Cycles - lastTicks));
                     lastTicks = gba.Cpu.Cycles;
                     return true;
-
                
                 case ConsoleCommand.exit:                    
                     return true;
@@ -408,6 +416,24 @@ namespace GbaDebugger
         */
 
 
+        bool ListCommand(string[] parameters)
+        {
+            if (breakpoints.Count == 0)
+            {
+                ConsoleAddString("No Breakpoints set.");
+            }
+            else
+            {
+                ConsoleAddString("Breakpoint List:");
+                foreach (var bp in breakpoints)
+                {
+                    ConsoleAddString(String.Format("0x{0:X8}", bp.Address));
+                }
+            }
+            return true;
+        }
+
+
         // Try to parse a base 10 or base 16 number from string
         bool ParseUIntParameter(string p, out uint value)
         {
@@ -538,22 +564,28 @@ namespace GbaDebugger
             UInt32 instrSize = (UInt32) (gba.Cpu.State == Cpu.CpuState.Arm ? 4 : 2);
             UInt32 adjust = 0;
 
+            int instructionPtr = gba.Cpu.NextPipelineInsturction;
+
             // Inefficient but we are not running at this point so what the hell
-            rawInstr = gba.Cpu.InstructionPipeline.ElementAt(0);
+            rawInstr = gba.Cpu.InstructionPipeline[instructionPtr];
             instructionText = gba.Cpu.State == Cpu.CpuState.Arm ? gba.Cpu.PeekArmInstruction(rawInstr) : gba.Cpu.PeekThumbInstruction((ushort)rawInstr);
             newInstruction = new StoredInstruction(rawInstr, instructionText, gba.Cpu.PC_Adjusted);
             NextInstructions.Add(newInstruction);
 
+            instructionPtr++;
+            if (instructionPtr >= Cpu.Pipeline_Size) instructionPtr = 0;
             adjust += instrSize;
 
-            rawInstr = gba.Cpu.InstructionPipeline.ElementAt(1);
+            rawInstr = gba.Cpu.InstructionPipeline[instructionPtr];
             instructionText = gba.Cpu.State == Cpu.CpuState.Arm ? gba.Cpu.PeekArmInstruction(rawInstr) : gba.Cpu.PeekThumbInstruction((ushort)rawInstr);
             newInstruction = new StoredInstruction(rawInstr, instructionText, (UInt32) (gba.Cpu.PC_Adjusted + adjust));
             NextInstructions.Add(newInstruction);
 
+            instructionPtr++;
+            if (instructionPtr >= Cpu.Pipeline_Size) instructionPtr = 0;
             adjust += instrSize;
 
-            rawInstr = gba.Cpu.InstructionPipeline.ElementAt(2);
+            rawInstr = gba.Cpu.InstructionPipeline[instructionPtr];
             instructionText = gba.Cpu.State == Cpu.CpuState.Arm ? gba.Cpu.PeekArmInstruction(rawInstr) : gba.Cpu.PeekThumbInstruction((ushort)rawInstr);
             newInstruction = new StoredInstruction(rawInstr, instructionText, (UInt32)(gba.Cpu.PC_Adjusted + adjust));
             NextInstructions.Add(newInstruction);

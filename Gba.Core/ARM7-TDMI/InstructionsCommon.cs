@@ -200,19 +200,21 @@ namespace Gba.Core
 
 
 		// Performs 32-bit rotate right - For ARM.5 Data Processing when Bit 25 is 1
-		void RotateRightSpecial(ref UInt32 input, byte offset)
+		byte RotateRightSpecial(ref UInt32 input, byte offset)
 		{
+			byte carry_out = 0;
 			if (offset > 0)
 			{
 				//Perform ROR shift on immediate
 				for (int x = 0; x < (offset * 2); x++)
 				{
-					byte carry_out = (byte) (input & 0x1);
+					carry_out = (byte) (input & 0x1);
 					input >>= 1;
 
-					if (carry_out != 0) { input |= 0x80000000; }
+					if (carry_out != 0) { input |= 0x80000000; }					
 				}
 			}
+			return carry_out;
 		}
 
 
