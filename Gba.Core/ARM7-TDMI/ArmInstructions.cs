@@ -1527,25 +1527,37 @@ namespace Gba.Core
 				Mode = CpuMode.User; 
 			}
 
+			// The IB,IA,DB,DA suffixes directly specify the desired U and P bits:
+			// IB  increment before          ;P=1, U=1
+			// IA  increment after           ;P=0, U=1 (default)
+			// DB  decrement before          ;P=1, U=0
+			// DA  decrement after           ;P=0, U=0
+
 			UInt32 baseAddr = GetRegisterValue(baseReg);
 			UInt32 oldBase = baseAddr;
 			byte transferReg = 0xFF;
 
 
-
+			// Load / Store Multiple values 
 			if (peek && registerList != 0)
 			{
+				string addressingMode = "IA";
+				if (prePost == 1 && upDown == 1) addressingMode = "IB";
+				else if (prePost == 0 && upDown == 1) addressingMode = "IA";
+				else if (prePost == 1 && upDown == 0) addressingMode = "DB";
+				else if (prePost == 0 && upDown == 0) addressingMode = "DA";
+
 				if (loadStore == 0)
 				{
 
-					peekString = String.Format("PUSH {0}", RegisterListToString(registerList));
+					peekString = String.Format("STM{0} {1}", addressingMode, RegisterListToString(registerList));
 					return;
 
 				}
 				else
 				{
 
-					peekString = String.Format("POP {0}", RegisterListToString(registerList));
+					peekString = String.Format("LDM{0} {1}", addressingMode, RegisterListToString(registerList));
 					return;
 				}
 			}
@@ -1562,20 +1574,22 @@ namespace Gba.Core
 				}
 			}
 
-			// Load-Store with an ascending stack order, Up-Down = 1
+			// Up/Down Bit (0=down; subtract offset from base, 1=up; add to base)
 			if ((upDown == 1) && (registerList != 0))
 			{
+
+				// Ascending register list 
 				for (int x = 0; x < 16; x++)
 				{
 					if ((registerList & (1 << x)) != 0)
 					{
-						// Increment before transfer if pre-indexing
+						// Increment before transfer
 						if (prePost == 1) 
 						{ 
 							baseAddr += 4; 
 						}
 
-						//Store registers
+						// Store registers
 						if (loadStore == 0)
 						{
 							if ((x == transferReg) && (baseReg == transferReg)) 
@@ -1598,6 +1612,12 @@ namespace Gba.Core
 								writeBack = 0; 
 							}
 
+							// JB: cancel writeback if we are writing over the base address
+							if (x == baseReg)
+							{
+								writeBack = 0;
+							}
+
 							SetRegisterValue((UInt32) x, Memory.ReadWord(baseAddr));
 							if (x == 15) 
 							{ 
@@ -1605,22 +1625,22 @@ namespace Gba.Core
 							}
 						}
 
-						// Increment after transfer if post-indexing
+						// Increment after transfer
 						if (prePost == 0) 
 						{ 
 							baseAddr += 4; 
 						}
-					}
+					}					
+				}
 
-					// Write back the into base register
-					if (writeBack == 1) 
-					{ 
-						SetRegisterValue(baseReg, baseAddr); 
-					}
+				// JB: After all loads are done, write back the into base register
+				if (writeBack == 1)
+				{
+					SetRegisterValue(baseReg, baseAddr);
 				}
 			}
 
-			// Load-Store with a descending stack order, Up-Down = 0
+			// Load-Store with a descending register list order
 			else if ((upDown == 0) && (registerList != 0))
 			{
 				for (int x = 15; x >= 0; x--)
@@ -1648,7 +1668,17 @@ namespace Gba.Core
 						// Load registers
 						else
 						{
-							if ((x == transferReg) && (baseReg == transferReg)) { writeBack = 0; }
+							if ((x == transferReg) && (baseReg == transferReg)) 
+							{ 
+								writeBack = 0; 
+							}
+
+							// JB: cancel writeback if we are writing over the base address
+							if (x == baseReg)
+							{
+								writeBack = 0;
+							}
+							
 							SetRegisterValue((UInt32) x, Memory.ReadWord(baseAddr));
 							if (x == 15) 
 							{ 
@@ -1662,12 +1692,12 @@ namespace Gba.Core
 							baseAddr -= 4; 
 						}
 					}
+				}
 
-					//Write back the into base register
-					if (writeBack == 1)
-					{ 
-						SetRegisterValue(baseReg, baseAddr);
-					}
+				// JB: After all loads are done, write back the into base register
+				if (writeBack == 1)
+				{
+					SetRegisterValue(baseReg, baseAddr);
 				}
 			}
 
