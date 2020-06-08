@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Gba.Core
@@ -27,13 +28,20 @@ namespace Gba.Core
         }
 
 
-        public byte ReadByte(UInt32 address)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public byte ReadByte(UInt32 address)
         {
+			// BIOS
+			if(address >= 0x00000000 && address <= 0x00003FFF)
+            {
+				return gba.Bios.ReadByte(address);
+            }
 			// ROM
-			if (address >= 0x08000000 && address <= 0x09FFFFFF)
+			else if (address >= 0x08000000 && address <= 0x09FFFFFF)
 			{
 				return gba.Rom.ReadByte(address - 0x08000000);
 			}
+			// IO Registers
 			else if (address >= 0x04000000 && address <= 0x040003FE)
 			{
 				if (address == 0x4000004)
@@ -70,10 +78,20 @@ namespace Gba.Core
 				else if (address == 0x0400000E) return gba.LcdController.BgControlRegisters[3].Register0;
 				else if (address == 0x0400000F) return gba.LcdController.BgControlRegisters[3].Register1;
 
-				// (REG_IME) Turns all interrupts on or off
+
+				// Interrupts				
 				else if (address == 0x04000208)
 				{
-					return 0;
+					// (REG_IME) Turns all interrupts on or off
+					return gba.Interrupts.InterruptMasterEnable;
+				}
+				else if (address == 0x4000200)
+                {
+					return (byte) (gba.Interrupts.InterruptEnableRegister & 0xFF);
+                }
+				else if (address == 0x4000201)
+				{
+					return (byte)((gba.Interrupts.InterruptEnableRegister >> 8));
 				}
 				else
 				{
@@ -106,7 +124,6 @@ namespace Gba.Core
 			{
 				throw new NotImplementedException();
 			}
-			else if (address >= 0x00000000 && address <= 0x00003FFF) throw new NotImplementedException();
 			else if (address >= 0x0A000000 && address <= 0x0BFFFFFF) throw new NotImplementedException();
 			else if (address >= 0x0C000000 && address <= 0x0DFFFFFF) throw new NotImplementedException();
 			else if (address >= 0x0E000000 && address <= 0x0E00FFFF) throw new NotImplementedException();
@@ -149,30 +166,42 @@ namespace Gba.Core
         }
 
 
-        public ushort ReadHalfWord(UInt32 address)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public ushort ReadHalfWord(UInt32 address)
         {
             // NB: Little Endian
             return (ushort)((ReadByte((UInt32)(address + 1)) << 8) | ReadByte(address));
         }
 
 
-        public UInt32 ReadWord(UInt32 address)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public UInt32 ReadWord(UInt32 address)
         {
             // NB: Little Endian
             return (UInt32)((ReadByte((UInt32)(address + 3)) << 24) | (ReadByte((UInt32)(address + 2)) << 16) | (ReadByte((UInt32)(address + 1)) << 8) | ReadByte(address));
         }
 
-
-        public void WriteByte(UInt32 address, byte value)
-        {
-            if(address >= 0x04000000 && address <= 0x040003FE)
-            {
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteByte(UInt32 address, byte value)
+        {            
+			// Fast Cpu linked RAM
+			if (address >= 0x03000000 && address <= 0x03007FFF)
+			{
+				IWRam[address - 0x03000000] = value;
+			}
+			// RAM
+			else if (address >= 0x02000000 && address <= 0x0203FFFF)
+			{
+				EWRam[address - 0x02000000] = value;
+			}
+			if (address >= 0x04000000 && address <= 0x040003FE)
+			{
 				if (address == 0x04000000)
-                {
+				{
 					gba.LcdController.DisplayControlRegister.Register0 = value;
 				}
 				else if (address >= 0x04000001)
-                {
+				{
 					gba.LcdController.DisplayControlRegister.Register1 = value;
 				}
 				else if (address >= 0x04000008 && address <= 0x0400000F)
@@ -190,23 +219,29 @@ namespace Gba.Core
 				// REG_IME Turns all interrupts on or off
 				if (address == 0x04000208)
 				{
-
-				}			
+					gba.Interrupts.InterruptEnableRegister = value;
+				}
+				else if (address == 0x4000200)
+				{
+					gba.Interrupts.InterruptEnableRegister |= value;
+				}
+				else if (address == 0x4000201)
+				{
+					gba.Interrupts.InterruptEnableRegister |= (ushort)(value << 8);					
+				}
+				else if (address == 0x4000202)
+				{
+					gba.Interrupts.InterruptRequestFlags |= value;
+				}
+				else if (address == 0x4000203)
+				{
+					gba.Interrupts.InterruptRequestFlags |= (ushort)(value << 8);
+				}
 				else
 				{
 					ioReg[address - 0x04000000] = value;
 					//throw new NotImplementedException();
 				}
-            }
-			// Fast Cpu linked RAM
-			else if (address >= 0x03000000 && address <= 0x03007FFF)
-			{
-				IWRam[address - 0x03000000] = value;
-			}
-			// RAM
-			else if (address >= 0x02000000 && address <= 0x0203FFFF)
-			{
-				EWRam[address - 0x02000000] = value;
 			}
 			// Palette Ram
 			else if (address >= 0x05000000 && address <= 0x050003FF)
@@ -234,14 +269,16 @@ namespace Gba.Core
         }
 
 
-        public void WriteHalfWord(UInt32 address, ushort value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteHalfWord(UInt32 address, ushort value)
         {
             WriteByte(address, (byte)(value & 0x00ff));
             WriteByte((address + 1), (byte)((value & 0xff00) >> 8));
         }
 
 
-        public void WriteWord(UInt32 address, UInt32 value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteWord(UInt32 address, UInt32 value)
         {
             WriteByte(address, (byte)(value & 0x00ff));
             WriteByte((address + 1), (byte)((value & 0xff00) >> 8));

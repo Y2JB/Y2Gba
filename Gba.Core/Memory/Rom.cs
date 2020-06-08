@@ -30,6 +30,8 @@ namespace Gba.Core
     public class Rom : IRom
     {
         private byte[] romData;
+        private UInt32[] rom32BitCached;
+        private ushort[] rom16BitCached;
 
         //private readonly int Header_Size = 0xC0;
         private readonly int RomNameOffset = 0x0A0;
@@ -42,15 +44,54 @@ namespace Gba.Core
 
         public UInt32 EntryPoint { get; private set; }
 
+
         public Rom(string fn)
         {
             RomFileName = fn;
 
             romData = new MemoryStream(File.ReadAllBytes(fn)).ToArray();
 
+            // Cache the entire ROM along 32 bit boundaries. This lets us do fast access when advancing and refilling the CPU pipeline.
+            Cache32BitRomValues();
+            Cache16BitRomValues();
+
             RomName = Encoding.UTF8.GetString(romData, RomNameOffset, 12).TrimEnd((Char)0);
 
             EntryPoint = ReadWord(0);
+        }
+
+        
+        void Cache32BitRomValues()
+        {
+            rom32BitCached = new UInt32[(romData.Length >> 2)];
+            for(UInt32 i=0; i < romData.Length; i+= 4)
+            {
+                rom32BitCached[i >> 2] = ReadWord(i);
+            }
+        }
+
+
+        void Cache16BitRomValues()
+        {
+            rom16BitCached = new ushort[(romData.Length >> 1)];
+            for (UInt32 i = 0; i < romData.Length; i += 2)
+            {
+                rom16BitCached[i >> 1] = ReadHalfWord(i);
+            }
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ushort ReadHalfWordFast(UInt32 address)
+        {
+            return rom16BitCached[(address >> 1)];
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public UInt32 ReadWordFast(UInt32 address)
+        {
+            return rom32BitCached[(address>>2)];
         }
 
 

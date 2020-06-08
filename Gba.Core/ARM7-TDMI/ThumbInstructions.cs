@@ -925,8 +925,6 @@ namespace Gba.Core
 					if ((operand & 0x1) == 0)
 					{
 						State = CpuState.Arm;
-
-						ClearFlag(StatusFlag.ThumbExecution);
 						operand &= ~0x3U;
 					}
 					//Align operand to half-word
@@ -2143,14 +2141,16 @@ namespace Gba.Core
 
 				//SWI
 				case 0xF:
-					throw new NotImplementedException();
-					//Process SWIs via High Level Emulation (HLE)
+					//Process SWIs via High Level Emulation (HLE)??
 					//TODO: Make an LLE version
-					//process_swi((current_thumb_instruction & 0xFF));
-
+					Gba.Bios.ProcessSwi((UInt32)(rawInstruction & 0xFF));			
 					// JB: DO THIS!
-					//if (config::use_bios) { return; }
-					//break;
+					if (Gba.Bios.UseGbaBios) 
+					{ 
+						return; 
+					}
+					break;
+
 			}
 
 			if (requestFlushPipeline)

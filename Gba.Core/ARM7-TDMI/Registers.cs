@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Gba.Core
@@ -15,7 +16,7 @@ namespace Gba.Core
         UInt32 r12Fiq;
 
         // Flags - Current Program Status Register
-        UInt32 CPSR;
+        public UInt32 CPSR { get; private set; }
 
         UInt32 SP_Fiq;
         UInt32 SP_Svc;
@@ -257,7 +258,6 @@ namespace Gba.Core
             return ((RegisterName)(index)).ToString();
         }
 
-
         public UInt32 PC { get { return registers[15]; } set { registers[15] = value; } }
         
         // Link register, used to store return address when making a function call. Program must manage it when doing nested calls.
@@ -417,7 +417,7 @@ namespace Gba.Core
                 {
                     case CpuMode.User:
                     case CpuMode.System:
-                        break;
+                        return;
                     case CpuMode.FIQ:
                         SPSR_Fiq = value;
                         return;
@@ -433,8 +433,11 @@ namespace Gba.Core
                     case CpuMode.Undefined:
                         SPSR_Und = value;
                         return;
+
+                    default:
+                        throw new ArgumentException("Invalid SPSR register request");
                 }
-                throw new ArgumentException("Invalid SPSR register request");
+                
             } 
         }
     }

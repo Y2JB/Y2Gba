@@ -72,18 +72,15 @@ namespace GbaDebugger
             // SB : b $64 if [IO_LY] == 2
             //breakpoints.Add(new Breakpoint(0x0));
             //breakpoints.Add(new Breakpoint(0x8000100));
-            //breakpoints.Add(new Breakpoint(0x08000A0C));
-            //breakpoints.Add(new Breakpoint(0x08000BCC));
 
-            //breakpoints.Add(new Breakpoint(0x08000bcc));
 
             // Out of sync with IO registers!
             //breakpoints.Add(new Breakpoint(0x08000BD8));
 
-            //breakpoints.Add(new Breakpoint(0x08000F70));
-            breakpoints.Add(new Breakpoint(0x08000F38));
-            breakpoints.Add(new Breakpoint(0x08000F70));
-            breakpoints.Add(new Breakpoint(0x08000F94));
+            breakpoints.Add(new Breakpoint(0x080038fc));
+            //breakpoints.Add(new Breakpoint(0x08000268));
+            //breakpoints.Add(new Breakpoint(0x08001d90));
+            //breakpoints.Add(new Breakpoint(0x080004F4));
 
             // SP has gone slightly wonky here compared to No$
             //breakpoints.Add(new Breakpoint(0x08000c00)); 

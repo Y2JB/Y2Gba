@@ -6,19 +6,28 @@ namespace Gba.Core
 {
     public partial class Cpu
     {        
-        enum StatusFlag : UInt32
+        public enum StatusFlag : UInt32
         {
-            Negative    = 1U << 31,
-            Zero        = 1U << 30,
-            Carry       = 1U << 29,
-            Overflow    = 1U << 28,
-            CumulativeSaturation = 1U << 27,
-            Jazelle     = 1U << 24,
-            Endianness  = 1U << 9,
-            AsyncAbortMask = 1U << 8,
-            IrqMask     = 1U << 7,
-            FirqMask    = 1U << 6,
-            ThumbExecution = 1U << 5
+            Negative            = 1U << 31,
+            Zero                = 1U << 30,
+            Carry               = 1U << 29,
+            Overflow            = 1U << 28,
+            IrqDisable          = 1U << 7,
+            FirqDisable         = 1U << 6,
+            ThumbExecution      = 1U << 5
+
+            // Bottom 5 bits contain Cpu mode
+        }
+
+        public enum CpuMode
+        {
+            User         = 0x10,
+            System       = 0x1F,
+            FIQ          = 0x11,   // Fast Interrupt Request (Not used on GBA)
+            Supervisor   = 0x13,   // SVC
+            Abort        = 0x17,
+            IRQ          = 0x12,
+            Undefined    = 0x1B
         }
 
         bool ZeroFlag
@@ -63,16 +72,21 @@ namespace Gba.Core
             }
         }
 
-        void SetFlag(StatusFlag flag)
+        public void SetFlag(StatusFlag flag)
         {
             CPSR |= (UInt32)flag;
         }
 
 
-        void ClearFlag(StatusFlag flag)
+        public void ClearFlag(StatusFlag flag)
         {
             CPSR &= (UInt32)~((UInt32)flag);
         }
 
+
+        void UpdateCsprModeBits(CpuMode mode)
+        {
+            CPSR |= (UInt32) mode;
+        }
     }
 }

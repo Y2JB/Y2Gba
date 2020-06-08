@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Gba.Core
 {
-    // GBA Cpu is ArmV4
+    // GBA Cpu Arm7TDMI (ArmV4)
     public partial class Cpu
     {
         public enum CpuState
@@ -12,25 +12,17 @@ namespace Gba.Core
             Arm,
             Thumb
         }
-        public CpuState State { get; private set; }
+        CpuState state;
+        public CpuState State { get { return state; }  set { state = value; if (state == CpuState.Thumb) SetFlag(StatusFlag.ThumbExecution); else ClearFlag(StatusFlag.ThumbExecution); } }
 
-        public enum CpuMode
-        {
-            User,
-            System,
-            FIQ,            // Fast Interrupt Request (Not used on GBA)
-            Supervisor,
-            Abort,
-            IRQ,
-            Undefined
-        }   
-        public CpuMode Mode { get; private set; }
+        CpuMode mode;
+        public CpuMode Mode { get { return mode; } set { mode = value; UpdateCsprModeBits(value); } }
 
         public const int Pipeline_Size = 3;
         public UInt32[] InstructionPipeline { get; private set; }
         public int NextPipelineInsturction { get; private set; }
 
-        bool requestFlushPipeline;
+        public bool requestFlushPipeline { get; set;  }
 
         // 16Mhz Cpu
         public const UInt32 Cycles_Per_Second = 16777216;
@@ -39,12 +31,15 @@ namespace Gba.Core
         public Memory Memory { get; private set; }
         GameboyAdvance Gba { get; set; }
 
+        Action RefillPipeline;
+        Action PipelineAdvance;
 
         public Cpu(GameboyAdvance gba)
         {
             this.Gba = gba;
             Memory = gba.Memory;
-            InstructionPipeline = new UInt32[Pipeline_Size];            
+            InstructionPipeline = new UInt32[Pipeline_Size];
+            CalculateArmDecodeLookUpTable();
             RegisterConditionalHandlers();
         }
 
@@ -60,9 +55,12 @@ namespace Gba.Core
             SP_Svc = 0x03007FE0;
             SP_Irq = 0x03007FA0;
             //reg.r15 = 0x8000000;
-            CPSR = 0x5F;
+            //CPSR = 0x5F;
 
             Cycles = 0;
+
+            RefillPipeline = RefillPipelineSlow;
+            PipelineAdvance = PipelineAdvanceSlow;
 
             NextPipelineInsturction = 0;
             RefillPipeline();
@@ -75,12 +73,26 @@ namespace Gba.Core
             InstructionPipeline[0] = 0;
             InstructionPipeline[1] = 0;
             InstructionPipeline[2] = 0;
+
+
+            // We're executing from ROM, switch to the fast read
+            if (PC >= 0x08000000 && PC <= 0x09FFFFFF)
+            {
+                RefillPipeline = RefillPipelineFastForRom;
+                PipelineAdvance = PipelineAdvanceFastForRom;
+            }
+            else
+            {
+                // If we find ourselves executing from ROM or BIOS then we'll switch to faster versions otherwise we need to do the slow version
+                RefillPipeline = RefillPipelineSlow;
+                PipelineAdvance = PipelineAdvanceSlow;
+            }
         }
 
 
         // Arm7 works with a fetch, decode, execute pipeline so the PC is always 2 instructions ahead of the executing instruction (8 bytes)
         // If a branch or some other op has invalidated the pipeline, refill it fro scratch before we execute anything else
-        public void RefillPipeline()
+        public void RefillPipelineSlow()
         {
             NextPipelineInsturction = 0;
 
@@ -104,9 +116,8 @@ namespace Gba.Core
 
 
         // After an instruction executes we move the pieline forward one instruction
-        public void PipelineAdvance()
-        {
-            // nextPipelineInsturction becomes the back of the queue, then we adjust it
+        public void PipelineAdvanceSlow()
+        {           
             if (State == CpuState.Thumb)
             {
                 PC += 2U;
@@ -116,6 +127,52 @@ namespace Gba.Core
             {
                 PC += 4U;
                 InstructionPipeline[NextPipelineInsturction] = Gba.Memory.ReadWord(PC);
+            }
+
+            // nextPipelineInsturction becomes the back of the queue, then we adjust it
+            NextPipelineInsturction++;
+            if (NextPipelineInsturction >= Pipeline_Size) NextPipelineInsturction = 0;
+        }
+
+
+        
+        public void RefillPipelineFastForRom()
+        {
+            NextPipelineInsturction = 0;
+            
+            UInt32 pc = PC - 0x08000000;
+
+            if (State == CpuState.Thumb)
+            {
+                InstructionPipeline[0] = Gba.Rom.ReadHalfWordFast(pc);
+                InstructionPipeline[1] = Gba.Rom.ReadHalfWordFast(pc + 2);
+                InstructionPipeline[2] = Gba.Rom.ReadHalfWordFast(pc + 4);
+
+                PC += 4;
+            }
+            else
+            {
+                InstructionPipeline[0] = Gba.Rom.ReadWordFast(pc);
+                InstructionPipeline[1] = Gba.Rom.ReadWordFast(pc + 4);
+                InstructionPipeline[2] = Gba.Rom.ReadWordFast(pc + 8);
+
+                PC += 8;
+            }
+        }
+
+
+        // We have cached all the ROM data at both 16 & 32 bit boundaries. This means that when we read the ROM we can just grab 16 or 32bit values in one shot rather than 4*ReadByte()
+        public void PipelineAdvanceFastForRom()
+        {
+            if (State == CpuState.Thumb)
+            {
+                PC += 2U;
+                InstructionPipeline[NextPipelineInsturction] = Gba.Rom.ReadHalfWordFast(PC - 0x08000000);
+            }
+            else
+            {
+                PC += 4U;
+                InstructionPipeline[NextPipelineInsturction] = Gba.Rom.ReadWordFast(PC - 0x08000000);
             }
 
             NextPipelineInsturction++;
@@ -131,7 +188,6 @@ namespace Gba.Core
             {
                 Gba.LcdController.Step();
                 Gba.Joypad.Step();
-                //dmg.timer.Step();
 
                 cycles--;
             }
@@ -149,6 +205,8 @@ namespace Gba.Core
                 DecodeAndExecuteArmInstruction(InstructionPipeline[NextPipelineInsturction]);
             }
 
+            // Handle interrupts
+            Gba.Interrupts.ProcessInterrupts();
 
             if (requestFlushPipeline == false)
             {

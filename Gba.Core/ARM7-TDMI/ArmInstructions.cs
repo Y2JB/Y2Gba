@@ -1,4 +1,5 @@
-﻿// Full disclosure - I got a huge amount of help and code from Gbe-Plus when writing the CPU emulation
+﻿#define USE_LUT
+// Full disclosure - I got a huge amount of help and code from Gbe-Plus when writing the CPU emulation
 
 using System;
 using System.Collections.Generic;
@@ -11,11 +12,32 @@ namespace Gba.Core
 
 	public partial class Cpu
     {
+		Dictionary<UInt32, Action<UInt32, bool>> InstructionLut = new Dictionary<uint, Action<uint, bool>>();
+
 		string peekString;
 
 		public void DecodeAndExecuteArmInstruction(UInt32 rawInstruction)
         {
+#if USE_LUT
+// Extract conditional
+			ConditionalExecution conditional = (ConditionalExecution)((rawInstruction & 0xF0000000) >> 28);
+
+			// TODO: Conditional needs adding to Peek
+
+			// Conditional early out 
+			if (conditional != ConditionalExecution.AL)
+			{
+				if (CondtionalHandlers[(int)conditional].Invoke() == false)
+				{
+					// Conditional return false, we do not exectue the instruction
+					return;
+				}
+			}
+
+			InstructionLut[rawInstruction & 0x0FF000F0](rawInstruction, false);
+#else
 			DecodeArmInstruction(rawInstruction, false);
+#endif
 		}
 
 
@@ -25,7 +47,11 @@ namespace Gba.Core
 			// When peeking, we can try and decode data and other sillyness that we will never get to.
 			try
 			{
-				DecodeArmInstruction(rawInstruction, true);
+#if USE_LUT
+				InstructionLut[rawInstruction & 0x0FF000F0](rawInstruction, true);
+#else
+			DecodeArmInstruction(rawInstruction, true);
+#endif
 			}
 			catch (Exception)
             {
@@ -33,6 +59,193 @@ namespace Gba.Core
 			}
 			return peekString;
         }
+		
+
+		void CalculateArmDecodeLookUpTable()
+        {
+			UInt32 mask = 0x0FF000F0;
+
+			UInt32 instruction;
+			for(UInt32 i = 0; i < 4096; i++)
+            {
+				instruction = ((i & 0x00000FF0) << 16);
+				instruction += ((i & 0x0F) <<4);
+
+				TestDecode(instruction);
+			}
+			//TestDecode(rawInstruction & mask);
+		}
+
+
+		
+		void TestDecode(UInt32 rawInstruction)
+        {
+			bool added = false;
+
+			try
+			{
+				if (rawInstruction == 0x1200010)
+				{
+					//ARM_3
+					InstructionLut.TryAdd(rawInstruction, BranchExchange);
+					added = true;
+				}
+
+				else if (((rawInstruction >> 25) & 0x7) == 0x5)
+				{
+					//ARM_4
+					InstructionLut.TryAdd(rawInstruction, BranchLink);
+					added = true;
+				}
+
+				else if ((rawInstruction & 0x0D900000) == 0x01000000)
+				{
+
+					if (((rawInstruction & 0x80) != 0) && ((rawInstruction & 0x10) != 0) && ((rawInstruction & 0x02000000) == 0))
+					{
+						if (((rawInstruction >> 5) & 0x3) == 0)
+						{
+							//ARM_12;
+							InstructionLut.TryAdd(rawInstruction, SingleDataSwap);
+							added = true;
+						}
+
+						else
+						{
+							//ARM_10;
+							InstructionLut.TryAdd(rawInstruction, HalfwordAndSignedDataTransfer);
+							added = true;
+						}
+					}
+
+					else
+					{
+						//ARM_6
+						InstructionLut.TryAdd(rawInstruction, PsrFlagsTransfer);
+						added = true;
+					}
+				}
+
+				else if (((rawInstruction >> 26) & 0x3) == 0x0)
+				{
+					if (((rawInstruction & 0x80) != 0) && ((rawInstruction & 0x10) == 0))
+					{
+						//ARM.5
+						if ((rawInstruction & 0x02000000) != 0)
+						{
+							InstructionLut.TryAdd(rawInstruction, DataProcessing);
+							added = true;
+						}
+
+						//ARM.5
+						else if (((rawInstruction & 0x00100000) != 0) && (((rawInstruction >> 23) & 0x3) == 0x2))
+						{
+							//ARM_5
+							InstructionLut.TryAdd(rawInstruction, DataProcessing);
+							added = true;
+						}
+
+						//ARM.5
+						else if (((rawInstruction >> 23) & 0x3) != 0x2)
+						{
+							// ARM_5
+							InstructionLut.TryAdd(rawInstruction, DataProcessing);
+							added = true;
+						}
+
+						//ARM.7
+						else
+						{
+							InstructionLut.TryAdd(rawInstruction, MultiplyAndMultiplyAccumulate);
+							added = true;
+						}
+					}
+
+					else if (((rawInstruction & 0x80) != 0) && ((rawInstruction & 0x10) != 0))
+					{
+						if (((rawInstruction >> 4) & 0xF) == 0x9)
+						{
+							//ARM.5
+							if ((rawInstruction & 0x02000000) != 0)
+							{
+								//ARM_5
+								InstructionLut.TryAdd(rawInstruction, DataProcessing);
+								added = true;
+							}
+
+							//ARM.12
+							else if (((rawInstruction >> 23) & 0x3) == 0x2)
+							{
+								//ARM_12;
+								InstructionLut.TryAdd(rawInstruction, SingleDataSwap);
+								added = true;
+							}
+
+							//ARM.7
+							else
+							{
+								//ARM_7;
+								InstructionLut.TryAdd(rawInstruction, MultiplyAndMultiplyAccumulate);
+								added = true;
+							}
+						}
+
+						//ARM.5
+						else if ((rawInstruction & 0x02000000) != 0)
+						{
+							//ARM_5
+							InstructionLut.TryAdd(rawInstruction, DataProcessing);
+							added = true;
+						}
+
+						//ARM.10
+						else
+						{
+							//ARM_10;
+							InstructionLut.TryAdd(rawInstruction, HalfwordAndSignedDataTransfer);
+							added = true;
+						}
+					}
+
+					else
+					{
+						//ARM_5
+						InstructionLut.TryAdd(rawInstruction, DataProcessing);
+						added = true;
+					}
+				}
+
+				else if (((rawInstruction >> 26) & 0x3) == 0x1)
+				{
+					//ARM_9
+					InstructionLut.TryAdd(rawInstruction, SingleDataTransfer);
+					added = true;
+				}
+
+				else if (((rawInstruction >> 25) & 0x7) == 0x4)
+				{
+					//ARM_11
+					InstructionLut.TryAdd(rawInstruction, BlockDataTransfer);
+					added = true;
+				}
+
+				else if (((rawInstruction >> 24) & 0xF) == 0xF)
+				{
+					//ARM_13
+					InstructionLut.TryAdd(rawInstruction, SoftwareInterrupt);
+					added = true;
+				}
+			}
+			catch (ArgumentException) 
+			{
+				added = true;
+			}
+
+			//if(added == false)
+            //{
+			//	throw new ArgumentException("Bad LUT decode");
+            //}
+		}
 
 
         void DecodeArmInstruction(UInt32 rawInstruction, bool peek)
@@ -286,8 +499,7 @@ namespace Gba.Core
 				// branch address is never used so it is used as the toggle bit for switching to Thumb mode. 
 				if ((result & 0x1) != 0)
 				{
-					State = CpuState.Thumb;
-					SetFlag(StatusFlag.ThumbExecution);
+					State = CpuState.Thumb;					
 					result &= (UInt32)(~1U);
 				}
 
@@ -341,6 +553,9 @@ namespace Gba.Core
 			UInt32 input = GetRegisterValue(srcReg);
 			UInt32 operand = 0;
 			byte shiftOut = 2;
+
+			// JB: adc sbc rsc use the old carry flag (the instructions that use carry as input) 
+			byte oldCarry = (byte) (CarryFlag ? 1 : 0);
 
 			// Use immediate as operand
 			if (useImmediate)
@@ -534,8 +749,9 @@ namespace Gba.Core
 						return;
 					}
 
-					//If no shift was performed, use the current Carry Flag for this math op
-					if (shiftOut == 2) { shiftOut = (byte)(CarryFlag ? 1 : 0); }
+					// JB: If we did a shift, we can nuke the carry. Instead we cache the carry and use it here
+					shiftOut = oldCarry;
+
 					result = (input + operand + shiftOut);
 					SetRegisterValue(destReg, result);
 
@@ -551,8 +767,8 @@ namespace Gba.Core
 						return;
 					}
 
-					//If no shift was performed, use the current Carry Flag for this math op
-					if (shiftOut == 2) { shiftOut = (byte)(CarryFlag ? 1 : 0); }
+					// JB: If we did a shift, we can nuke the carry. Instead we cache the carry and use it here
+					shiftOut = oldCarry;
 
 					result = (input - operand + shiftOut - 1);
 
@@ -577,8 +793,8 @@ namespace Gba.Core
 						return;
 					}
 
-					//If no shift was performed, use the current Carry Flag for this math op
-					if (shiftOut == 2) { shiftOut = (byte)(CarryFlag ? 1 : 0); }
+					// JB: If we did a shift, we can nuke the carry. Instead we cache the carry and use it here
+					shiftOut = oldCarry;
 
 					result = (operand - input + shiftOut - 1);
 					SetRegisterValue(destReg, result);
@@ -704,23 +920,22 @@ namespace Gba.Core
 
 			// Timings for PC as destination register
 			if (destReg == 15)
-			{
-				//Clock CPU and controllers - 2S
-				requestFlushPipeline = true;
-				//clock(reg.r15, false);
-				//clock((reg.r15 + 4), false);
-
+			{			
 				// Switch to THUMB mode if necessary
 				if (((PC & 0x1) != 0) || (State == CpuState.Thumb))
 				{
 					State = CpuState.Thumb;
-					SetFlag(StatusFlag.ThumbExecution);
 					PC &= (UInt32)(~1U);
 				}
 				else 
 				{ 
 					PC &= (UInt32)(~3U); 
 				}
+
+				//Clock CPU and controllers - 2S
+				requestFlushPipeline = true;
+				//clock(reg.r15, false);
+				//clock((reg.r15 + 4), false);
 			}
 
 			//Timings for regular registers
@@ -871,6 +1086,7 @@ namespace Gba.Core
 								case 0x1F: Mode = CpuMode.System; break;
 							}
 
+							// We just wrote the CPSR flags, check if it says we should be in Thumb mode
 							if (ThumbFlag)
 							{
 								//std::cout << "CPU::Warning - ARM.6 Setting THUMB mode\n";
@@ -1820,17 +2036,22 @@ namespace Gba.Core
 
 
 		// ARM.13 
+		// SWI  calls to the operating system - Enter Supervisor mode (SVC) in ARM state
 		void SoftwareInterrupt(UInt32 rawInstruction, bool peek)
 		{
 			//TODO - Timings
-			//TODO - LLE version of SWIs
+			//TODO - LLE (low level emu) version of SWIs
 
-			//Grab SWI comment - Bits 0-23
+			// SWI comment - Bits 0-23
 			UInt32 comment = (rawInstruction & 0xFFFFFF);
 			comment >>= 16;
 
-			throw new NotImplementedException();
-			//process_swi(comment);
+			if(peek)
+            {
+				peekString = String.Format("SWi {0:X8}", comment);
+				return;
+			}
+			Gba.Bios.ProcessSwi(comment);
 		}
 
 	}

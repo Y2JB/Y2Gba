@@ -38,7 +38,7 @@ namespace WinFormRender
             InitializeComponent();
 
             this.ClientSize = new System.Drawing.Size(1200, 775);
-            this.Text = "GBA Console";
+            this.Text = "Y2Gba Console";
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
