@@ -37,7 +37,7 @@ namespace WinFormRender
 
             InitializeComponent();
 
-            this.ClientSize = new System.Drawing.Size(1200, 775);
+            this.ClientSize = new System.Drawing.Size(1600, 1000);
             this.Text = "Y2Gba Console";
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -51,17 +51,17 @@ namespace WinFormRender
             codeWnd.Location = new System.Drawing.Point(10, 10);
             codeWnd.Multiline = true;
             codeWnd.ReadOnly = true;
-            codeWnd.Width = 800;
-            codeWnd.Height = 350;
+            codeWnd.Width = 900;
+            codeWnd.Height = 450;
             codeWnd.Enabled = true;
             codeWnd.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
             this.Controls.Add(codeWnd);
 
-            console.Location = new System.Drawing.Point(10, 370);
+            console.Location = new System.Drawing.Point(10, codeWnd.Location.Y + codeWnd.Height + 20);
             console.Multiline = true;
             console.ReadOnly = true;
-            console.Width = 800;
-            console.Height = 350;
+            console.Width = 900;
+            console.Height = 450;
             console.Enabled = true;
             console.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
             this.Controls.Add(console);
@@ -74,8 +74,8 @@ namespace WinFormRender
 
             emuSnapshot.Location = new System.Drawing.Point(console.Location.X + console.Width + 10, 10);
             emuSnapshot.Multiline = true;
-            emuSnapshot.Width = 350;
-            emuSnapshot.Height = 720;
+            emuSnapshot.Width = 700;
+            emuSnapshot.Height = 900;
             emuSnapshot.Enabled = false;
             emuSnapshot.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
             this.Controls.Add(emuSnapshot);
