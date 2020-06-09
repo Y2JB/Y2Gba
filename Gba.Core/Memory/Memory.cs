@@ -28,6 +28,8 @@ namespace Gba.Core
         }
 
 
+		// Most memory regions are mirrored and repeat. For example IWram is 0x8000 bytes long and lives at 0x03000000.
+		// 0x03008000 will be byte 0 again
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public byte ReadByte(UInt32 address)
         {
@@ -44,7 +46,15 @@ namespace Gba.Core
 			// IO Registers
 			else if (address >= 0x04000000 && address <= 0x040003FE)
 			{
-				if (address == 0x4000004)
+				if (address == 0x4000000)
+				{
+					return gba.LcdController.DisplayControlRegister.Register0;
+				}
+				else if (address == 0x04000001)
+				{
+					return gba.LcdController.DisplayControlRegister.Register1;
+				}
+				else if (address == 0x4000004)
 				{
 					return gba.LcdController.DispStatRegister.Register0;
 				}
@@ -80,11 +90,6 @@ namespace Gba.Core
 
 
 				// Interrupts				
-				else if (address == 0x04000208)
-				{
-					// (REG_IME) Turns all interrupts on or off
-					return gba.Interrupts.InterruptMasterEnable;
-				}
 				else if (address == 0x4000200)
                 {
 					return (byte) (gba.Interrupts.InterruptEnableRegister & 0xFF);
@@ -93,6 +98,20 @@ namespace Gba.Core
 				{
 					return (byte)((gba.Interrupts.InterruptEnableRegister >> 8));
 				}
+				
+				else if (address == 0x4000202)
+				{
+					return (byte)(gba.Interrupts.InterruptRequestFlags & 0xFF);
+				}
+				else if (address == 0x4000203)
+				{
+					return (byte)((gba.Interrupts.InterruptRequestFlags >> 8));
+				}
+				else if (address == 0x04000208)
+				{
+					// (REG_IME) Turns all interrupts on or off
+					return gba.Interrupts.InterruptMasterEnable;
+				}
 				else
 				{
 					// TODO: this should throw?
@@ -100,23 +119,27 @@ namespace Gba.Core
 				}
 			}
 			// Fast Cpu linked RAM
-			else if (address >= 0x03000000 && address <= 0x03007FFF)
+			else if (address >= 0x03000000 && address <= 0x03FFFFFF)
 			{
-				return IWRam[address - 0x03000000];
+				address &= 0x7FFF;
+				return IWRam[address];
 			}
 			// RAM
-			else if (address >= 0x02000000 && address <= 0x0203FFFF)
+			else if (address >= 0x02000000 && address <= 0x02FFFFFF)
 			{
-				return EWRam[address - 0x02000000];
+				address &= 0x3FFFF;
+				return EWRam[address];
 			}
 			// Palette Ram
 			else if (address >= 0x05000000 && address <= 0x050003FF)
 			{
+				// TODO : Mirroring!
 				return gba.LcdController.Palettes.PaletteRam[address - 0x05000000];
 			}
 			// VRam
 			else if (address >= 0x06000000 && address <= 0x06017FFF)
 			{
+				//For VRAM you could mask the address like this: addr & (0x17FFF | (~addr & 0x10000) >> 1)
 				throw new NotImplementedException();
 			}
 			// OAM Ram
@@ -183,18 +206,20 @@ namespace Gba.Core
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteByte(UInt32 address, byte value)
-        {            
+        {
 			// Fast Cpu linked RAM
-			if (address >= 0x03000000 && address <= 0x03007FFF)
+			if (address >= 0x03000000 && address <= 0x03FFFFFF)
 			{
-				IWRam[address - 0x03000000] = value;
+				address &= 0x7FFF;
+				IWRam[address] = value;
 			}
 			// RAM
-			else if (address >= 0x02000000 && address <= 0x0203FFFF)
+			else if (address >= 0x02000000 && address <= 0x02FFFFFF)
 			{
-				EWRam[address - 0x02000000] = value;
+				address &= 0x3FFFF;
+				EWRam[address] = value;
 			}
-			if (address >= 0x04000000 && address <= 0x040003FE)
+			else if (address >= 0x04000000 && address <= 0x040003FE)
 			{
 				if (address == 0x04000000)
 				{
@@ -203,6 +228,14 @@ namespace Gba.Core
 				else if (address >= 0x04000001)
 				{
 					gba.LcdController.DisplayControlRegister.Register1 = value;
+				}
+				else if (address == 0x4000004)
+				{
+					gba.LcdController.DispStatRegister.Register0 = value;
+				}
+				else if (address == 0x4000005)
+				{
+					throw new NotImplementedException();
 				}
 				else if (address >= 0x04000008 && address <= 0x0400000F)
 				{
@@ -215,11 +248,6 @@ namespace Gba.Core
 					else if (address == 0x0400000D) gba.LcdController.BgControlRegisters[2].Register1 = value;
 					else if (address == 0x0400000E) gba.LcdController.BgControlRegisters[3].Register0 = value;
 					else if (address == 0x0400000F) gba.LcdController.BgControlRegisters[3].Register1 = value;
-				}
-				// REG_IME Turns all interrupts on or off
-				if (address == 0x04000208)
-				{
-					gba.Interrupts.InterruptEnableRegister = value;
 				}
 				else if (address == 0x4000200)
 				{
@@ -236,6 +264,12 @@ namespace Gba.Core
 				else if (address == 0x4000203)
 				{
 					gba.Interrupts.InterruptRequestFlags |= (ushort)(value << 8);
+				}
+				// REG_IME Turns all interrupts on or off
+				else if (address == 0x04000208)
+				{
+
+					gba.Interrupts.InterruptMasterEnable = value;
 				}
 				else
 				{
@@ -262,6 +296,10 @@ namespace Gba.Core
 			{
 				// Attempted ROM write...do nothing
 			}
+			else if (address >= 0x0E000000 && address <= 0x0E00FFFF)
+            {
+				// SRAM
+            }
 			else
             {
 				//throw new ArgumentException("Bad Memory Write");

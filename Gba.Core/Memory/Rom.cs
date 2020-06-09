@@ -60,16 +60,6 @@ namespace Gba.Core
             EntryPoint = ReadWord(0);
         }
 
-        
-        void Cache32BitRomValues()
-        {
-            rom32BitCached = new UInt32[(romData.Length >> 2)];
-            for(UInt32 i=0; i < romData.Length; i+= 4)
-            {
-                rom32BitCached[i >> 2] = ReadWord(i);
-            }
-        }
-
 
         void Cache16BitRomValues()
         {
@@ -77,6 +67,16 @@ namespace Gba.Core
             for (UInt32 i = 0; i < romData.Length; i += 2)
             {
                 rom16BitCached[i >> 1] = ReadHalfWord(i);
+            }
+        }
+
+
+        void Cache32BitRomValues()
+        {
+            rom32BitCached = new UInt32[(romData.Length >> 2)];
+            for(UInt32 i=0; i < romData.Length; i+= 4)
+            {
+                rom32BitCached[i >> 2] = ReadWord(i);
             }
         }
 
@@ -91,7 +91,7 @@ namespace Gba.Core
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public UInt32 ReadWordFast(UInt32 address)
         {
-            return rom32BitCached[(address>>2)];
+            return rom32BitCached[(address >> 2)];
         }
 
 

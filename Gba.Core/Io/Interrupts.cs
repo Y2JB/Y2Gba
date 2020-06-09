@@ -12,11 +12,13 @@ namespace Gba.Core
         // 0x4000208 
         public byte InterruptMasterEnable { get; set; }
 
+        // 0x4000200
+        public ushort InterruptEnableRegister { get; set; }
+
         // 0x4000202
         public ushort InterruptRequestFlags { get; set; }
 
-        // 0x4000200
-        public ushort InterruptEnableRegister { get; set; }
+
 
         // 0 = Disable
         public enum InterruptType : UInt16
@@ -44,6 +46,13 @@ namespace Gba.Core
         {
             this.gba = gba;
         }
+
+
+        public void RequestInterrupt(InterruptType interrupt)
+        {
+            InterruptRequestFlags |= (ushort)interrupt;
+        }
+
 
         // Jumps to or exits an IRQ / hardware interrupt 
         public void ProcessInterrupts()

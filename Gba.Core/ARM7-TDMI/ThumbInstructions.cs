@@ -2141,6 +2141,11 @@ namespace Gba.Core
 
 				//SWI
 				case 0xF:
+					if (peek)
+					{
+						peekString = String.Format("SWI");
+						return;
+					}
 					//Process SWIs via High Level Emulation (HLE)??
 					//TODO: Make an LLE version
 					Gba.Bios.ProcessSwi((UInt32)(rawInstruction & 0xFF));			

@@ -67,6 +67,10 @@ namespace Gba.Core
             DisplayControlRegister = new DisplayControlRegister(this);
             DispStatRegister = new DisplayStatusRegister(this);
             BgControlRegisters = new BgControlRegister[4];
+            for(int i = 0; i < 4; i++)
+            {
+                //BgControlRegisters[i] = new BgControlRegister(this);
+            }
 
             Mode = LcdMode.ScanlineRendering;
             LcdCycles = 0;
@@ -99,6 +103,12 @@ namespace Gba.Core
                         if (CurrentScanline == 160)
                         {
                             Mode = LcdMode.VBlank;
+
+
+                            if (DispStatRegister.VBlankIrqEnabled)
+                            {
+                                Gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VBlank);
+                            }
 
                             Render();
 
@@ -171,6 +181,7 @@ namespace Gba.Core
             }
         }
 
+
         public UInt32 TotalTicksForState()
         {
             switch (Mode)
@@ -209,12 +220,14 @@ namespace Gba.Core
         {
             byte[] vram = Gba.Memory.VRam;
             Color[] palette = Palettes.Palette0;
+            
+            // 2nd framebuffer is at 0xA000
 
             for (int y = 0; y < Screen_Y_Resolution; y++)
             {
                 for (int x = 0; x < Screen_X_Resolution; x++)
                 {
-                    int index = vram[(y * Screen_X_Resolution) + x];
+                    int index = vram[((y * Screen_X_Resolution) + x)];
                     drawBuffer.SetPixel(x, y, palette[index]);
                 }
             }

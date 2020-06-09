@@ -63,7 +63,7 @@ namespace Gba.Core
 
 		void CalculateArmDecodeLookUpTable()
         {
-			UInt32 mask = 0x0FF000F0;
+			//UInt32 mask = 0x0FF000F0;
 
 			UInt32 instruction;
 			for(UInt32 i = 0; i < 4096; i++)
@@ -71,14 +71,14 @@ namespace Gba.Core
 				instruction = ((i & 0x00000FF0) << 16);
 				instruction += ((i & 0x0F) <<4);
 
-				TestDecode(instruction);
+				PreCalculateDecode(instruction);
 			}
 			//TestDecode(rawInstruction & mask);
 		}
 
 
 		
-		void TestDecode(UInt32 rawInstruction)
+		void PreCalculateDecode(UInt32 rawInstruction)
         {
 			bool added = false;
 
