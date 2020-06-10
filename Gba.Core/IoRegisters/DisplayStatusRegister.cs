@@ -16,7 +16,7 @@ namespace Gba.Core
     public class DisplayStatusRegister
     {
         // 0x4000005
-        public byte Register1 { get; set; }
+        public byte VCountSetting { get; set; }
 
 
         // 0x4000004
@@ -35,7 +35,7 @@ namespace Gba.Core
                 }
                 else reg0 &= 0xFD;
 
-                if (Register1 == lcd.CurrentScanline) reg0 |= 0x04;
+                if (VCountSetting == lcd.CurrentScanline) reg0 |= 0x04;
                 else reg0 &= 0xFB;
 
                 return reg0;

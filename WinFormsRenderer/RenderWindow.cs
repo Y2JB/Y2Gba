@@ -198,7 +198,6 @@ namespace WinFormRender
                     {
                         gba.Step();
 
-
                         if (dbgConsole.CheckForBreakpoints())
                         {
                             consoleWindow.RefreshDmgSnapshot();

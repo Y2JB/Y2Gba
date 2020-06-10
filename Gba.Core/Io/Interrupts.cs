@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 
 namespace Gba.Core
@@ -53,11 +54,35 @@ namespace Gba.Core
             InterruptRequestFlags |= (ushort)interrupt;
         }
 
+        bool InterruptPending()
+        {
+            return InterruptRequestFlags != 0;
+        }
 
         // Jumps to or exits an IRQ / hardware interrupt 
         public void ProcessInterrupts()
         {
+            if((InterruptMasterEnable!=0) && gba.Cpu.IrqDisableFlag == false && InterruptPending())
+            {
+                //InterruptMasterEnable = 0;
 
+                // Save the flags before we do anything. The interrupt handler will restore them when it is done
+                gba.Cpu.SPSR_Irq = gba.Cpu.CPSR;
+
+                gba.Cpu.SetFlag(Cpu.StatusFlag.IrqDisable);
+                gba.Cpu.Mode = Cpu.CpuMode.IRQ;
+                UInt32 nextInstruction = (gba.Cpu.State == Cpu.CpuState.Arm ? 4u : 2u);
+                gba.Cpu.LR = gba.Cpu.PC_Adjusted + nextInstruction;
+                gba.Cpu.PC = 0x18;
+                gba.Cpu.requestFlushPipeline = true;
+
+                gba.Cpu.State = Cpu.CpuState.Arm;
+
+                // clear flag
+                //InterruptRequestFlags = 0;
+
+                // Return is handled by the subs instruction, any data processing instruction with the S flag set and r15 as its destination restores the CPSR
+            }
         }
 
 

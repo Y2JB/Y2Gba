@@ -71,14 +71,14 @@ namespace Gba.Core
 				instruction = ((i & 0x00000FF0) << 16);
 				instruction += ((i & 0x0F) <<4);
 
-				PreCalculateDecode(instruction);
+				TestDecode(instruction);
 			}
 			//TestDecode(rawInstruction & mask);
 		}
 
 
 		
-		void PreCalculateDecode(UInt32 rawInstruction)
+		void TestDecode(UInt32 rawInstruction)
         {
 			bool added = false;
 

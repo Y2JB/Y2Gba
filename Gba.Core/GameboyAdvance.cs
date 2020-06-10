@@ -41,13 +41,15 @@ namespace Gba.Core
             PoweredOn = true;
 
             this.Bios = new Bios(this, "../../../../GBA.BIOS");
-            this.Rom = new Rom("../../../../roms/armwrestler.gba");
+            //this.Rom = new Rom("../../../../roms/armwrestler.gba");
             //this.Rom = new Rom("../../../../roms/suite.gba");
             //this.Rom = new Rom("../../../../roms/arm.gba");
             //this.Rom = new Rom("../../../../roms/hello.gba");
+            //this.Rom = new Rom("../../../../roms/irq_demo.gba");
             //this.Rom = new Rom("../../../../roms/NCE-heart.gba");
+           // this.Rom = new Rom("../../../../roms/brin_demo.gba");
             //this.Rom = new Rom("../../../../roms/Super Dodgeball Advance.gba");
-            //this.Rom = new Rom("../../../../roms/Kirby.gba");
+            this.Rom = new Rom("../../../../roms/Kirby.gba");
 
             this.Memory = new Memory(this);
             this.Cpu = new Cpu(this);

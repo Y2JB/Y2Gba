@@ -43,7 +43,6 @@ namespace Gba.Core
         {
             get
             {
-
                 return reg1;
             }
             set
@@ -60,6 +59,8 @@ namespace Gba.Core
         }
 
 
+        public UInt32 CharacterBaseBlock { get { return (UInt32)((Register0 & 0xC) >> 2); } }
+        public UInt32 ScreenBaseBlock { get { return (UInt32)(Register1 & 0x1F); } }
     }
 
 

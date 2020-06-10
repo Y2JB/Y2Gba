@@ -70,26 +70,10 @@ namespace GbaDebugger
             NextInstructions = new List<StoredInstruction>();
 
             // SB : b $64 if [IO_LY] == 2
-            //breakpoints.Add(new Breakpoint(0x0));
-            //breakpoints.Add(new Breakpoint(0x8000100));
 
-
-            // Out of sync with IO registers!
-            //breakpoints.Add(new Breakpoint(0x08000BD8));
-
-            breakpoints.Add(new Breakpoint(0x080038fc));
-            //breakpoints.Add(new Breakpoint(0x08000268));
-            //breakpoints.Add(new Breakpoint(0x08001d90));
-            //breakpoints.Add(new Breakpoint(0x080004F4));
-
-            // SP has gone slightly wonky here compared to No$
-            //breakpoints.Add(new Breakpoint(0x08000c00)); 
-
-            //breakpoints.Add(new Breakpoint(0x08000A24));
-            //breakpoints.Add(new Breakpoint(0x08001678));
-            //breakpoints.Add(new Breakpoint(0x08003FA6));
-            //breakpoints.Add(new Breakpoint(0x08000FAE));
-            //breakpoints.Add(new Breakpoint(0x08004008));
+            breakpoints.Add(new Breakpoint(0x8));
+            breakpoints.Add(new Breakpoint(0x18));
+//            breakpoints.Add(new Breakpoint(0x080069ce));
 
 
             //breakpoints.Add(new Breakpoint(0x64, new ConditionalExpression(snes.memory, 0xFF44, ConditionalExpression.EqualityCheck.Equal, 143)));

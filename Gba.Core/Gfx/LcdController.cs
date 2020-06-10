@@ -69,7 +69,7 @@ namespace Gba.Core
             BgControlRegisters = new BgControlRegister[4];
             for(int i = 0; i < 4; i++)
             {
-                //BgControlRegisters[i] = new BgControlRegister(this);
+                BgControlRegisters[i] = new BgControlRegister(this);
             }
 
             Mode = LcdMode.ScanlineRendering;
@@ -87,9 +87,16 @@ namespace Gba.Core
             {
                 case LcdMode.ScanlineRendering:
                     if (LcdCycles >= HDraw_Length)
-                    {                    
+                    {
+                        Render();
+
                         LcdCycles -= HDraw_Length;
                         Mode = LcdMode.HBlank;
+
+                        if (DispStatRegister.HBlankIrqEnabled)
+                        {
+                            Gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.HBlank);
+                        }
                     }
                     break;
 
@@ -100,6 +107,14 @@ namespace Gba.Core
                         LcdCycles -= HBlank_Length;
 
                         CurrentScanline++;
+
+                        if (DispStatRegister.VCounterIrqEnabled && 
+                            CurrentScanline == Gba.LcdController.DispStatRegister.VCountSetting)
+                        {
+                            Gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VCounterMatch);
+                        }
+                        
+
                         if (CurrentScanline == 160)
                         {
                             Mode = LcdMode.VBlank;
@@ -109,8 +124,7 @@ namespace Gba.Core
                             {
                                 Gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VBlank);
                             }
-
-                            Render();
+                            
 
                             // We can set the renderer drawing the frame as soon as we enter vblank
                             lock (FrameBuffer)
@@ -203,10 +217,11 @@ namespace Gba.Core
             switch(DisplayControlRegister.BgMode)
             {
                 case 0x0:
+                    RenderMode0Scanline();
                     break;
 
                 case 0x4:
-                    RenderMode4();
+                    RenderMode4Scanline();
                     break;
 
                 default:
@@ -214,16 +229,26 @@ namespace Gba.Core
             }
         }
 
+        private void RenderMode0Scanline()
+        {
+            if(DisplayControlRegister.DisplayBg0)
+            {
+                //mapDataOffset = BgControlRegisters[0].CharacterBaseBlock
+            }
+        }
+
         // Mode 4 is another bitmap mode. It also has a 240×160 frame-buffer, but instead of 16bpp pixels it uses 8bpp pixels. 
         // These 8 bits are a palette index to the background palette located at 0500:0000 (our palette 0)
-        private void RenderMode4()
+        private void RenderMode4Scanline()
         {
             byte[] vram = Gba.Memory.VRam;
             Color[] palette = Palettes.Palette0;
-            
+
             // 2nd framebuffer is at 0xA000
 
-            for (int y = 0; y < Screen_Y_Resolution; y++)
+            int y = CurrentScanline;
+
+            //for (int y = 0; y < Screen_Y_Resolution; y++)
             {
                 for (int x = 0; x < Screen_X_Resolution; x++)
                 {

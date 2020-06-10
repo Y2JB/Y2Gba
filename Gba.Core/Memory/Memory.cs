@@ -34,10 +34,10 @@ namespace Gba.Core
 		public byte ReadByte(UInt32 address)
         {
 			// BIOS
-			if(address >= 0x00000000 && address <= 0x00003FFF)
-            {
+			if (address >= 0x00000000 && address <= 0x00003FFF)
+			{
 				return gba.Bios.ReadByte(address);
-            }
+			}
 			// ROM
 			else if (address >= 0x08000000 && address <= 0x09FFFFFF)
 			{
@@ -60,7 +60,7 @@ namespace Gba.Core
 				}
 				else if (address == 0x4000005)
 				{
-					return gba.LcdController.DispStatRegister.Register1;
+					return gba.LcdController.DispStatRegister.VCountSetting;
 				}
 				// VCOUNT 
 				else if (address == 0x04000006)
@@ -91,14 +91,14 @@ namespace Gba.Core
 
 				// Interrupts				
 				else if (address == 0x4000200)
-                {
-					return (byte) (gba.Interrupts.InterruptEnableRegister & 0xFF);
-                }
+				{
+					return (byte)(gba.Interrupts.InterruptEnableRegister & 0xFF);
+				}
 				else if (address == 0x4000201)
 				{
 					return (byte)((gba.Interrupts.InterruptEnableRegister >> 8));
 				}
-				
+
 				else if (address == 0x4000202)
 				{
 					return (byte)(gba.Interrupts.InterruptRequestFlags & 0xFF);
@@ -140,7 +140,7 @@ namespace Gba.Core
 			else if (address >= 0x06000000 && address <= 0x06017FFF)
 			{
 				//For VRAM you could mask the address like this: addr & (0x17FFF | (~addr & 0x10000) >> 1)
-				throw new NotImplementedException();
+				return vram[address - 0x06000000];
 			}
 			// OAM Ram
 			else if (address >= 0x07000000 && address <= 0x07FFFFFF)
@@ -149,8 +149,13 @@ namespace Gba.Core
 			}
 			else if (address >= 0x0A000000 && address <= 0x0BFFFFFF) throw new NotImplementedException();
 			else if (address >= 0x0C000000 && address <= 0x0DFFFFFF) throw new NotImplementedException();
-			else if (address >= 0x0E000000 && address <= 0x0E00FFFF) throw new NotImplementedException();
-   
+			else if (address >= 0x0E000000 && address <= 0x0E00FFFF)
+			{
+				// SRAM TODO 
+				return 0;
+				//throw new NotImplementedException();
+			}
+
 			else
 			{
 				// Bad memory reads resolve to an Open Bus read. See Gbatek section on 'unpredictable things'
@@ -225,7 +230,7 @@ namespace Gba.Core
 				{
 					gba.LcdController.DisplayControlRegister.Register0 = value;
 				}
-				else if (address >= 0x04000001)
+				else if (address == 0x04000001)
 				{
 					gba.LcdController.DisplayControlRegister.Register1 = value;
 				}
@@ -235,7 +240,7 @@ namespace Gba.Core
 				}
 				else if (address == 0x4000005)
 				{
-					throw new NotImplementedException();
+					gba.LcdController.DispStatRegister.VCountSetting = value;
 				}
 				else if (address >= 0x04000008 && address <= 0x0400000F)
 				{
@@ -290,7 +295,7 @@ namespace Gba.Core
 			// OAM Ram
 			else if (address >= 0x07000000 && address <= 0x07FFFFFF)
 			{
-				throw new NotImplementedException();
+				//throw new NotImplementedException();
 			}
 			else if (address >= 0x08000000 && address <= 0x09FFFFFF)
 			{

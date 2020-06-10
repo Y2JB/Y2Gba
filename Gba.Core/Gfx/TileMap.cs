@@ -5,7 +5,6 @@ namespace Gba.Core
 {
     public class TileMap
     {
-        //IPpu ppu;
         IMemoryReader memory;
         readonly UInt32 vramOffset;
 
@@ -13,7 +12,7 @@ namespace Gba.Core
         {
             if(vramOffset != 0x9800 && vramOffset != 0x9C00)
             {
-                throw new ArgumentException("Background map must be located at cofrrect address");
+                throw new ArgumentException("BG map must be located at correct address");
             }
             this.vramOffset = vramOffset;
 

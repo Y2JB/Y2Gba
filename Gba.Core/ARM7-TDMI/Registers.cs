@@ -31,9 +31,9 @@ namespace Gba.Core
         UInt32 LR_Und;
 
         UInt32 SPSR_Fiq;
-        UInt32 SPSR_Svc;
+        public UInt32 SPSR_Svc { get; set; }
         UInt32 SPSR_Abt;
-        UInt32 SPSR_Irq;
+        public UInt32 SPSR_Irq { get; set; }
         UInt32 SPSR_Und;
 
         enum RegisterName

@@ -72,6 +72,16 @@ namespace Gba.Core
             }
         }
 
+
+        public bool IrqDisableFlag
+        {
+            get
+            {
+                return (CPSR & (UInt32)(StatusFlag.IrqDisable)) != 0;
+            }
+        }
+
+
         public void SetFlag(StatusFlag flag)
         {
             CPSR |= (UInt32)flag;

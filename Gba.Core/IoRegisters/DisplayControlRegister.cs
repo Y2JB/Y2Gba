@@ -6,7 +6,7 @@ namespace Gba.Core
 {
 
     // Bit   Expl.
-    // 0-2   BG Mode                (0-5=Video Mode 0-5, 6-7=Prohibited)
+    // 0-2   BG Mode                (0-5 =Video Mode, 6-7=Prohibited)
     // 3     Reserved / CGB Mode    (0=GBA, 1=CGB; can be set only by BIOS opcodes)
     // 4     Display Frame Select   (0-1=Frame 0-1) (for BG Modes 4,5 only)
     // 5     H-Blank Interval Free  (1=Allow access to OAM during H-Blank)
@@ -65,13 +65,13 @@ namespace Gba.Core
         public UInt32 BgMode { get { return (UInt32)(Register0 & 0x07); } }
         public UInt32 DisplayFrameSelect { get { return (UInt32)((Register0 & 0x10) >> 4); } }
         public bool HBlankIntervalFree { get { return ((Register0 & 0x20)!= 0); } }
-        public UInt32 ObjectCHaracterVramMapping { get { return (UInt32)((Register0 & 0x40) >> 6); } }
+        public UInt32 ObjectCharacterVramMapping { get { return (UInt32)((Register0 & 0x40) >> 6); } }
         public bool ForcedBlank { get { return ((Register0 & 0x90) != 0); } }
 
         public bool DisplayBg0 { get { return ((Register1 & 0x01) != 0); } }
         public bool DisplayBg1 { get { return ((Register1 & 0x02) != 0); } }
-        public bool DisplayBg2 { get { return ((Register1 & 0x03) != 0); } }
-        public bool DisplayBg3 { get { return ((Register1 & 0x04) != 0); } }
+        public bool DisplayBg2 { get { return ((Register1 & 0x04) != 0); } }
+        public bool DisplayBg3 { get { return ((Register1 & 0x08) != 0); } }
         public bool DisplayObj { get { return ((Register1 & 0x10) != 0); } }
         public bool DisplayWin0 { get { return ((Register1 & 0x20) != 0); } }
         public bool DisplayWin1 { get { return ((Register1 & 0x40) != 0); } }
