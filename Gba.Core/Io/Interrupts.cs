@@ -64,8 +64,6 @@ namespace Gba.Core
         {
             if((InterruptMasterEnable!=0) && gba.Cpu.IrqDisableFlag == false && InterruptPending())
             {
-                //InterruptMasterEnable = 0;
-
                 // Save the flags before we do anything. The interrupt handler will restore them when it is done
                 gba.Cpu.SPSR_Irq = gba.Cpu.CPSR;
 
@@ -78,8 +76,7 @@ namespace Gba.Core
 
                 gba.Cpu.State = Cpu.CpuState.Arm;
 
-                // clear flag
-                //InterruptRequestFlags = 0;
+                // It is the games job to clear interurpt flags etc
 
                 // Return is handled by the subs instruction, any data processing instruction with the S flag set and r15 as its destination restores the CPSR
             }

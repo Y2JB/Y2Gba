@@ -405,16 +405,14 @@ namespace Gba.Core
 		// Arm.4
 		void BranchLink(UInt32 current_arm_instruction, bool peek)
 		{			
-			//Grab offset
 			UInt32 offset = (current_arm_instruction & 0xFFFFFF);
 			offset <<= 2;
 
-			//Grab opcode
 			byte op = (byte) ((current_arm_instruction >> 24) & 0x1);
 
 			UInt32 final_addr = PC;
 
-			//Add offset as 2s complement if necessary
+			// Add offset as 2s complement if necessary
 			if ((offset & 0x2000000) != 0) 
 			{ 
 				offset |= 0xFC000000; 

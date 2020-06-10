@@ -50,7 +50,8 @@ namespace Gba.Core
                 reg1 = value;
             }
         }
-        
+      
+
         LcdController lcd;
      
         public BgControlRegister(LcdController lcd)
@@ -61,7 +62,27 @@ namespace Gba.Core
 
         public UInt32 CharacterBaseBlock { get { return (UInt32)((Register0 & 0xC) >> 2); } }
         public UInt32 ScreenBaseBlock { get { return (UInt32)(Register1 & 0x1F); } }
+
+        public BgPaletteMode PaletteMode { get { return (BgPaletteMode)((Register0 & 0x80) >> 7); } }
+
+        public BgSize Size { get { return (BgSize)((Register1 & 0xC00) >> 6); } }
+        
     }
 
+
+    public enum BgSize
+    {
+        Bg256x256 = 0,
+        Bg512x256,
+        Bg256x512,
+        Bg512x512,
+    }
+
+
+    public enum BgPaletteMode
+    {
+        PaletteMode16x16 = 0,
+        PaletteMode256x1
+    }
 
 }

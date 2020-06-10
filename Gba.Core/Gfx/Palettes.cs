@@ -14,8 +14,8 @@ namespace Gba.Core
         public Palettes()
         {
             PaletteRam = new byte[1024];
-            Palette0 = new Color[512];
-            Palette1 = new Color[512];
+            Palette0 = new Color[256];
+            Palette1 = new Color[256];
         }
 
         public void SetPaletteEntry(int palette, int index, ushort colour)
@@ -70,15 +70,15 @@ namespace Gba.Core
         public void DumpPaletteToPng(int paletteNumber)
         {
             const int Rect_Size = 32;
-            var image = new Bitmap(256, 256);
+            var image = new Bitmap(512, 512);
 
             Color[] palette = paletteNumber == 0 ? Palette0 : Palette1;
 
             using (var graphics = Graphics.FromImage(image))
             {
-                for (int y = 0; y < 8; y++)
+                for (int y = 0; y < 16; y++)
                 {
-                    for (int x = 0; x < 8; x++)
+                    for (int x = 0; x < 16; x++)
                     {
                         var brush = new SolidBrush(palette[(y * 8) + x]);
                         var rect = new Rectangle(x * Rect_Size, y * Rect_Size, Rect_Size, Rect_Size);
@@ -91,14 +91,14 @@ namespace Gba.Core
                 {
                     Pen pen = new Pen(Color.DarkRed, 0.5f);
 
-                    for (int x = 0; x <= 8; x++)
+                    for (int x = 0; x <= 16; x++)
                     {
-                        graphics.DrawLine(pen, x * Rect_Size, 0, x * Rect_Size, 256);
+                        graphics.DrawLine(pen, x * Rect_Size, 0, x * Rect_Size, 512);
                     }
 
-                    for (int y = 0; y <= 8; y++)
+                    for (int y = 0; y <= 16; y++)
                     {
-                        graphics.DrawLine(pen, 0, y * Rect_Size, 256, y * Rect_Size);
+                        graphics.DrawLine(pen, 0, y * Rect_Size, 512, y * Rect_Size);
                     }
                 }
             }

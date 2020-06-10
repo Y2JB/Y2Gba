@@ -231,9 +231,122 @@ namespace Gba.Core
 
         private void RenderMode0Scanline()
         {
-            if(DisplayControlRegister.DisplayBg0)
+            
+            if (DisplayControlRegister.DisplayBg0)
             {
-                //mapDataOffset = BgControlRegisters[0].CharacterBaseBlock
+                BgControlRegister bgReg = BgControlRegisters[0];
+                // 0-31, in units of 2 KBytes
+                UInt32 mapDataOffset = (bgReg.ScreenBaseBlock * 2048);
+                // 0-3, in units of 16 KBytes
+                UInt32 tileDataOffset = (bgReg.CharacterBaseBlock * 16384);
+
+
+                BgSize bgSize = bgReg.Size;                
+                switch(bgSize)                
+                {
+                    case BgSize.Bg256x256:
+                        break;
+
+
+                    default:
+                        throw new NotImplementedException();
+                }
+
+                BgPaletteMode paletteMode =  bgReg.PaletteMode;
+
+                TileMap tileMap = new TileMap(Gba.Memory.VRam, mapDataOffset, bgSize);
+
+                for(int i = 0; i < tileMap.TileCount; i++)
+                {
+                    TileMapEntry item = tileMap.TileMapItemFromIndex(i);
+                }
+
+
+                Color[] palette = Palettes.Palette0;
+
+
+                const int tileSize4bit = 32;
+                
+                // Which line within the current tile are we rendering?
+                int tileY = CurrentScanline % 8;
+
+                for (int x = 0; x < Screen_X_Resolution; x += 8)
+                {
+                    TileMapEntry tileMetaData = tileMap.TileMapItemFromXY(x, CurrentScanline);
+
+                    UInt32 tileVramOffset = (UInt32) (tileDataOffset + (tileMetaData.TileNumber * tileSize4bit) + (tileY * 4));
+
+                    // 4 bytes per tile row in 4 bpp mode 
+                    byte b0 = Gba.Memory.VRam[tileVramOffset];
+                    byte b1 = Gba.Memory.VRam[tileVramOffset + 1];
+                    byte b2 = Gba.Memory.VRam[tileVramOffset + 2];
+                    byte b3 = Gba.Memory.VRam[tileVramOffset + 3];
+
+                    int xpixel0 = b0 & 0x0F;
+                    int xpixel1 = ((b0 & 0xF0) >> 4);
+                    int xpixel2 = b1 & 0x0F;
+                    int xpixel3 = ((b1 & 0xF0) >> 4);
+                    int xpixel4 = b2 & 0x0F;
+                    int xpixel5 = ((b2 & 0xF0) >> 4);
+                    int xpixel6 = b3 & 0x0F;
+                    int xpixel7 = ((b3 & 0xF0) >> 4);
+
+                    Color pixel0 = palette[b0 & 0x0F];
+                    Color pixel1 = palette[((b0 & 0xF0) >> 4)];
+                    Color pixel2 = palette[b1 & 0x0F];
+                    Color pixel3 = palette[((b1 & 0xF0) >> 4)];
+                    Color pixel4 = palette[b2 & 0x0F];
+                    Color pixel5 = palette[((b2 & 0xF0) >> 4)];
+                    Color pixel6 = palette[b3 & 0x0F];
+                    Color pixel7 = palette[((b3 & 0xF0) >> 4)];
+
+                    drawBuffer.SetPixel(x, CurrentScanline, pixel0);
+                    drawBuffer.SetPixel(x+1, CurrentScanline, pixel1);
+                    drawBuffer.SetPixel(x+2, CurrentScanline, pixel2);
+                    drawBuffer.SetPixel(x+3, CurrentScanline, pixel3);
+                    drawBuffer.SetPixel(x+4, CurrentScanline, pixel4);
+                    drawBuffer.SetPixel(x+5, CurrentScanline, pixel5);
+                    drawBuffer.SetPixel(x+6, CurrentScanline, pixel6);
+                    drawBuffer.SetPixel(x+7, CurrentScanline, pixel7);
+                }
+
+                /*
+                
+                for (int tileNum = 0; tileNum < 10; tileNum++)
+                {
+                    byte[] tile = new byte[32];
+                    for (int i = 0; i < 32; i++)
+                    {
+                        tile[i] = Gba.Memory.VRam[tileDataOffset + i + tileNum];
+                    }
+
+
+  
+                    var image = new Bitmap(8, 8);
+                    for (int y = 0; y < 8; y++)
+                    {
+                        int pixel0 = ((tile[(y * 4) + 0] & 0x0F));
+                        int pixel1 = ((tile[(y * 4) + 0] & 0xF0) >> 4);
+                        int pixel2 = ((tile[(y * 4) + 1] & 0x0F));
+                        int pixel3 = ((tile[(y * 4) + 1] & 0xF0) >> 4);
+                        int pixel4 = ((tile[(y * 4) + 2] & 0x0F));
+                        int pixel5 = ((tile[(y * 4) + 2] & 0xF0) >> 4);
+                        int pixel6 = ((tile[(y * 4) + 3] & 0x0F));
+                        int pixel7 = ((tile[(y * 4) + 3] & 0xF0) >> 4);
+                        image.SetPixel(0, y, palette[pixel0]);
+                        image.SetPixel(1, y, palette[pixel1]);
+                        image.SetPixel(2, y, palette[pixel2]);
+                        image.SetPixel(3, y, palette[pixel3]);
+                        image.SetPixel(4, y, palette[pixel4]);
+                        image.SetPixel(5, y, palette[pixel5]);
+                        image.SetPixel(6, y, palette[pixel6]);
+                        image.SetPixel(7, y, palette[pixel7]);
+                
+                    }
+                
+                    image.Save("../../../../dump/tile" + tileNum.ToString() + ".png");
+                }
+                */
             }
         }
 
