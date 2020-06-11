@@ -25,6 +25,7 @@ namespace Gba.Core
         public DisplayStatusRegister DispStatRegister { get; private set; }
         public BgControlRegister[] BgControlRegisters { get; private set; }
         
+        public Background[] Bg { get; private set; }
 
         public byte CurrentScanline { get; private set; }
 
@@ -46,11 +47,11 @@ namespace Gba.Core
         DirectBitmap frameBuffer1;
         double lastFrameTime;
 
-        GameboyAdvance Gba { get; set; }
+        GameboyAdvance gba { get; set; }
 
         public LcdController(GameboyAdvance gba)
         {
-            Gba = gba;
+            this.gba = gba;
             
         }
 
@@ -67,9 +68,11 @@ namespace Gba.Core
             DisplayControlRegister = new DisplayControlRegister(this);
             DispStatRegister = new DisplayStatusRegister(this);
             BgControlRegisters = new BgControlRegister[4];
+            Bg = new Background[4];
             for(int i = 0; i < 4; i++)
             {
                 BgControlRegisters[i] = new BgControlRegister(this);
+                Bg[i] = new Background(gba, i);
             }
 
             Mode = LcdMode.ScanlineRendering;
@@ -95,7 +98,7 @@ namespace Gba.Core
 
                         if (DispStatRegister.HBlankIrqEnabled)
                         {
-                            Gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.HBlank);
+                            gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.HBlank);
                         }
                     }
                     break;
@@ -109,9 +112,9 @@ namespace Gba.Core
                         CurrentScanline++;
 
                         if (DispStatRegister.VCounterIrqEnabled && 
-                            CurrentScanline == Gba.LcdController.DispStatRegister.VCountSetting)
+                            CurrentScanline == gba.LcdController.DispStatRegister.VCountSetting)
                         {
-                            Gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VCounterMatch);
+                            gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VCounterMatch);
                         }
                         
 
@@ -122,7 +125,7 @@ namespace Gba.Core
 
                             if (DispStatRegister.VBlankIrqEnabled)
                             {
-                                Gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VBlank);
+                                gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VBlank);
                             }
                             
 
@@ -145,15 +148,15 @@ namespace Gba.Core
                             // lock to 60fps - 1000 / 60.0
                             double fps60 = 16.6666666;
                             //double frameTime = Gba.EmulatorTimer.Elapsed.TotalMilliseconds - lastFrameTime;
-                            while (Gba.EmulatorTimer.Elapsed.TotalMilliseconds - lastFrameTime < fps60)
+                            while (gba.EmulatorTimer.Elapsed.TotalMilliseconds - lastFrameTime < fps60)
                             {
                             }
 
-                            lastFrameTime = Gba.EmulatorTimer.Elapsed.TotalMilliseconds;
+                            lastFrameTime = gba.EmulatorTimer.Elapsed.TotalMilliseconds;
 
-                            if (Gba.OnFrame != null)
+                            if (gba.OnFrame != null)
                             {
-                                Gba.OnFrame();
+                                gba.OnFrame();
                             }
                         }
                         else
@@ -234,119 +237,10 @@ namespace Gba.Core
             
             if (DisplayControlRegister.DisplayBg0)
             {
-                BgControlRegister bgReg = BgControlRegisters[0];
-                // 0-31, in units of 2 KBytes
-                UInt32 mapDataOffset = (bgReg.ScreenBaseBlock * 2048);
-                // 0-3, in units of 16 KBytes
-                UInt32 tileDataOffset = (bgReg.CharacterBaseBlock * 16384);
+                // TODO: This needs doing when the reg's change 
+                Bg[0].Reset();
 
-
-                BgSize bgSize = bgReg.Size;                
-                switch(bgSize)                
-                {
-                    case BgSize.Bg256x256:
-                        break;
-
-
-                    default:
-                        throw new NotImplementedException();
-                }
-
-                BgPaletteMode paletteMode =  bgReg.PaletteMode;
-
-                TileMap tileMap = new TileMap(Gba.Memory.VRam, mapDataOffset, bgSize);
-
-                for(int i = 0; i < tileMap.TileCount; i++)
-                {
-                    TileMapEntry item = tileMap.TileMapItemFromIndex(i);
-                }
-
-
-                Color[] palette = Palettes.Palette0;
-
-
-                const int tileSize4bit = 32;
-                
-                // Which line within the current tile are we rendering?
-                int tileY = CurrentScanline % 8;
-
-                for (int x = 0; x < Screen_X_Resolution; x += 8)
-                {
-                    TileMapEntry tileMetaData = tileMap.TileMapItemFromXY(x, CurrentScanline);
-
-                    UInt32 tileVramOffset = (UInt32) (tileDataOffset + (tileMetaData.TileNumber * tileSize4bit) + (tileY * 4));
-
-                    // 4 bytes per tile row in 4 bpp mode 
-                    byte b0 = Gba.Memory.VRam[tileVramOffset];
-                    byte b1 = Gba.Memory.VRam[tileVramOffset + 1];
-                    byte b2 = Gba.Memory.VRam[tileVramOffset + 2];
-                    byte b3 = Gba.Memory.VRam[tileVramOffset + 3];
-
-                    int xpixel0 = b0 & 0x0F;
-                    int xpixel1 = ((b0 & 0xF0) >> 4);
-                    int xpixel2 = b1 & 0x0F;
-                    int xpixel3 = ((b1 & 0xF0) >> 4);
-                    int xpixel4 = b2 & 0x0F;
-                    int xpixel5 = ((b2 & 0xF0) >> 4);
-                    int xpixel6 = b3 & 0x0F;
-                    int xpixel7 = ((b3 & 0xF0) >> 4);
-
-                    Color pixel0 = palette[b0 & 0x0F];
-                    Color pixel1 = palette[((b0 & 0xF0) >> 4)];
-                    Color pixel2 = palette[b1 & 0x0F];
-                    Color pixel3 = palette[((b1 & 0xF0) >> 4)];
-                    Color pixel4 = palette[b2 & 0x0F];
-                    Color pixel5 = palette[((b2 & 0xF0) >> 4)];
-                    Color pixel6 = palette[b3 & 0x0F];
-                    Color pixel7 = palette[((b3 & 0xF0) >> 4)];
-
-                    drawBuffer.SetPixel(x, CurrentScanline, pixel0);
-                    drawBuffer.SetPixel(x+1, CurrentScanline, pixel1);
-                    drawBuffer.SetPixel(x+2, CurrentScanline, pixel2);
-                    drawBuffer.SetPixel(x+3, CurrentScanline, pixel3);
-                    drawBuffer.SetPixel(x+4, CurrentScanline, pixel4);
-                    drawBuffer.SetPixel(x+5, CurrentScanline, pixel5);
-                    drawBuffer.SetPixel(x+6, CurrentScanline, pixel6);
-                    drawBuffer.SetPixel(x+7, CurrentScanline, pixel7);
-                }
-
-                /*
-                
-                for (int tileNum = 0; tileNum < 10; tileNum++)
-                {
-                    byte[] tile = new byte[32];
-                    for (int i = 0; i < 32; i++)
-                    {
-                        tile[i] = Gba.Memory.VRam[tileDataOffset + i + tileNum];
-                    }
-
-
-  
-                    var image = new Bitmap(8, 8);
-                    for (int y = 0; y < 8; y++)
-                    {
-                        int pixel0 = ((tile[(y * 4) + 0] & 0x0F));
-                        int pixel1 = ((tile[(y * 4) + 0] & 0xF0) >> 4);
-                        int pixel2 = ((tile[(y * 4) + 1] & 0x0F));
-                        int pixel3 = ((tile[(y * 4) + 1] & 0xF0) >> 4);
-                        int pixel4 = ((tile[(y * 4) + 2] & 0x0F));
-                        int pixel5 = ((tile[(y * 4) + 2] & 0xF0) >> 4);
-                        int pixel6 = ((tile[(y * 4) + 3] & 0x0F));
-                        int pixel7 = ((tile[(y * 4) + 3] & 0xF0) >> 4);
-                        image.SetPixel(0, y, palette[pixel0]);
-                        image.SetPixel(1, y, palette[pixel1]);
-                        image.SetPixel(2, y, palette[pixel2]);
-                        image.SetPixel(3, y, palette[pixel3]);
-                        image.SetPixel(4, y, palette[pixel4]);
-                        image.SetPixel(5, y, palette[pixel5]);
-                        image.SetPixel(6, y, palette[pixel6]);
-                        image.SetPixel(7, y, palette[pixel7]);
-                
-                    }
-                
-                    image.Save("../../../../dump/tile" + tileNum.ToString() + ".png");
-                }
-                */
+                Bg[0].RenderMode0Scanline4bpp(CurrentScanline, drawBuffer);                                 
             }
         }
 
@@ -354,7 +248,7 @@ namespace Gba.Core
         // These 8 bits are a palette index to the background palette located at 0500:0000 (our palette 0)
         private void RenderMode4Scanline()
         {
-            byte[] vram = Gba.Memory.VRam;
+            byte[] vram = gba.Memory.VRam;
             Color[] palette = Palettes.Palette0;
 
             // 2nd framebuffer is at 0xA000

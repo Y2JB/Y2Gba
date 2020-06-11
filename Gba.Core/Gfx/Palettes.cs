@@ -80,7 +80,7 @@ namespace Gba.Core
                 {
                     for (int x = 0; x < 16; x++)
                     {
-                        var brush = new SolidBrush(palette[(y * 8) + x]);
+                        var brush = new SolidBrush(palette[(y * 16) + x]);
                         var rect = new Rectangle(x * Rect_Size, y * Rect_Size, Rect_Size, Rect_Size);
                         graphics.FillRectangle(brush, rect);
                     }

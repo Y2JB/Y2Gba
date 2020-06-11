@@ -60,12 +60,12 @@ namespace Gba.Core
         }
 
 
-        public UInt32 CharacterBaseBlock { get { return (UInt32)((Register0 & 0xC) >> 2); } }
-        public UInt32 ScreenBaseBlock { get { return (UInt32)(Register1 & 0x1F); } }
+        public UInt32 TileBlockBaseAddress { get { return (UInt32)((Register0 & 0x0C) >> 2); } }
+        public UInt32 ScreenBlockBaseAddress { get { return (UInt32)(Register1 & 0x1F); } }
 
         public BgPaletteMode PaletteMode { get { return (BgPaletteMode)((Register0 & 0x80) >> 7); } }
 
-        public BgSize Size { get { return (BgSize)((Register1 & 0xC00) >> 6); } }
+        public BgSize Size { get { return (BgSize)((Register1 & 0xC0) >> 6); } }
         
     }
 
@@ -77,7 +77,6 @@ namespace Gba.Core
         Bg256x512,
         Bg512x512,
     }
-
 
     public enum BgPaletteMode
     {

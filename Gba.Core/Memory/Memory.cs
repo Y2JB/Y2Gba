@@ -137,7 +137,8 @@ namespace Gba.Core
 				return gba.LcdController.Palettes.PaletteRam[address - 0x05000000];
 			}
 			// VRam
-			else if (address >= 0x06000000 && address <= 0x06017FFF)
+			//else if (address >= 0x06000000 && address <= 0x06017FFF)
+			else if (address >= 0x06000000 && address <= 0x06FFFFFF)
 			{
 				//For VRAM you could mask the address like this: addr & (0x17FFF | (~addr & 0x10000) >> 1)
 				return vram[address - 0x06000000];
@@ -242,7 +243,7 @@ namespace Gba.Core
 				{
 					gba.LcdController.DispStatRegister.VCountSetting = value;
 				}
-				else if (address >= 0x04000008 && address <= 0x0400000F)
+				else if (address >= 0x04000008 && address <= 0x0400001F)
 				{
 					// BG Control Registers
 					if (address == 0x04000008) gba.LcdController.BgControlRegisters[0].Register0 = value;
@@ -253,6 +254,28 @@ namespace Gba.Core
 					else if (address == 0x0400000D) gba.LcdController.BgControlRegisters[2].Register1 = value;
 					else if (address == 0x0400000E) gba.LcdController.BgControlRegisters[3].Register0 = value;
 					else if (address == 0x0400000F) gba.LcdController.BgControlRegisters[3].Register1 = value;
+
+					// BG Scroll - Write only
+					else if (address == 0x4000010) gba.LcdController.Bg[0].ScrollX = (int)((gba.LcdController.Bg[0].ScrollX & 0xFFFFFF00) | value);
+					else if (address == 0x4000011) gba.LcdController.Bg[0].ScrollX = (int)((gba.LcdController.Bg[0].ScrollX & 0xFFFF00FF) | ((value & 0x1) << 8));
+					else if (address == 0x4000012) gba.LcdController.Bg[0].ScrollY = (int)((gba.LcdController.Bg[0].ScrollY & 0xFFFFFF00) | value);
+					else if (address == 0x4000013) gba.LcdController.Bg[0].ScrollY = (int)((gba.LcdController.Bg[0].ScrollY & 0xFFFF00FF) | ((value & 0x1) << 8));
+
+					else if (address == 0x4000014) gba.LcdController.Bg[1].ScrollX = (int)((gba.LcdController.Bg[1].ScrollX & 0xFFFFFF00) | value);
+					else if (address == 0x4000015) gba.LcdController.Bg[1].ScrollX = (int)((gba.LcdController.Bg[1].ScrollX & 0xFFFF00FF) | ((value & 0x1) << 8));
+					else if (address == 0x4000016) gba.LcdController.Bg[1].ScrollY = (int)((gba.LcdController.Bg[1].ScrollY & 0xFFFFFF00) | value);
+					else if (address == 0x4000017) gba.LcdController.Bg[1].ScrollY = (int)((gba.LcdController.Bg[1].ScrollY & 0xFFFF00FF) | ((value & 0x1) << 8));
+
+					else if (address == 0x4000018) gba.LcdController.Bg[2].ScrollX = (int)((gba.LcdController.Bg[2].ScrollX & 0xFFFFFF00) | value);
+					else if (address == 0x4000019) gba.LcdController.Bg[2].ScrollX = (int)((gba.LcdController.Bg[2].ScrollX & 0xFFFF00FF) | ((value & 0x1) << 8));
+					else if (address == 0x400001A) gba.LcdController.Bg[2].ScrollY = (int)((gba.LcdController.Bg[2].ScrollY & 0xFFFFFF00) | value);
+					else if (address == 0x400001B) gba.LcdController.Bg[2].ScrollY = (int)((gba.LcdController.Bg[2].ScrollY & 0xFFFF00FF) | ((value & 0x1) << 8));
+
+					else if (address == 0x400001C) gba.LcdController.Bg[3].ScrollX = (int)((gba.LcdController.Bg[3].ScrollX & 0xFFFFFF00) | value);
+					else if (address == 0x400001D) gba.LcdController.Bg[3].ScrollX = (int)((gba.LcdController.Bg[3].ScrollX & 0xFFFF00FF) | ((value & 0x1) << 8));
+					else if (address == 0x400001E) gba.LcdController.Bg[3].ScrollY = (int)((gba.LcdController.Bg[3].ScrollY & 0xFFFFFF00) | value);
+					else if (address == 0x400001F) gba.LcdController.Bg[3].ScrollY = (int)((gba.LcdController.Bg[3].ScrollY & 0xFFFF00FF) | ((value & 0x1) << 8));
+
 				}
 				else if (address == 0x4000200)
 				{
@@ -288,7 +311,8 @@ namespace Gba.Core
 				gba.LcdController.Palettes.UpdatePaletteByte(address - 0x05000000, value);
 			}
 			// VRam
-			else if (address >= 0x06000000 && address <= 0x06017FFF)
+			//else if (address >= 0x06000000 && address <= 0x06017FFF)
+			else if (address >= 0x06000000 && address <= 0x06FFFFFF)
 			{
 				VRam[address - 0x06000000] = value;
 			}

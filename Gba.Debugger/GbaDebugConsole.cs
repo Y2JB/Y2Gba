@@ -71,9 +71,9 @@ namespace GbaDebugger
 
             // SB : b $64 if [IO_LY] == 2
 
-            breakpoints.Add(new Breakpoint(0x8));
-            breakpoints.Add(new Breakpoint(0x18));
-//            breakpoints.Add(new Breakpoint(0x080069ce));
+            //breakpoints.Add(new Breakpoint(0x8));
+            //breakpoints.Add(new Breakpoint(0x18));
+            //breakpoints.Add(new Breakpoint(0x08000434));
 
 
             //breakpoints.Add(new Breakpoint(0x64, new ConditionalExpression(snes.memory, 0xFF44, ConditionalExpression.EqualityCheck.Equal, 143)));

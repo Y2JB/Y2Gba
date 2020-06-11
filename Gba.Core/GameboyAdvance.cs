@@ -45,9 +45,9 @@ namespace Gba.Core
             //this.Rom = new Rom("../../../../roms/suite.gba");
             //this.Rom = new Rom("../../../../roms/arm.gba");
             //this.Rom = new Rom("../../../../roms/hello.gba");
-            this.Rom = new Rom("../../../../roms/irq_demo.gba");
+            //this.Rom = new Rom("../../../../roms/irq_demo.gba");
             //this.Rom = new Rom("../../../../roms/NCE-heart.gba");
-            //this.Rom = new Rom("../../../../roms/brin_demo.gba");
+            this.Rom = new Rom("../../../../roms/brin_demo.gba");
             //this.Rom = new Rom("../../../../roms/Super Dodgeball Advance.gba");
             //this.Rom = new Rom("../../../../roms/Kirby.gba");
 
