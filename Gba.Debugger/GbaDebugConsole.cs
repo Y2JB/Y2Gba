@@ -73,8 +73,9 @@ namespace GbaDebugger
 
             //breakpoints.Add(new Breakpoint(0x8));
             //breakpoints.Add(new Breakpoint(0x18));
-            //breakpoints.Add(new Breakpoint(0x08000434));
+            breakpoints.Add(new Breakpoint(0x08011be4));
 
+            //breakpoints.Add(new Breakpoint(0xB8E));
 
             //breakpoints.Add(new Breakpoint(0x64, new ConditionalExpression(snes.memory, 0xFF44, ConditionalExpression.EqualityCheck.Equal, 143)));
 
@@ -245,13 +246,18 @@ namespace GbaDebugger
 
                     case "tiles":
                         throw new NotImplementedException();
-                        //ConsoleAddString("Tiles dumped.");
-                        //return true;
+                    //ConsoleAddString("Tiles dumped.");
+                    //return true;
+
+                    case "tilemap":
+                        gba.LcdController.Bg[0].TileMap.DumpTileMap();
+                        ConsoleAddString("Tilemap dumped.");
+                        return true;
                 }
             }
 
             // Fail
-            ConsoleAddString(String.Format("dump usage: 'dump <item>'. Supported items 'palettes', 'tiles'"));
+            ConsoleAddString(String.Format("dump usage: 'dump <item>'. Supported items 'palettes', 'tiles', 'tilemap'"));
             return false;
         }
 

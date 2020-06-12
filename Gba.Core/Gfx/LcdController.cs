@@ -14,10 +14,10 @@ namespace Gba.Core
         public const UInt32 Pixel_Length = 4;               // Render one pixel
         public const UInt32 HDraw_Length = 940;             // 240 * 4
         public const UInt32 HBlank_Length = 272;            // 68 pixels * 4
-        public const UInt32 ScanLine_Length = 1232;         // HDraw + HBlank
-        public const UInt32 VDraw_Length = 197120;          // ScanLine_Length * 160
-        public const UInt32 VBlank_Length = 83776;          // ScanLine_Length * 68
-        public const UInt32 ScreenRefresh_Length = 280896;  // VDraw_Length + VBlank_Length
+        public const UInt32 ScanLine_Length = 1212;         // HDraw + HBlank
+        public const UInt32 VDraw_Length = 193920;          // ScanLine_Length * 160
+        public const UInt32 VBlank_Length = 82416;          // ScanLine_Length * 68
+        public const UInt32 ScreenRefresh_Length = 276336;  // VDraw_Length + VBlank_Length
 
 
         // IO Registers (driven by the memory controller))
@@ -38,6 +38,8 @@ namespace Gba.Core
         public LcdMode Mode { get; private set; }
 
         public UInt32 LcdCycles { get; private set; }
+        public UInt32 VblankCycles { get; private set; }
+        public UInt32 FrameCycles { get; private set; }
 
         public Palettes Palettes { get; private set; }
 
@@ -77,6 +79,8 @@ namespace Gba.Core
 
             Mode = LcdMode.ScanlineRendering;
             LcdCycles = 0;
+            FrameCycles = 0;
+            VblankCycles = 0;
             CurrentScanline = 0;
         }
 
@@ -85,6 +89,7 @@ namespace Gba.Core
         public void Step()
         {
             LcdCycles++;
+            FrameCycles++;
 
             switch (Mode)
             {
@@ -122,6 +127,7 @@ namespace Gba.Core
                         {
                             Mode = LcdMode.VBlank;
 
+                            VblankCycles = 0;
 
                             if (DispStatRegister.VBlankIrqEnabled)
                             {
@@ -169,30 +175,53 @@ namespace Gba.Core
 
                 case LcdMode.VBlank:
 
-                    if(LcdCycles >= VBlank_Length)
+                    
+                    if (LcdCycles >= VBlank_Length)
                     {
                         // 160 + 68 lines per screen
-                        if(CurrentScanline != 227)
+                        if(CurrentScanline != 227 ||
+                            FrameCycles != ScreenRefresh_Length)
                         {
                             throw new InvalidOperationException("LCD: Scanlines / cycles mismatch"); 
                         }
 
                         LcdCycles -= VBlank_Length;
+                        FrameCycles = 0;
 
                         CurrentScanline = 0;
                         Mode = LcdMode.ScanlineRendering;
 
-                        //Palettes.DumpPaletteToPng(0);
-                        //Palettes.DumpPaletteToPng(1);
+                        if (DispStatRegister.VCounterIrqEnabled &&
+                            CurrentScanline == gba.LcdController.DispStatRegister.VCountSetting)
+                        {
+                            gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VCounterMatch);
+                        }
                     }
                     else
                     {
+                        // HBlanks IRQ's still fire durng vblank
+                        if(VblankCycles == HDraw_Length)
+                        {
+                            if (DispStatRegister.HBlankIrqEnabled)
+                            {
+                                //gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.HBlank);
+                            }
+                        }
+
                         // We are within vblank
                         if(LcdCycles % ScanLine_Length == 0)
                         {
+                            VblankCycles = 0;
                             CurrentScanline++;
+
+                            if (DispStatRegister.VCounterIrqEnabled &&
+                            CurrentScanline == gba.LcdController.DispStatRegister.VCountSetting)
+                            {
+                                gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VCounterMatch);
+                            }
                         }
                     }
+                    VblankCycles++;
                     break;
           
             }

@@ -16,6 +16,12 @@ namespace Gba.Core
             PaletteRam = new byte[1024];
             Palette0 = new Color[256];
             Palette1 = new Color[256];
+
+            for(int i =0; i < 256; i++)
+            {
+                Palette0[i] = Color.FromArgb(255, 0, 0, 0);
+                Palette1[i] = Color.FromArgb(255, 0, 0, 0);
+            }
         }
 
         public void SetPaletteEntry(int palette, int index, ushort colour)
@@ -44,13 +50,13 @@ namespace Gba.Core
             // Align to 2 byte boundary
             index /= 2;
 
-            if (index < 512)
+            if (index < 256)
             {           
                 Palette0[index] = Colour555To888(colour);
             }
             else
             {
-                Palette1[index - 512] = Colour555To888(colour);
+                Palette1[index - 256] = Colour555To888(colour);
             }
         }
 

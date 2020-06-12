@@ -16,8 +16,14 @@ namespace Gba.Core
         // 0x4000200
         public ushort InterruptEnableRegister { get; set; }
 
-        // 0x4000202
-        public ushort InterruptRequestFlags { get; set; }
+        // 0x4000202 / 3
+        public byte InterruptRequestFlags0 { get; set; }
+        public byte InterruptRequestFlags1 { get; set; }
+        public ushort InterruptRequestFlags 
+        { 
+            get { return (ushort)((InterruptRequestFlags1 << 8) | InterruptRequestFlags0); } 
+            set { InterruptRequestFlags0 = (byte) (value & 0x00FF); InterruptRequestFlags1 = (byte) ((value & 0xFF00)>>8); }
+        }
 
 
 

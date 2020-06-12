@@ -154,7 +154,7 @@ namespace Gba.Core
             {
                 using (StreamWriter sw = new StreamWriter(fs))
                 {
-                    for (int y = 0; y < 32; y++)
+                    for (int y = 0; y < 64; y++)
                     {
                         for (int x = 0; x < 64; x++)
                         {

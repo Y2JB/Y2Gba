@@ -22,6 +22,7 @@ namespace Gba.Core
 		byte[] vram = new byte[1024 * 96];
 		public byte[] VRam { get { return vram; } }
 
+		byte[] oamRam = new byte[1024];
 		public Memory(GameboyAdvance gba)
         {
             this.gba = gba;
@@ -88,11 +89,16 @@ namespace Gba.Core
 				else if (address == 0x0400000E) return gba.LcdController.BgControlRegisters[3].Register0;
 				else if (address == 0x0400000F) return gba.LcdController.BgControlRegisters[3].Register1;
 
+				else if (address >= 0x04000100 && address <= 0x04000110)
+				{
+					// Timers
+					throw new NotImplementedException();
+				}
 
 				// Interrupts				
 				else if (address == 0x4000200)
 				{
-					return (byte)(gba.Interrupts.InterruptEnableRegister & 0xFF);
+					return (byte)(gba.Interrupts.InterruptEnableRegister & 0x00FF);
 				}
 				else if (address == 0x4000201)
 				{
@@ -101,11 +107,11 @@ namespace Gba.Core
 
 				else if (address == 0x4000202)
 				{
-					return (byte)(gba.Interrupts.InterruptRequestFlags & 0xFF);
+					return gba.Interrupts.InterruptRequestFlags0;
 				}
 				else if (address == 0x4000203)
 				{
-					return (byte)((gba.Interrupts.InterruptRequestFlags >> 8));
+					return gba.Interrupts.InterruptRequestFlags1;
 				}
 				else if (address == 0x04000208)
 				{
@@ -140,13 +146,14 @@ namespace Gba.Core
 			//else if (address >= 0x06000000 && address <= 0x06017FFF)
 			else if (address >= 0x06000000 && address <= 0x06FFFFFF)
 			{
-				//For VRAM you could mask the address like this: addr & (0x17FFF | (~addr & 0x10000) >> 1)
-				return vram[address - 0x06000000];
+				address = address & (0x17FFF | (~address & 0x10000) >> 1);
+				return vram[address];
 			}
 			// OAM Ram
 			else if (address >= 0x07000000 && address <= 0x07FFFFFF)
 			{
-				throw new NotImplementedException();
+				return oamRam[address - 0x7000000];
+				//throw new NotImplementedException();
 			}
 			else if (address >= 0x0A000000 && address <= 0x0BFFFFFF) throw new NotImplementedException();
 			else if (address >= 0x0C000000 && address <= 0x0DFFFFFF) throw new NotImplementedException();
@@ -230,6 +237,12 @@ namespace Gba.Core
 				if (address == 0x04000000)
 				{
 					gba.LcdController.DisplayControlRegister.Register0 = value;
+
+					if(gba.LcdController.DisplayControlRegister.ForcedBlank)
+                    {
+						// TODL : restart LCD
+						int foo = 0;
+                    }
 				}
 				else if (address == 0x04000001)
 				{
@@ -237,7 +250,8 @@ namespace Gba.Core
 				}
 				else if (address == 0x4000004)
 				{
-					gba.LcdController.DispStatRegister.Register0 = value;
+					byte b = (byte) (value & 0x38);
+					gba.LcdController.DispStatRegister.Register0 = b;
 				}
 				else if (address == 0x4000005)
 				{
@@ -257,46 +271,50 @@ namespace Gba.Core
 
 					// BG Scroll - Write only
 					else if (address == 0x4000010) gba.LcdController.Bg[0].ScrollX = (int)((gba.LcdController.Bg[0].ScrollX & 0xFFFFFF00) | value);
-					else if (address == 0x4000011) gba.LcdController.Bg[0].ScrollX = (int)((gba.LcdController.Bg[0].ScrollX & 0xFFFF00FF) | ((value & 0x1) << 8));
+					else if (address == 0x4000011) gba.LcdController.Bg[0].ScrollX = (int)((gba.LcdController.Bg[0].ScrollX & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
 					else if (address == 0x4000012) gba.LcdController.Bg[0].ScrollY = (int)((gba.LcdController.Bg[0].ScrollY & 0xFFFFFF00) | value);
-					else if (address == 0x4000013) gba.LcdController.Bg[0].ScrollY = (int)((gba.LcdController.Bg[0].ScrollY & 0xFFFF00FF) | ((value & 0x1) << 8));
+					else if (address == 0x4000013) gba.LcdController.Bg[0].ScrollY = (int)((gba.LcdController.Bg[0].ScrollY & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
 
 					else if (address == 0x4000014) gba.LcdController.Bg[1].ScrollX = (int)((gba.LcdController.Bg[1].ScrollX & 0xFFFFFF00) | value);
-					else if (address == 0x4000015) gba.LcdController.Bg[1].ScrollX = (int)((gba.LcdController.Bg[1].ScrollX & 0xFFFF00FF) | ((value & 0x1) << 8));
+					else if (address == 0x4000015) gba.LcdController.Bg[1].ScrollX = (int)((gba.LcdController.Bg[1].ScrollX & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
 					else if (address == 0x4000016) gba.LcdController.Bg[1].ScrollY = (int)((gba.LcdController.Bg[1].ScrollY & 0xFFFFFF00) | value);
-					else if (address == 0x4000017) gba.LcdController.Bg[1].ScrollY = (int)((gba.LcdController.Bg[1].ScrollY & 0xFFFF00FF) | ((value & 0x1) << 8));
+					else if (address == 0x4000017) gba.LcdController.Bg[1].ScrollY = (int)((gba.LcdController.Bg[1].ScrollY & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
 
 					else if (address == 0x4000018) gba.LcdController.Bg[2].ScrollX = (int)((gba.LcdController.Bg[2].ScrollX & 0xFFFFFF00) | value);
-					else if (address == 0x4000019) gba.LcdController.Bg[2].ScrollX = (int)((gba.LcdController.Bg[2].ScrollX & 0xFFFF00FF) | ((value & 0x1) << 8));
+					else if (address == 0x4000019) gba.LcdController.Bg[2].ScrollX = (int)((gba.LcdController.Bg[2].ScrollX & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
 					else if (address == 0x400001A) gba.LcdController.Bg[2].ScrollY = (int)((gba.LcdController.Bg[2].ScrollY & 0xFFFFFF00) | value);
-					else if (address == 0x400001B) gba.LcdController.Bg[2].ScrollY = (int)((gba.LcdController.Bg[2].ScrollY & 0xFFFF00FF) | ((value & 0x1) << 8));
+					else if (address == 0x400001B) gba.LcdController.Bg[2].ScrollY = (int)((gba.LcdController.Bg[2].ScrollY & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
 
 					else if (address == 0x400001C) gba.LcdController.Bg[3].ScrollX = (int)((gba.LcdController.Bg[3].ScrollX & 0xFFFFFF00) | value);
-					else if (address == 0x400001D) gba.LcdController.Bg[3].ScrollX = (int)((gba.LcdController.Bg[3].ScrollX & 0xFFFF00FF) | ((value & 0x1) << 8));
+					else if (address == 0x400001D) gba.LcdController.Bg[3].ScrollX = (int)((gba.LcdController.Bg[3].ScrollX & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
 					else if (address == 0x400001E) gba.LcdController.Bg[3].ScrollY = (int)((gba.LcdController.Bg[3].ScrollY & 0xFFFFFF00) | value);
-					else if (address == 0x400001F) gba.LcdController.Bg[3].ScrollY = (int)((gba.LcdController.Bg[3].ScrollY & 0xFFFF00FF) | ((value & 0x1) << 8));
+					else if (address == 0x400001F) gba.LcdController.Bg[3].ScrollY = (int)((gba.LcdController.Bg[3].ScrollY & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
 
+				}
+				else if (address >= 0x04000100 && address <= 0x04000110)
+				{
+					// Timers
+					//throw new NotImplementedException();
 				}
 				else if (address == 0x4000200)
 				{
-					gba.Interrupts.InterruptEnableRegister |= value;
+					gba.Interrupts.InterruptEnableRegister = (ushort)((gba.Interrupts.InterruptEnableRegister & 0xFF00) | value);
 				}
 				else if (address == 0x4000201)
 				{
-					gba.Interrupts.InterruptEnableRegister |= (ushort)(value << 8);					
+					gba.Interrupts.InterruptEnableRegister = (ushort)((gba.Interrupts.InterruptEnableRegister & 0x00FF) | ((value & 0x3F) << 8));
 				}
 				else if (address == 0x4000202)
 				{
-					gba.Interrupts.InterruptRequestFlags |= value;
+					gba.Interrupts.InterruptRequestFlags0 &= (byte)~value;
 				}
 				else if (address == 0x4000203)
 				{
-					gba.Interrupts.InterruptRequestFlags |= (ushort)(value << 8);
-				}
-				// REG_IME Turns all interrupts on or off
+					gba.Interrupts.InterruptRequestFlags1 &= (byte)~value;
+				}			
 				else if (address == 0x04000208)
 				{
-
+					// IME
 					gba.Interrupts.InterruptMasterEnable = value;
 				}
 				else
@@ -314,11 +332,13 @@ namespace Gba.Core
 			//else if (address >= 0x06000000 && address <= 0x06017FFF)
 			else if (address >= 0x06000000 && address <= 0x06FFFFFF)
 			{
-				VRam[address - 0x06000000] = value;
+				address = address & (0x17FFF | (~address & 0x10000) >> 1);
+				VRam[address] = value;
 			}
 			// OAM Ram
 			else if (address >= 0x07000000 && address <= 0x07FFFFFF)
 			{
+				oamRam[address - 0x7000000] = value;
 				//throw new NotImplementedException();
 			}
 			else if (address >= 0x08000000 && address <= 0x09FFFFFF)
