@@ -12,12 +12,12 @@ namespace Gba.Core
 
         // How many clock cycles for the various LCD states...
         public const UInt32 Pixel_Length = 4;               // Render one pixel
-        public const UInt32 HDraw_Length = 940;             // 240 * 4
+        public const UInt32 HDraw_Length = 960;             // 240 * 4
         public const UInt32 HBlank_Length = 272;            // 68 pixels * 4
-        public const UInt32 ScanLine_Length = 1212;         // HDraw + HBlank
-        public const UInt32 VDraw_Length = 193920;          // ScanLine_Length * 160
-        public const UInt32 VBlank_Length = 82416;          // ScanLine_Length * 68
-        public const UInt32 ScreenRefresh_Length = 276336;  // VDraw_Length + VBlank_Length
+        public const UInt32 ScanLine_Length = 1232;         // HDraw + HBlank
+        public const UInt32 VDraw_Length = 197120;          // ScanLine_Length * 160
+        public const UInt32 VBlank_Length = 83776;          // ScanLine_Length * 68
+        public const UInt32 ScreenRefresh_Length = 280896;  // VDraw_Length + VBlank_Length
 
 
         // IO Registers (driven by the memory controller))
