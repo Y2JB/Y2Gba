@@ -88,6 +88,8 @@ namespace Gba.Core
         // Step one cycle
         public void Step()
         {
+
+            // If we change these, change vblank cycle count too
             LcdCycles++;
             FrameCycles++;
 
@@ -103,7 +105,7 @@ namespace Gba.Core
 
                         if (DispStatRegister.HBlankIrqEnabled)
                         {
-                            gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.HBlank);
+                            //gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.HBlank);
                         }
                     }
                     break;
@@ -175,7 +177,7 @@ namespace Gba.Core
 
                 case LcdMode.VBlank:
 
-                    
+                    VblankCycles++;
                     if (LcdCycles >= VBlank_Length)
                     {
                         // 160 + 68 lines per screen
@@ -209,7 +211,7 @@ namespace Gba.Core
                         }
 
                         // We are within vblank
-                        if(LcdCycles % ScanLine_Length == 0)
+                        if(VblankCycles == ScanLine_Length)
                         {
                             VblankCycles = 0;
                             CurrentScanline++;
@@ -220,8 +222,7 @@ namespace Gba.Core
                                 gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VCounterMatch);
                             }
                         }
-                    }
-                    VblankCycles++;
+                    }                
                     break;
           
             }

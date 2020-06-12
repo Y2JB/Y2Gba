@@ -98,11 +98,11 @@ namespace Gba.Core
 				// Interrupts				
 				else if (address == 0x4000200)
 				{
-					return (byte)(gba.Interrupts.InterruptEnableRegister & 0x00FF);
+					return gba.Interrupts.InterruptEnableRegister0;
 				}
 				else if (address == 0x4000201)
 				{
-					return (byte)((gba.Interrupts.InterruptEnableRegister >> 8));
+					return gba.Interrupts.InterruptEnableRegister1;
 				}
 
 				else if (address == 0x4000202)
@@ -251,7 +251,7 @@ namespace Gba.Core
 				else if (address == 0x4000004)
 				{
 					byte b = (byte) (value & 0x38);
-					gba.LcdController.DispStatRegister.Register0 = b;
+					gba.LcdController.DispStatRegister.Register0 = value;
 				}
 				else if (address == 0x4000005)
 				{
@@ -294,15 +294,15 @@ namespace Gba.Core
 				else if (address >= 0x04000100 && address <= 0x04000110)
 				{
 					// Timers
-					//throw new NotImplementedException();
+					throw new NotImplementedException();
 				}
 				else if (address == 0x4000200)
 				{
-					gba.Interrupts.InterruptEnableRegister = (ushort)((gba.Interrupts.InterruptEnableRegister & 0xFF00) | value);
+					gba.Interrupts.InterruptEnableRegister0 = value;
 				}
 				else if (address == 0x4000201)
 				{
-					gba.Interrupts.InterruptEnableRegister = (ushort)((gba.Interrupts.InterruptEnableRegister & 0x00FF) | ((value & 0x3F) << 8));
+					gba.Interrupts.InterruptEnableRegister1 = value;
 				}
 				else if (address == 0x4000202)
 				{

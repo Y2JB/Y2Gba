@@ -14,7 +14,13 @@ namespace Gba.Core
         public byte InterruptMasterEnable { get; set; }
 
         // 0x4000200
-        public ushort InterruptEnableRegister { get; set; }
+        public byte InterruptEnableRegister0 { get; set; }
+        public byte InterruptEnableRegister1 { get; set; }
+        public ushort InterruptEnableRegister
+        {
+            get { return (ushort)((InterruptEnableRegister1 << 8) | InterruptEnableRegister0); }
+            set { InterruptEnableRegister0 = (byte)(value & 0x00FF); InterruptEnableRegister1 = (byte)((value & 0xFF00) >> 8); }
+        }
 
         // 0x4000202 / 3
         public byte InterruptRequestFlags0 { get; set; }
@@ -62,13 +68,13 @@ namespace Gba.Core
 
         bool InterruptPending()
         {
-            return InterruptRequestFlags != 0;
+            return (InterruptEnableRegister & InterruptRequestFlags) != 0;
         }
 
         // Jumps to or exits an IRQ / hardware interrupt 
         public void ProcessInterrupts()
         {
-            if((InterruptMasterEnable!=0) && gba.Cpu.IrqDisableFlag == false && InterruptPending())
+            if ((InterruptMasterEnable!=0) && gba.Cpu.IrqDisableFlag == false && InterruptPending())
             {
                 // Save the flags before we do anything. The interrupt handler will restore them when it is done
                 gba.Cpu.SPSR_Irq = gba.Cpu.CPSR;

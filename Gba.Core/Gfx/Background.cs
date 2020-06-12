@@ -9,7 +9,7 @@ namespace Gba.Core
     {
         BgControlRegister cntReg;
 
-        TileMap tileMap;
+        public TileMap TileMap { get; private set; }
         public BgSize Size { get { return cntReg.Size; } }
 
         public int ScrollX { get; set; }
@@ -30,12 +30,12 @@ namespace Gba.Core
             this.bgNumber = bgNumber;
             cntReg = gba.LcdController.BgControlRegisters[bgNumber];
 
-            tileMap = new TileMap(gba.Memory.VRam, gba.LcdController.BgControlRegisters[bgNumber]);
+            TileMap = new TileMap(gba.Memory.VRam, gba.LcdController.BgControlRegisters[bgNumber]);
         }
 
         public void Reset()
         {                       
-            tileMap.Reset();
+            TileMap.Reset();
 
             // 0-3, in units of 16 KBytes
             tileDataVramOffset = (cntReg.TileBlockBaseAddress * 16384);
@@ -70,7 +70,7 @@ namespace Gba.Core
                 // Which column within the current tile are we rendering?
                 int tileColumn = wrappedBgX % 8;
 
-                var tileMetaData = tileMap.TileMapItemFromBgXY(wrappedBgX, wrappedBgY);
+                var tileMetaData = TileMap.TileMapItemFromBgXY(wrappedBgX, wrappedBgY);
 
                 // We are in 4 bpp mode so the tilemap contains which 16 colour palette to use. 16 entries per palette
                 paletteOffset = tileMetaData.Palette * 16;
@@ -81,6 +81,7 @@ namespace Gba.Core
                 // 2 pixels per byte, 4 bytes per tile row
                 byte pixelByte = gba.Memory.VRam[tileVramOffset + (tileColumn >> 1)];
 
+                // Select the right nibble for the pixel
                 if ((tileColumn & 0x1) == 0)
                 {
                     drawBuffer.SetPixel(x, scanline, palette[paletteOffset + (pixelByte & 0x0F)]);
