@@ -40,6 +40,7 @@ namespace Gba.Core
         public UInt32 LcdCycles { get; private set; }
         public UInt32 VblankCycles { get; private set; }
         public UInt32 FrameCycles { get; private set; }
+        public bool HblankInVblank { get { return VblankCycles > HDraw_Length; } }
 
         public Palettes Palettes { get; private set; }
 
@@ -105,7 +106,7 @@ namespace Gba.Core
 
                         if (DispStatRegister.HBlankIrqEnabled)
                         {
-                            //gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.HBlank);
+                            gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.HBlank);
                         }
                     }
                     break;
@@ -120,7 +121,7 @@ namespace Gba.Core
 
                         if (DispStatRegister.VCounterIrqEnabled && 
                             CurrentScanline == gba.LcdController.DispStatRegister.VCountSetting)
-                        {
+                        {                           
                             gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VCounterMatch);
                         }
                         
@@ -196,7 +197,7 @@ namespace Gba.Core
                         if (DispStatRegister.VCounterIrqEnabled &&
                             CurrentScanline == gba.LcdController.DispStatRegister.VCountSetting)
                         {
-                            gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VCounterMatch);
+                           gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VCounterMatch);
                         }
                     }
                     else
@@ -206,7 +207,7 @@ namespace Gba.Core
                         {
                             if (DispStatRegister.HBlankIrqEnabled)
                             {
-                                //gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.HBlank);
+                                gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.HBlank);
                             }
                         }
 

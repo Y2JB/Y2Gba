@@ -40,13 +40,14 @@ namespace Gba.Core
             // Emulate SWI using actual GBA BIOS
             if (gba.Bios.UseGbaBios)
             {
+                gba.Cpu.Mode = Cpu.CpuMode.Supervisor;
+                UInt32 nextInstruction = (gba.Cpu.State == Cpu.CpuState.Arm ? 4u : 2u);
+                gba.Cpu.LR = gba.Cpu.PC - nextInstruction;
+
                 // This is the same setup as when a 'standard' interrupt occurs
                 gba.Cpu.SPSR_Svc = gba.Cpu.CPSR;
 
-                gba.Cpu.SetFlag(Cpu.StatusFlag.IrqDisable);
-                gba.Cpu.Mode = Cpu.CpuMode.Supervisor;
-                UInt32 nextInstruction = (gba.Cpu.State == Cpu.CpuState.Arm ? 4u : 2u);
-                gba.Cpu.LR = gba.Cpu.PC_Adjusted + nextInstruction;                       
+                gba.Cpu.SetFlag(Cpu.StatusFlag.IrqDisable);             
                 gba.Cpu.PC = 0x08;
                 gba.Cpu.requestFlushPipeline = true;
 

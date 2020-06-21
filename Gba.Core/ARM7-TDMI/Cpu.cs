@@ -194,8 +194,12 @@ namespace Gba.Core
         }
 
 
+        //Queue<UInt32> executionHistory = new Queue<uint>();
         public void Step()
         {
+            //executionHistory.Enqueue(PC_Adjusted);
+            //if (executionHistory.Count > 32) executionHistory.Dequeue();
+
             if (State == CpuState.Thumb)
             {
                 DecodeAndExecuteThumbInstruction((ushort)InstructionPipeline[NextPipelineInsturction]);
@@ -203,7 +207,8 @@ namespace Gba.Core
             else
             {
                 DecodeAndExecuteArmInstruction(InstructionPipeline[NextPipelineInsturction]);
-            }
+            } 
+
 
             // Handle interrupts
             Gba.Interrupts.ProcessInterrupts();

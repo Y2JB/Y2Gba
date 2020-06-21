@@ -240,7 +240,7 @@ namespace Gba.Core
 
 					if(gba.LcdController.DisplayControlRegister.ForcedBlank)
                     {
-						// TODL : restart LCD
+						// TODO : restart LCD
 						int foo = 0;
                     }
 				}
@@ -250,7 +250,6 @@ namespace Gba.Core
 				}
 				else if (address == 0x4000004)
 				{
-					byte b = (byte) (value & 0x38);
 					gba.LcdController.DispStatRegister.Register0 = value;
 				}
 				else if (address == 0x4000005)

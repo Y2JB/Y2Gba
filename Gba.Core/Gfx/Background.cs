@@ -81,14 +81,33 @@ namespace Gba.Core
                 // 2 pixels per byte, 4 bytes per tile row
                 byte pixelByte = gba.Memory.VRam[tileVramOffset + (tileColumn >> 1)];
 
+
+                // In 16 Colour mode, 0 means transparent which means you use palette 0, entry 0.
+
                 // Select the right nibble for the pixel
                 if ((tileColumn & 0x1) == 0)
                 {
-                    drawBuffer.SetPixel(x, scanline, palette[paletteOffset + (pixelByte & 0x0F)]);
+                    byte pixelValue = (byte) (pixelByte & 0x0F);
+                    if (pixelValue != 0)
+                    {
+                        drawBuffer.SetPixel(x, scanline, palette[paletteOffset + pixelValue]);
+                    }
+                    else
+                    {
+                        drawBuffer.SetPixel(x, scanline, palette[0]);
+                    }
                 }
                 else
                 {
-                    drawBuffer.SetPixel(x, scanline, palette[paletteOffset + ((pixelByte & 0xF0) >> 4)]);
+                    byte pixelValue = (byte) ((pixelByte & 0xF0) >> 4);
+                    if (pixelValue != 0)
+                    {
+                        drawBuffer.SetPixel(x, scanline, palette[paletteOffset + pixelValue]);
+                    }
+                    else
+                    {
+                        drawBuffer.SetPixel(x, scanline, palette[0]);
+                    }
                 }            
             }
         }

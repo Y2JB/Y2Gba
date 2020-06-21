@@ -32,6 +32,7 @@ namespace Gba.Core
         }
 
 
+        public const UInt32 Interrupt_Vector = 0x18;
 
         // 0 = Disable
         public enum InterruptType : UInt16
@@ -66,24 +67,62 @@ namespace Gba.Core
             InterruptRequestFlags |= (ushort)interrupt;
         }
 
-        bool InterruptPending()
+
+        bool InterruptEnabled(InterruptType interrupt)
+        {
+            return (InterruptEnableRegister & (UInt32) interrupt) != 0;
+        }
+
+
+        public bool InterruptPending(InterruptType interrupt)
+        {
+            return ( InterruptEnabled(interrupt) && ((InterruptRequestFlags & (UInt32) interrupt) != 0));
+        }
+
+         
+        bool AnyInterruptPending()
         {
             return (InterruptEnableRegister & InterruptRequestFlags) != 0;
         }
 
+
         // Jumps to or exits an IRQ / hardware interrupt 
         public void ProcessInterrupts()
         {
-            if ((InterruptMasterEnable!=0) && gba.Cpu.IrqDisableFlag == false && InterruptPending())
+            if ((InterruptMasterEnable!=0) && gba.Cpu.IrqDisableFlag == false && AnyInterruptPending())
             {
+                gba.Cpu.Mode = Cpu.CpuMode.IRQ;
+
+                // SUBS pc, lr, #imm subtracts a value from the link register and loads the PC with the result, then copies the SPSR to the CPSR.
+                // When returning from an interrupt, the GBA calls SUBS R15, R14, 0x4 to return where it left off
+
+                // If a Branch instruction has just executed, the PC is changed to point at the next instructin we want to execute. This is done before jumping into the interrupt
+                // By adding 4, we negate the 4 passed to subs and therefore point at the 'next' instruction
+                if (gba.Cpu.requestFlushPipeline)
+                {
+                    gba.Cpu.LR = gba.Cpu.PC + 4;
+                }
+                else
+                {
+                    // SUBS will use -4 (one instruction) and we just executed the instruction at pc - 8. PC-4 will point us at the 'next' instruction
+                    if (gba.Cpu.State == Cpu.CpuState.Arm)
+                    {
+                        gba.Cpu.LR = gba.Cpu.PC;
+                    }
+                    else
+                    {
+                        // SUBS -4 would point us at the instruction we just executed so fudge it to point at the 'next' instruction
+                        gba.Cpu.LR = gba.Cpu.PC + 2;
+                    }
+                }
+
+
                 // Save the flags before we do anything. The interrupt handler will restore them when it is done
                 gba.Cpu.SPSR_Irq = gba.Cpu.CPSR;
 
                 gba.Cpu.SetFlag(Cpu.StatusFlag.IrqDisable);
-                gba.Cpu.Mode = Cpu.CpuMode.IRQ;
-                UInt32 nextInstruction = (gba.Cpu.State == Cpu.CpuState.Arm ? 4u : 2u);
-                gba.Cpu.LR = gba.Cpu.PC_Adjusted + nextInstruction;
-                gba.Cpu.PC = 0x18;
+
+                gba.Cpu.PC = Interrupt_Vector;
                 gba.Cpu.requestFlushPipeline = true;
 
                 gba.Cpu.State = Cpu.CpuState.Arm;

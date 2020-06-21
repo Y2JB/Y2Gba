@@ -29,7 +29,7 @@ namespace Gba.Core
                 if (lcd.Mode == LcdController.LcdMode.VBlank) reg0 |= 0x01;
                 else reg0 &= 0xFE;
 
-                if (lcd.Mode == LcdController.LcdMode.HBlank)
+                if (lcd.Mode == LcdController.LcdMode.HBlank || lcd.HblankInVblank)
                 {
                     reg0 |= 0x02;
                 }

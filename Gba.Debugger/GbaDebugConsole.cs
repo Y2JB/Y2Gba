@@ -10,8 +10,8 @@ namespace GbaDebugger
 {
     public class GbaDebugConsole
     {
-        List<Breakpoint> breakpoints = new List<Breakpoint>();
-        List<Breakpoint> oneTimeBreakpoints = new List<Breakpoint>();
+        List<IBreakpoint> breakpoints = new List<IBreakpoint>();
+        List<IBreakpoint> oneTimeBreakpoints = new List<IBreakpoint>();
 
         // FIFO - previously executed instructions
         Queue<StoredInstruction> executionHistory = new Queue<StoredInstruction>();
@@ -73,8 +73,17 @@ namespace GbaDebugger
 
             //breakpoints.Add(new Breakpoint(0x8));
             //breakpoints.Add(new Breakpoint(0x18));
-            breakpoints.Add(new Breakpoint(0x08011be4));
 
+            //breakpoints.Add(new Breakpoint(0x08006876));
+
+            // hblank problem
+            //breakpoints.Add(new Breakpoint(0x0300019C));
+            //breakpoints.Add(new Breakpoint(0x080016bc));
+
+
+            // scanline 125
+            //breakpoints.Add(new IrqBreakpoint(gba, Interrupts.InterruptType.HBlank, true, true));
+            
             //breakpoints.Add(new Breakpoint(0xB8E));
 
             //breakpoints.Add(new Breakpoint(0x64, new ConditionalExpression(snes.memory, 0xFF44, ConditionalExpression.EqualityCheck.Equal, 143)));
@@ -270,13 +279,24 @@ namespace GbaDebugger
                 return false;
             }
 
-            UInt32 p1 = 0;
-            bool parsedParams;
-            parsedParams = ParseU32Parameter(parameters[0], out p1);
+
+            if (parameters.Length == 1)
+            {
+                UInt32 p1 = 0;
+                bool parsedParams;
+                parsedParams = ParseU32Parameter(parameters[0], out p1);
+
+                breakpoints.Add(new Breakpoint(p1));
+
+                ConsoleAddString(String.Format("breakpoint added at 0x{0:X4}", p1));
+
+                return true;
+            }
+
 
 
             // Parse condtiion
-           GbaDebugger.ConditionalExpression expression = null;
+            //GbaDebugger.ConditionalBreakpoint expression = null;
 
             /*
             if (parameters.Length > 1)
@@ -294,11 +314,11 @@ namespace GbaDebugger
             }
             */
 
-            breakpoints.Add(new Breakpoint(p1, expression));
 
-            ConsoleAddString(String.Format("breakpoint added at 0x{0:X4}", p1));
+
+            ConsoleAddString("Failed to add breakpoint");
  
-            return true;
+            return false;
         }
 
         /*
@@ -414,7 +434,7 @@ namespace GbaDebugger
                 ConsoleAddString("Breakpoint List:");
                 foreach (var bp in breakpoints)
                 {
-                    ConsoleAddString(String.Format("0x{0:X8}", bp.Address));
+                    ConsoleAddString(bp.ToString());
                 }
             }
             return true;
