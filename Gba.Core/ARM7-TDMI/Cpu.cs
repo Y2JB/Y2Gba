@@ -188,6 +188,7 @@ namespace Gba.Core
             {
                 Gba.LcdController.Step();
                 Gba.Joypad.Step();
+                Gba.Timers.Step();
 
                 cycles--;
             }

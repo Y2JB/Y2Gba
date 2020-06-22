@@ -12,6 +12,7 @@ namespace Gba.Core
         public Rom Rom { get; private set; }
         public Cpu Cpu { get; private set; }
         public Interrupts Interrupts { get; private set; }
+        public Timers Timers { get; private set; }
         public LcdController LcdController { get; private set; }
         public Memory Memory { get; private set; }
         public Joypad Joypad { get; private set; }
@@ -45,15 +46,19 @@ namespace Gba.Core
             //this.Rom = new Rom("../../../../roms/suite.gba");
             //this.Rom = new Rom("../../../../roms/arm.gba");
             //this.Rom = new Rom("../../../../roms/hello.gba");
-            //this.Rom = new Rom("../../../../roms/irq_demo.gba");
+            //this.Rom = new Rom("../../../../roms/TestRoms/irq_demo.gba");
+            //this.Rom = new Rom("../../../../roms/TestRoms/OrganHarvester/if_ack.gba");
+            this.Rom = new Rom("../../../../roms/TestRoms/tmr_demo.gba");
+
             //this.Rom = new Rom("../../../../roms/NCE-heart.gba");
-            this.Rom = new Rom("../../../../roms/brin_demo.gba");
+            //this.Rom = new Rom("../../../../roms/TestRoms/brin_demo.gba");
             //this.Rom = new Rom("../../../../roms/Super Dodgeball Advance.gba");
             //this.Rom = new Rom("../../../../roms/Kirby.gba");
 
             this.Memory = new Memory(this);
             this.Cpu = new Cpu(this);
             this.Interrupts = new Interrupts(this);
+            this.Timers = new Timers(this);
             this.LcdController = new LcdController(this);
             this.Joypad = new Joypad(this);
             

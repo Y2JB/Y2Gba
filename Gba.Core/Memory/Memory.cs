@@ -79,20 +79,41 @@ namespace Gba.Core
 					return gba.Joypad.Register1;
 				}
 
-				// BG Control Registers
-				else if (address == 0x04000008) return gba.LcdController.BgControlRegisters[0].Register0;
-				else if (address == 0x04000009) return gba.LcdController.BgControlRegisters[0].Register1;
-				else if (address == 0x0400000A) return gba.LcdController.BgControlRegisters[1].Register0;
-				else if (address == 0x0400000B) return gba.LcdController.BgControlRegisters[1].Register1;
-				else if (address == 0x0400000C) return gba.LcdController.BgControlRegisters[2].Register0;
-				else if (address == 0x0400000D) return gba.LcdController.BgControlRegisters[2].Register1;
-				else if (address == 0x0400000E) return gba.LcdController.BgControlRegisters[3].Register0;
-				else if (address == 0x0400000F) return gba.LcdController.BgControlRegisters[3].Register1;
-
+				else if (address >= 0x04000008 && address <= 0x0400000F)
+				{
+					// BG Control Registers
+					if      (address == 0x04000008) return gba.LcdController.BgControlRegisters[0].Register0;
+					else if (address == 0x04000009) return gba.LcdController.BgControlRegisters[0].Register1;
+					else if (address == 0x0400000A) return gba.LcdController.BgControlRegisters[1].Register0;
+					else if (address == 0x0400000B) return gba.LcdController.BgControlRegisters[1].Register1;
+					else if (address == 0x0400000C) return gba.LcdController.BgControlRegisters[2].Register0;
+					else if (address == 0x0400000D) return gba.LcdController.BgControlRegisters[2].Register1;
+					else if (address == 0x0400000E) return gba.LcdController.BgControlRegisters[3].Register0;
+					else if (address == 0x0400000F) return gba.LcdController.BgControlRegisters[3].Register1;
+					else throw new ArgumentException("Bad BG read");
+				}
 				else if (address >= 0x04000100 && address <= 0x04000110)
 				{
 					// Timers
-					throw new NotImplementedException();
+					if (address == 0x4000100) return gba.Timers.Timer[0].TimerValue0;
+					else if (address == 0x4000101) return gba.Timers.Timer[0].TimerValue1;
+					else if (address == 0x4000104) return gba.Timers.Timer[1].TimerValue0;
+					else if (address == 0x4000105) return gba.Timers.Timer[1].TimerValue1;
+					else if (address == 0x4000108) return gba.Timers.Timer[2].TimerValue0;
+					else if (address == 0x4000109) return gba.Timers.Timer[2].TimerValue1;
+					else if (address == 0x400010C) return gba.Timers.Timer[3].TimerValue0;
+					else if (address == 0x400010D) return gba.Timers.Timer[3].TimerValue1;
+
+					else if (address == 0x4000102) return gba.Timers.Timer[0].TimerControlRegister;
+					else if (address == 0x4000103) return 0;
+					else if (address == 0x4000106) return gba.Timers.Timer[1].TimerControlRegister;
+					else if (address == 0x4000107) return 0;
+					else if (address == 0x400010A) return gba.Timers.Timer[2].TimerControlRegister;
+					else if (address == 0x400010B) return 0;
+					else if (address == 0x400010E) return gba.Timers.Timer[3].TimerControlRegister;
+					else if (address == 0x400010F) return 0;
+
+					else throw new ArgumentException("Bad Timer read");
 				}
 
 				// Interrupts				
@@ -289,11 +310,33 @@ namespace Gba.Core
 					else if (address == 0x400001E) gba.LcdController.Bg[3].ScrollY = (int)((gba.LcdController.Bg[3].ScrollY & 0xFFFFFF00) | value);
 					else if (address == 0x400001F) gba.LcdController.Bg[3].ScrollY = (int)((gba.LcdController.Bg[3].ScrollY & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
 
+					else throw new ArgumentException("Bad BG write");
+
 				}
 				else if (address >= 0x04000100 && address <= 0x04000110)
 				{
 					// Timers
-					throw new NotImplementedException();
+
+					if (address == 0x4000100) gba.Timers.Timer[0].ReloadValue0 = value;
+					else if (address == 0x4000101) gba.Timers.Timer[0].ReloadValue1 = value;
+					else if (address == 0x4000104) gba.Timers.Timer[1].ReloadValue0 = value;
+					else if (address == 0x4000105) gba.Timers.Timer[1].ReloadValue1 = value;
+					else if (address == 0x4000108) gba.Timers.Timer[2].ReloadValue0 = value;
+					else if (address == 0x4000109) gba.Timers.Timer[2].ReloadValue1 = value;
+					else if (address == 0x400010C) gba.Timers.Timer[3].ReloadValue0 = value;
+					else if (address == 0x400010D) gba.Timers.Timer[3].ReloadValue1 = value;
+
+					else if (address == 0x4000102) gba.Timers.Timer[0].TimerControlRegister = value;
+					else if (address == 0x4000103) { }
+					else if (address == 0x4000106) gba.Timers.Timer[1].TimerControlRegister = value;
+					else if (address == 0x4000107) { }
+					else if (address == 0x400010A) gba.Timers.Timer[2].TimerControlRegister = value;
+					else if (address == 0x400010B) { }
+					else if (address == 0x400010E) gba.Timers.Timer[3].TimerControlRegister = value;
+					else if (address == 0x400010F) { }
+
+
+					else throw new ArgumentException("Bad Timer write");
 				}
 				else if (address == 0x4000200)
 				{
@@ -350,6 +393,10 @@ namespace Gba.Core
             }
 			else
             {
+
+				// TODO: TTY WINDOW FOR THIS!!!!!
+
+
 				//throw new ArgumentException("Bad Memory Write");
 			}
         }

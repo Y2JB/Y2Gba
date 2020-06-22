@@ -38,9 +38,9 @@ namespace Gba.Core
         public LcdMode Mode { get; private set; }
 
         public UInt32 LcdCycles { get; private set; }
-        public UInt32 VblankCycles { get; private set; }
+        public UInt32 VblankScanlineCycles { get; private set; }
         public UInt32 FrameCycles { get; private set; }
-        public bool HblankInVblank { get { return VblankCycles > HDraw_Length; } }
+        public bool HblankInVblank { get { return VblankScanlineCycles > HDraw_Length; } }
 
         public Palettes Palettes { get; private set; }
 
@@ -81,7 +81,7 @@ namespace Gba.Core
             Mode = LcdMode.ScanlineRendering;
             LcdCycles = 0;
             FrameCycles = 0;
-            VblankCycles = 0;
+            VblankScanlineCycles = 0;
             CurrentScanline = 0;
         }
 
@@ -130,7 +130,7 @@ namespace Gba.Core
                         {
                             Mode = LcdMode.VBlank;
 
-                            VblankCycles = 0;
+                            VblankScanlineCycles = 0;
 
                             if (DispStatRegister.VBlankIrqEnabled)
                             {
@@ -178,7 +178,7 @@ namespace Gba.Core
 
                 case LcdMode.VBlank:
 
-                    VblankCycles++;
+                    VblankScanlineCycles++;
                     if (LcdCycles >= VBlank_Length)
                     {
                         // 160 + 68 lines per screen
@@ -203,7 +203,7 @@ namespace Gba.Core
                     else
                     {
                         // HBlanks IRQ's still fire durng vblank
-                        if(VblankCycles == HDraw_Length)
+                        if(VblankScanlineCycles == HDraw_Length)
                         {
                             if (DispStatRegister.HBlankIrqEnabled)
                             {
@@ -212,9 +212,9 @@ namespace Gba.Core
                         }
 
                         // We are within vblank
-                        if(VblankCycles == ScanLine_Length)
+                        if(VblankScanlineCycles == ScanLine_Length)
                         {
-                            VblankCycles = 0;
+                            VblankScanlineCycles = 0;
                             CurrentScanline++;
 
                             if (DispStatRegister.VCounterIrqEnabled &&
