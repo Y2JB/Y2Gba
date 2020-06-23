@@ -327,18 +327,22 @@ namespace Gba.Core
             // OBJ Tiles are stored in a separate area in VRAM: 06010000-06017FFF (32 KBytes) in BG Mode 0-2, or 06014000-06017FFF (16 KBytes) in BG Mode 3-5.
             int vramBaseOffset = 0x00010000;
 
+            bool TileMapping2D = (DisplayControlRegister.ObjectCharacterVramMapping == 0);
+
             byte[] vram = gba.Memory.VRam;
 
             for (int i = 0; i < Max_Sprites; i++)
             {
                 Size spriteDimensions = Obj[i].Dimensions;
 
+                // X value is 9 bit and Y is 8 bit! Clamp the values and wrap when they exceed them
                 int sprX = Obj[i].XPosition;
                 int sprY = Obj[i].YPosition;
+                if(sprY > Screen_Y_Resolution) sprY -= 255;
 
                 if (Obj[i].Visible == false || 
-                   CurrentScanline < sprY ||
-                   CurrentScanline > sprY + spriteDimensions.Height)
+                   CurrentScanline < sprY || 
+                   CurrentScanline >= (sprY + spriteDimensions.Height))
                 {
                     continue;
                 }
@@ -358,10 +362,12 @@ namespace Gba.Core
                     paletteOffset = Obj[i].PaletteNumber * 16;
                 }
 
-                int spriteX = -1;
-                for (int screenX = Obj[i].XPosition; screenX < Obj[i].XPosition + spriteDimensions.Width; screenX++)
+                //for (int screenX = Obj[i].XPosition; screenX < Obj[i].XPosition + spriteDimensions.Width; screenX++)
+                for(int spriteX = 0; spriteX < spriteDimensions.Width; spriteX++)
                 {
-                    spriteX++;
+                    // Clamp to 9 bit range
+                    int screenX = Obj[i].XPosition + spriteX;
+                    if (screenX >= 512) screenX -= 512;
 
                     if (screenX < 0 || screenX >= Screen_X_Resolution)
                     {
@@ -371,10 +377,28 @@ namespace Gba.Core
                     int currentSpriteColumnInTiles = spriteX / 8;
                     int currentColumnWithinTile = spriteX % 8;
 
-                    // TODO: Addressing mode (1d / 2d) goes here
-                    // 1D addressing
-                    int vramTileOffset = vramBaseOffset + (Obj[i].TileNumber * tileSize) + (currentSpriteRowInTiles * spriteRowSizeInBytes) + (currentSpriteColumnInTiles * tileSize);
-                    
+                    // This offset will be set to point to the start of the next 8x8 tile we will draw
+                    int vramTileOffset;
+
+                    // Addressing mode (1d / 2d)
+                    if (TileMapping2D)
+                    {
+                        // 2D addressing, vram is thought of as a 32x32 matrix of tiles. A sprites tiles are arranged as you would view them on a screen
+
+                        int full32TileRowSizeInBytes = tileSize * 32;
+
+                        vramTileOffset = vramBaseOffset + (Obj[i].TileNumber * tileSize) + (currentSpriteRowInTiles * full32TileRowSizeInBytes) + (currentSpriteColumnInTiles * tileSize);
+                    }
+                    else
+                    {
+                        // 1D addressing, all the sprites tiles are contiguous in vram
+                        vramTileOffset = vramBaseOffset + (Obj[i].TileNumber * tileSize) + (currentSpriteRowInTiles * spriteRowSizeInBytes) + (currentSpriteColumnInTiles * tileSize);
+                    }
+
+                    // TODO: Draw all 8 pixles here
+
+
+                    // Lookup the actual pixel value (which is a palette index) in the tile data 
                     int paletteIndex = TileHelpers.GetTilePixel(currentColumnWithinTile, currentRowWithinTile, eightBitColour, vram, vramTileOffset);
 
                     // Pal 0 == Transparent 
