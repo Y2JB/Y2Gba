@@ -10,6 +10,11 @@ namespace Gba.Core
         public const byte Screen_X_Resolution = 240;
         public const byte Screen_Y_Resolution = 160;
 
+        public const byte Max_Sprites = 128;
+
+        public const int Tile_Size_4bit = 32;
+        public const int Tile_Size_8bit = 64;
+
         // How many clock cycles for the various LCD states...
         public const UInt32 Pixel_Length = 4;               // Render one pixel
         public const UInt32 HDraw_Length = 960;             // 240 * 4
@@ -26,6 +31,9 @@ namespace Gba.Core
         public BgControlRegister[] BgControlRegisters { get; private set; }
         
         public Background[] Bg { get; private set; }
+        
+        public ObjAttributes[] Obj { get; private set; }
+        
 
         public byte CurrentScanline { get; private set; }
 
@@ -76,6 +84,12 @@ namespace Gba.Core
             {
                 BgControlRegisters[i] = new BgControlRegister(this);
                 Bg[i] = new Background(gba, i);
+            }
+
+            Obj = new ObjAttributes[Max_Sprites];
+            for(int i = 0; i < Max_Sprites; i++)
+            {
+                Obj[i] = new ObjAttributes(i * 8, gba.Memory.OamRam);
             }
 
             Mode = LcdMode.ScanlineRendering;
@@ -151,6 +165,12 @@ namespace Gba.Core
                                 {
                                     FrameBuffer = frameBuffer0;
                                     drawBuffer = frameBuffer1;
+                                }
+
+                                // Clear the draw buffer to the background color 
+                                using (var graphics = Graphics.FromImage(drawBuffer.Bitmap))
+                                {
+                                    graphics.Clear(Palettes.Palette0[0]);
                                 }
                             }
 
@@ -261,6 +281,8 @@ namespace Gba.Core
                 default:
                     throw new NotImplementedException("Unknown or unimplemented video mode");
             }
+
+            RenderObjScanline();
         }
 
         private void RenderMode0Scanline()
@@ -295,5 +317,76 @@ namespace Gba.Core
                 }
             }
         }
+
+
+        private void RenderObjScanline()
+        {
+            // OBJ palette is always palette 1
+            Color[] palette = Palettes.Palette1;
+
+            // OBJ Tiles are stored in a separate area in VRAM: 06010000-06017FFF (32 KBytes) in BG Mode 0-2, or 06014000-06017FFF (16 KBytes) in BG Mode 3-5.
+            int vramBaseOffset = 0x00010000;
+
+            byte[] vram = gba.Memory.VRam;
+
+            for (int i = 0; i < Max_Sprites; i++)
+            {
+                Size spriteDimensions = Obj[i].Dimensions;
+
+                int sprX = Obj[i].XPosition;
+                int sprY = Obj[i].YPosition;
+
+                if (Obj[i].Visible == false || 
+                   CurrentScanline < sprY ||
+                   CurrentScanline > sprY + spriteDimensions.Height)
+                {
+                    continue;
+                }
+
+                int spriteWidthInTiles = spriteDimensions.Width / 8;
+                bool eightBitColour = Obj[i].PaletteMode == ObjAttributes.PaletteDepth.Bpp8;
+                int tileSize = (eightBitColour ? LcdController.Tile_Size_8bit : LcdController.Tile_Size_4bit);
+                int spriteRowSizeInBytes = tileSize * spriteWidthInTiles;
+
+                // Which row of tiles are we rendering? EG: A 64x64 sprinte will have 8 rows of tiles 
+                int currentSpriteRowInTiles = (CurrentScanline - sprY) / 8; 
+                int currentRowWithinTile = (CurrentScanline - sprY) % 8;
+                
+                int paletteOffset = 0;
+                if(eightBitColour)
+                {
+                    paletteOffset = Obj[i].PaletteNumber * 16;
+                }
+
+                int spriteX = -1;
+                for (int screenX = Obj[i].XPosition; screenX < Obj[i].XPosition + spriteDimensions.Width; screenX++)
+                {
+                    spriteX++;
+
+                    if (screenX < 0 || screenX >= Screen_X_Resolution)
+                    {
+                        continue;
+                    }
+
+                    int currentSpriteColumnInTiles = spriteX / 8;
+                    int currentColumnWithinTile = spriteX % 8;
+
+                    // TODO: Addressing mode (1d / 2d) goes here
+                    // 1D addressing
+                    int vramTileOffset = vramBaseOffset + (Obj[i].TileNumber * tileSize) + (currentSpriteRowInTiles * spriteRowSizeInBytes) + (currentSpriteColumnInTiles * tileSize);
+                    
+                    int paletteIndex = TileHelpers.GetTilePixel(currentColumnWithinTile, currentRowWithinTile, eightBitColour, vram, vramTileOffset);
+
+                    // Pal 0 == Transparent 
+                    if(paletteIndex == 0)
+                    {
+                        continue;
+                    }
+
+                    drawBuffer.SetPixel(screenX, CurrentScanline, palette[paletteOffset + paletteIndex]);
+                }           
+            }
+        }
+
     }
 }

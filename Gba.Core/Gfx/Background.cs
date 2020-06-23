@@ -7,10 +7,10 @@ namespace Gba.Core
 {
     public class Background
     {
-        BgControlRegister cntReg;
+        public BgControlRegister CntRegister { get; }
 
         public TileMap TileMap { get; private set; }
-        public BgSize Size { get { return cntReg.Size; } }
+        public BgSize Size { get { return CntRegister.Size; } }
 
         public int ScrollX { get; set; }
         public int ScrollY { get; set; }
@@ -28,7 +28,7 @@ namespace Gba.Core
         {
             this.gba = gba;
             this.bgNumber = bgNumber;
-            cntReg = gba.LcdController.BgControlRegisters[bgNumber];
+            CntRegister = gba.LcdController.BgControlRegisters[bgNumber];
 
             TileMap = new TileMap(gba.Memory.VRam, gba.LcdController.BgControlRegisters[bgNumber]);
         }
@@ -38,7 +38,7 @@ namespace Gba.Core
             TileMap.Reset();
 
             // 0-3, in units of 16 KBytes
-            tileDataVramOffset = (cntReg.TileBlockBaseAddress * 16384);
+            tileDataVramOffset = (CntRegister.TileBlockBaseAddress * 16384);
         }
 
        
@@ -84,7 +84,7 @@ namespace Gba.Core
 
                 // In 16 Colour mode, 0 means transparent which means you use palette 0, entry 0.
 
-                // Select the right nibble for the pixel
+                // Select the right nibble for the pixel, odd/even numbered columns have a different nibble
                 if ((tileColumn & 0x1) == 0)
                 {
                     byte pixelValue = (byte) (pixelByte & 0x0F);

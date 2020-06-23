@@ -23,6 +23,9 @@ namespace Gba.Core
 		public byte[] VRam { get { return vram; } }
 
 		byte[] oamRam = new byte[1024];
+		public byte[] OamRam {  get { return oamRam;  } }
+
+
 		public Memory(GameboyAdvance gba)
         {
             this.gba = gba;
@@ -173,7 +176,7 @@ namespace Gba.Core
 			// OAM Ram
 			else if (address >= 0x07000000 && address <= 0x07FFFFFF)
 			{
-				return oamRam[address - 0x7000000];
+				return OamRam[address - 0x7000000];
 				//throw new NotImplementedException();
 			}
 			else if (address >= 0x0A000000 && address <= 0x0BFFFFFF) throw new NotImplementedException();
@@ -380,12 +383,14 @@ namespace Gba.Core
 			// OAM Ram
 			else if (address >= 0x07000000 && address <= 0x07FFFFFF)
 			{
-				oamRam[address - 0x7000000] = value;
-				//throw new NotImplementedException();
+				OamRam[address - 0x7000000] = value;
 			}
 			else if (address >= 0x08000000 && address <= 0x09FFFFFF)
 			{
 				// Attempted ROM write...do nothing
+				
+				// TODO: TTY WINDOW FOR THIS!!!!!
+
 			}
 			else if (address >= 0x0E000000 && address <= 0x0E00FFFF)
             {

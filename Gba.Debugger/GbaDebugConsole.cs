@@ -254,9 +254,11 @@ namespace GbaDebugger
                         return true;
 
                     case "tiles":
-                        throw new NotImplementedException();
-                    //ConsoleAddString("Tiles dumped.");
-                    //return true;
+                        gba.DumpObjTiles();
+                        ConsoleAddString("Obj Tiles dumped.");
+                        gba.DumpBgTiles();
+                        ConsoleAddString("Bg Tiles dumped.");
+                        return true;
 
                     case "tilemap":
                         gba.LcdController.Bg[0].TileMap.DumpTileMap();

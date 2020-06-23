@@ -66,15 +66,6 @@ namespace Gba.Core
 
         public void Reset()
         {
-
-            /*
-            if (vramMapDataOffset % 2048 != 0 ||
-                vramMapDataOffset > 0xF800)
-            {
-                throw new ArgumentException("BG map must be located at a valid offset");
-            }
-            */
-
             UInt32 vramMapDataOffset = cntReg.ScreenBlockBaseAddress * 2048;
 
             for (int i = 0; i < 1024; i++)
