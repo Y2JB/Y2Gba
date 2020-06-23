@@ -59,6 +59,7 @@ namespace Gba.Core
             this.lcd = lcd;
         }
 
+        public int Priority { get { return Register0 & 0x03; } }
 
         public UInt32 TileBlockBaseAddress { get { return (UInt32)((Register0 & 0x0C) >> 2); } }
         public UInt32 ScreenBlockBaseAddress { get { return (UInt32)(Register1 & 0x1F); } }

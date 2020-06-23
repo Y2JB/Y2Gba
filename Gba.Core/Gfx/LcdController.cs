@@ -282,20 +282,30 @@ namespace Gba.Core
                     throw new NotImplementedException("Unknown or unimplemented video mode");
             }
 
-            RenderObjScanline();
+            if (DisplayControlRegister.DisplayObj)
+            {
+                RenderObjScanline();
+            }
         }
 
         private void RenderMode0Scanline()
         {
-            
-            if (DisplayControlRegister.DisplayBg0)
+            for(int priority = 3; priority >=0 ; priority--)
             {
-                // TODO: This needs doing when the reg's change 
-                Bg[0].Reset();
+                for(int i=0; i < 4; i++)
+                {
+                    if( DisplayControlRegister.DisplayBg(i) && 
+                        Bg[i].CntRegister.Priority == priority)
+                    {
+                        // TODO: This needs doing when the reg's change 
+                        Bg[i].Reset();
 
-                Bg[0].RenderMode0Scanline4bpp(CurrentScanline, drawBuffer);                                 
+                        Bg[i].RenderMode0Scanline4bpp(CurrentScanline, drawBuffer);
+                    }
+                }
             }
         }
+
 
         // Mode 4 is another bitmap mode. It also has a 240×160 frame-buffer, but instead of 16bpp pixels it uses 8bpp pixels. 
         // These 8 bits are a palette index to the background palette located at 0500:0000 (our palette 0)
