@@ -7,19 +7,22 @@ namespace Gba.Core
 {
     public static class TileHelpers
     {
-        public static int GetTilePixel(int x, int y, bool eightBitColour, byte[] vram, int offset)
+        public static int GetTilePixel(int tileX, int tileY, bool eightBitColour, byte[] vram, int offsetToTile, bool flipHorizontally, bool flipVertically)
         {
+            if (flipHorizontally) tileX = 7 - tileX;
+            if (flipVertically) tileY = 7 - tileY;
+
             if (eightBitColour)
             {
-                return vram[offset + (y * 8) + x];
+                return vram[offsetToTile + (tileY * 8) + tileX];
             }
             else
             {
                 // 2 pixels per byte, 4 bytes per tile row
-                byte pixelByte = vram[offset + (y * 4) + (x / 2)];
+                byte pixelByte = vram[offsetToTile + (tileY * 4) + (tileX / 2)];
 
                 // Select the right nibble for the pixel, odd/even numbered columns have a different nibble
-                if ((x & 0x1) == 0)
+                if ((tileX & 0x1) == 0)
                 {
                     return (pixelByte & 0x0F);
                 }

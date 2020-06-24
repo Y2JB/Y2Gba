@@ -178,8 +178,8 @@ namespace Gba.Core
         }
 
         public int TileNumber { get { return (vram[VramOffset] | (vram[VramOffset + 1] << 8)) & 0x3FF; } }
-        public bool FlipHorizontal { get { return (vram[VramOffset + 1] & 0x400) != 0; } }
-        public bool FlipVertical { get { return (vram[VramOffset + 1] & 0x800) != 0; } }
+        public bool FlipHorizontal { get { return (vram[VramOffset + 1] & 0x4) != 0; } }
+        public bool FlipVertical { get { return (vram[VramOffset + 1] & 0x8) != 0; } }
         public int Palette { get { return ((vram[VramOffset + 1] & 0xF0) >> 4); } }
     }
 }

@@ -358,16 +358,20 @@ namespace Gba.Core
                 }
 
                 int spriteWidthInTiles = spriteDimensions.Width / 8;
+                int spriteHeightInTiles = spriteDimensions.Height / 8;
+
                 bool eightBitColour = Obj[i].PaletteMode == ObjAttributes.PaletteDepth.Bpp8;
                 int tileSize = (eightBitColour ? LcdController.Tile_Size_8bit : LcdController.Tile_Size_4bit);
                 int spriteRowSizeInBytes = tileSize * spriteWidthInTiles;
 
                 // Which row of tiles are we rendering? EG: A 64x64 sprinte will have 8 rows of tiles 
-                int currentSpriteRowInTiles = (CurrentScanline - sprY) / 8; 
+                int currentSpriteRowInTiles = (CurrentScanline - sprY) / 8;
+                if (Obj[i].VerticalFlip) currentSpriteRowInTiles = (spriteHeightInTiles-1) - currentSpriteRowInTiles;
+
                 int currentRowWithinTile = (CurrentScanline - sprY) % 8;
                 
                 int paletteOffset = 0;
-                if(eightBitColour)
+                if(eightBitColour == false)
                 {
                     paletteOffset = Obj[i].PaletteNumber * 16;
                 }
@@ -385,6 +389,8 @@ namespace Gba.Core
                     }
 
                     int currentSpriteColumnInTiles = spriteX / 8;
+                    if (Obj[i].HorizontalFlip) currentSpriteColumnInTiles = (spriteWidthInTiles - 1) - currentSpriteColumnInTiles;
+
                     int currentColumnWithinTile = spriteX % 8;
 
                     // This offset will be set to point to the start of the next 8x8 tile we will draw
@@ -409,7 +415,7 @@ namespace Gba.Core
 
 
                     // Lookup the actual pixel value (which is a palette index) in the tile data 
-                    int paletteIndex = TileHelpers.GetTilePixel(currentColumnWithinTile, currentRowWithinTile, eightBitColour, vram, vramTileOffset);
+                    int paletteIndex = TileHelpers.GetTilePixel(currentColumnWithinTile, currentRowWithinTile, eightBitColour, vram, vramTileOffset, Obj[i].HorizontalFlip, Obj[i].VerticalFlip);
 
                     // Pal 0 == Transparent 
                     if(paletteIndex == 0)

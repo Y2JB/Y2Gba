@@ -122,8 +122,8 @@ namespace Gba.Core
 
 
         //  When Rotation/Scaling NOT used
-        public bool HorizontalFlip { get { return ((ObjAttrib1H & 0x10) == 0); } }
-        public bool VerticalFlip { get { return ((ObjAttrib1H & 0x20) == 0); } }
+        public bool HorizontalFlip { get { return ((ObjAttrib1H & 0x10) != 0); } }
+        public bool VerticalFlip { get { return ((ObjAttrib1H & 0x20) != 0); } }
 
         int Size { get { return (int)((ObjAttrib1H & 0xC0) >> 6); } }
 
