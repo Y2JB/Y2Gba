@@ -16,6 +16,7 @@ using System.Threading;
 
 using Gba.Core;
 using GbaDebugger;
+using WinFormsRenderer;
 
 namespace WinFormRender
 {
@@ -25,6 +26,7 @@ namespace WinFormRender
         GbaDebugConsole dbgConsole;
        
         ConsoleWindow consoleWindow;
+        TtyConsole ttyConsole;
 
         Stopwatch timer = new Stopwatch();
         long elapsedMs;
@@ -63,6 +65,8 @@ namespace WinFormRender
             consoleWindow = new ConsoleWindow(gba, dbgConsole);
             consoleWindow.Show();
 
+            ttyConsole = new TtyConsole(gba);
+            ttyConsole.Show();
 
             this.Text = gba.Rom.RomName;
             KeyDown += OnKeyDown;
@@ -85,6 +89,7 @@ namespace WinFormRender
                         DropDownItems =
                         {
                             new ToolStripMenuItem("Console", null, (sender, args) => { consoleWindow.Visible = !consoleWindow.Visible; }),
+                            new ToolStripMenuItem("Tty", null, (sender, args) => { ttyConsole.Visible = !ttyConsole.Visible; }),
                             //new ToolStripMenuItem("Bg Viewer", null, (sender, args) => { bgWnd.Visible = !bgWnd.Visible; })
                         }
                     }
@@ -114,7 +119,8 @@ namespace WinFormRender
             base.OnLoad(e);
 
             consoleWindow.Location = new Point(Location.X + Width + 20, Location.Y);
-            
+            ttyConsole.Location = new Point(Location.X, Location.Y + Height + 40);
+
             // Gets a reference to the current BufferedGraphicsContext
             gfxBufferedContext = BufferedGraphicsManager.Current;
 
@@ -200,7 +206,7 @@ namespace WinFormRender
 
                         if (dbgConsole.CheckForBreakpoints())
                         {
-                            consoleWindow.RefreshDmgSnapshot();
+                            consoleWindow.RefreshEmuSnapshot();
                             break;
                         }
                     }
@@ -215,7 +221,7 @@ namespace WinFormRender
                         gba.Step();
                         dbgConsole.PeekSequentialInstructions();
                         dbgConsole.OnPostBreakpointStep();
-                        consoleWindow.RefreshDmgSnapshot();
+                        consoleWindow.RefreshEmuSnapshot();
                         consoleWindow.RefreshConsoleText();
                     }
                 }

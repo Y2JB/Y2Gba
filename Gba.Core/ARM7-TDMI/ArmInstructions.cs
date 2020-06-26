@@ -19,10 +19,8 @@ namespace Gba.Core
 		public void DecodeAndExecuteArmInstruction(UInt32 rawInstruction)
         {
 #if USE_LUT
-// Extract conditional
+			// Extract conditional
 			ConditionalExecution conditional = (ConditionalExecution)((rawInstruction & 0xF0000000) >> 28);
-
-			// TODO: Conditional needs adding to Peek
 
 			// Conditional early out 
 			if (conditional != ConditionalExecution.AL)
@@ -52,6 +50,11 @@ namespace Gba.Core
 #else
 			DecodeArmInstruction(rawInstruction, true);
 #endif
+				ConditionalExecution conditional = (ConditionalExecution)((rawInstruction & 0xF0000000) >> 28);
+				if (conditional != ConditionalExecution.AL)
+				{
+					peekString = String.Format("{0} {1}", conditional.ToString(), peekString);
+				}
 			}
 			catch (Exception)
             {
@@ -63,39 +66,32 @@ namespace Gba.Core
 
 		void CalculateArmDecodeLookUpTable()
         {
-			//UInt32 mask = 0x0FF000F0;
-
 			UInt32 instruction;
 			for(UInt32 i = 0; i < 4096; i++)
             {
 				instruction = ((i & 0x00000FF0) << 16);
 				instruction += ((i & 0x0F) <<4);
 
-				TestDecode(instruction);
+				DecodeForLut(instruction);
 			}
-			//TestDecode(rawInstruction & mask);
 		}
 
 
 		
-		void TestDecode(UInt32 rawInstruction)
-        {
-			bool added = false;
-
+		void DecodeForLut(UInt32 rawInstruction)
+        {		
 			try
 			{
 				if (rawInstruction == 0x1200010)
 				{
 					//ARM_3
-					InstructionLut.TryAdd(rawInstruction, BranchExchange);
-					added = true;
+					InstructionLut.TryAdd(rawInstruction, BranchExchange);					
 				}
 
 				else if (((rawInstruction >> 25) & 0x7) == 0x5)
 				{
 					//ARM_4
-					InstructionLut.TryAdd(rawInstruction, BranchLink);
-					added = true;
+					InstructionLut.TryAdd(rawInstruction, BranchLink);					
 				}
 
 				else if ((rawInstruction & 0x0D900000) == 0x01000000)
@@ -106,15 +102,13 @@ namespace Gba.Core
 						if (((rawInstruction >> 5) & 0x3) == 0)
 						{
 							//ARM_12;
-							InstructionLut.TryAdd(rawInstruction, SingleDataSwap);
-							added = true;
+							InstructionLut.TryAdd(rawInstruction, SingleDataSwap);						
 						}
 
 						else
 						{
 							//ARM_10;
-							InstructionLut.TryAdd(rawInstruction, HalfwordAndSignedDataTransfer);
-							added = true;
+							InstructionLut.TryAdd(rawInstruction, HalfwordAndSignedDataTransfer);							
 						}
 					}
 
@@ -122,7 +116,6 @@ namespace Gba.Core
 					{
 						//ARM_6
 						InstructionLut.TryAdd(rawInstruction, PsrFlagsTransfer);
-						added = true;
 					}
 				}
 
@@ -134,7 +127,6 @@ namespace Gba.Core
 						if ((rawInstruction & 0x02000000) != 0)
 						{
 							InstructionLut.TryAdd(rawInstruction, DataProcessing);
-							added = true;
 						}
 
 						//ARM.5
@@ -142,7 +134,6 @@ namespace Gba.Core
 						{
 							//ARM_5
 							InstructionLut.TryAdd(rawInstruction, DataProcessing);
-							added = true;
 						}
 
 						//ARM.5
@@ -150,14 +141,12 @@ namespace Gba.Core
 						{
 							// ARM_5
 							InstructionLut.TryAdd(rawInstruction, DataProcessing);
-							added = true;
 						}
 
 						//ARM.7
 						else
 						{
 							InstructionLut.TryAdd(rawInstruction, MultiplyAndMultiplyAccumulate);
-							added = true;
 						}
 					}
 
@@ -170,7 +159,6 @@ namespace Gba.Core
 							{
 								//ARM_5
 								InstructionLut.TryAdd(rawInstruction, DataProcessing);
-								added = true;
 							}
 
 							//ARM.12
@@ -178,7 +166,6 @@ namespace Gba.Core
 							{
 								//ARM_12;
 								InstructionLut.TryAdd(rawInstruction, SingleDataSwap);
-								added = true;
 							}
 
 							//ARM.7
@@ -186,7 +173,6 @@ namespace Gba.Core
 							{
 								//ARM_7;
 								InstructionLut.TryAdd(rawInstruction, MultiplyAndMultiplyAccumulate);
-								added = true;
 							}
 						}
 
@@ -195,7 +181,6 @@ namespace Gba.Core
 						{
 							//ARM_5
 							InstructionLut.TryAdd(rawInstruction, DataProcessing);
-							added = true;
 						}
 
 						//ARM.10
@@ -203,7 +188,6 @@ namespace Gba.Core
 						{
 							//ARM_10;
 							InstructionLut.TryAdd(rawInstruction, HalfwordAndSignedDataTransfer);
-							added = true;
 						}
 					}
 
@@ -211,7 +195,6 @@ namespace Gba.Core
 					{
 						//ARM_5
 						InstructionLut.TryAdd(rawInstruction, DataProcessing);
-						added = true;
 					}
 				}
 
@@ -219,32 +202,23 @@ namespace Gba.Core
 				{
 					//ARM_9
 					InstructionLut.TryAdd(rawInstruction, SingleDataTransfer);
-					added = true;
 				}
 
 				else if (((rawInstruction >> 25) & 0x7) == 0x4)
 				{
 					//ARM_11
 					InstructionLut.TryAdd(rawInstruction, BlockDataTransfer);
-					added = true;
 				}
 
 				else if (((rawInstruction >> 24) & 0xF) == 0xF)
 				{
 					//ARM_13
 					InstructionLut.TryAdd(rawInstruction, SoftwareInterrupt);
-					added = true;
 				}
 			}
 			catch (ArgumentException) 
 			{
-				added = true;
 			}
-
-			//if(added == false)
-            //{
-			//	throw new ArgumentException("Bad LUT decode");
-            //}
 		}
 
 

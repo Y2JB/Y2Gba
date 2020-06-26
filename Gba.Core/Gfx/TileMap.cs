@@ -21,12 +21,13 @@ namespace Gba.Core
         TileMapEntry[] screenBlock2;
         TileMapEntry[] screenBlock3;
 
+        int bgNum;
 
-        public TileMap(byte[] vram, BgControlRegister cntReg)
+        public TileMap(byte[] vram, BgControlRegister cntReg, int bgNum)
         {
             this.cntReg = cntReg;
             this.vram = vram;
-            
+            this.bgNum = bgNum;
            
             // Regardless of Bg size, we create enough tol hold the max size
             screenBlock0 = new TileMapEntry[1024];
@@ -140,7 +141,7 @@ namespace Gba.Core
 
         public void DumpTileMap()
         {
-            string fn = String.Format("tilemapBg{0}.txt", 0);
+            string fn = String.Format("tilemapBg{0}.txt", bgNum);
             using (FileStream fs = File.Open("../../../../dump/" + fn, FileMode.Create))
             {
                 using (StreamWriter sw = new StreamWriter(fs))

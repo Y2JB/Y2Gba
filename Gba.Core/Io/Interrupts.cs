@@ -91,6 +91,8 @@ namespace Gba.Core
         {
             if ((InterruptMasterEnable!=0) && gba.Cpu.IrqDisableFlag == false && AnyInterruptPending())
             {
+                //gba.LogMessage(String.Format("Firing Interrupts IE {0:X} IF {1:X}", InterruptEnableRegister, InterruptRequestFlags));
+
                 gba.Cpu.Mode = Cpu.CpuMode.IRQ;
 
                 // SUBS pc, lr, #imm subtracts a value from the link register and loads the PC with the result, then copies the SPSR to the CPSR.

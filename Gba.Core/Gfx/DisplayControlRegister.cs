@@ -66,7 +66,7 @@ namespace Gba.Core
         public UInt32 DisplayFrameSelect { get { return (UInt32)((Register0 & 0x10) >> 4); } }
         public bool HBlankIntervalFree { get { return ((Register0 & 0x20)!= 0); } }
         public UInt32 ObjectCharacterVramMapping { get { return (UInt32)((Register0 & 0x40) >> 6); } }
-        public bool ForcedBlank { get { return ((Register0 & 0x90) != 0); } }
+        public bool ForcedBlank { get { return ((Register0 & 0x80) != 0); } }
 
         public bool DisplayBg0 { get { return ((Register1 & 0x01) != 0); } }
         public bool DisplayBg1 { get { return ((Register1 & 0x02) != 0); } }

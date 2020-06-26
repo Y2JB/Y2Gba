@@ -16,7 +16,8 @@ namespace Gba.Core
         public LcdController LcdController { get; private set; }
         public Memory Memory { get; private set; }
         public Joypad Joypad { get; private set; }
-        
+        public DmaChannel[] Dma { get; private set; }
+
         //long oneSecondTimer;
         public Stopwatch EmulatorTimer { get; private set; }
 
@@ -24,8 +25,8 @@ namespace Gba.Core
         public DirectBitmap FrameBuffer { get { return LcdController.FrameBuffer; } }
         public Action OnFrame { get; set; }
 
-        // TODO: TTY output than can be passed on to the Emu container
-        //public List<string> Tty { get; private set; }
+        // TTY output than can be passed on to the Emu container
+        public Action<string> OnLogMessage { get; set; }
 
         public bool PoweredOn { get; private set; }
 
@@ -64,7 +65,11 @@ namespace Gba.Core
             this.Timers = new Timers(this);
             this.LcdController = new LcdController(this);
             this.Joypad = new Joypad(this);
-            
+            this.Dma = new DmaChannel[4];
+            for(int i=0; i < 4; i ++)
+            {
+                Dma[i] = new DmaChannel(this);
+            }
             
             EmulatorTimer.Reset();
             EmulatorTimer.Start();
@@ -85,6 +90,17 @@ namespace Gba.Core
             //{
             //    oneSecondTimer = EmulatorTimer.ElapsedMilliseconds;
             //}
+        }
+
+
+        // TODO: The Conditinal Attribute should use a dedicated logging preprocessor directive 
+        //[Conditional("DEBUG")]
+        public void LogMessage(string msg)
+        {
+            if(OnLogMessage != null)
+            {
+                OnLogMessage(msg);
+            }
         }
 
 

@@ -70,21 +70,12 @@ namespace GbaDebugger
             NextInstructions = new List<StoredInstruction>();
 
             // SB : b $64 if [IO_LY] == 2
-
-            //breakpoints.Add(new Breakpoint(0x8));
-            //breakpoints.Add(new Breakpoint(0x18));
-
-            //breakpoints.Add(new Breakpoint(0x08006876));
-
-            // hblank problem
-            //breakpoints.Add(new Breakpoint(0x0300019C));
-            //breakpoints.Add(new Breakpoint(0x080016bc));
-
+          
 
             // scanline 125
             //breakpoints.Add(new IrqBreakpoint(gba, Interrupts.InterruptType.HBlank, true, true));
             
-            //breakpoints.Add(new Breakpoint(0xB8E));
+           // breakpoints.Add(new Breakpoint(0x00001250));
 
             //breakpoints.Add(new Breakpoint(0x64, new ConditionalExpression(snes.memory, 0xFF44, ConditionalExpression.EqualityCheck.Equal, 143)));
 
@@ -262,6 +253,9 @@ namespace GbaDebugger
 
                     case "tilemap":
                         gba.LcdController.Bg[0].TileMap.DumpTileMap();
+                        gba.LcdController.Bg[1].TileMap.DumpTileMap();
+                        gba.LcdController.Bg[2].TileMap.DumpTileMap();
+                        gba.LcdController.Bg[3].TileMap.DumpTileMap();
                         ConsoleAddString("Tilemap dumped.");
                         return true;
                 }

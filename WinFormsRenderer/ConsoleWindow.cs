@@ -80,11 +80,11 @@ namespace WinFormRender
             emuSnapshot.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
             this.Controls.Add(emuSnapshot);
 
-            RefreshDmgSnapshot();
+            RefreshEmuSnapshot();
         }
         
 
-        public void RefreshDmgSnapshot()
+        public void RefreshEmuSnapshot()
         {
             emuSnapshot.Text = String.Format("CPU State");
 
@@ -154,7 +154,7 @@ namespace WinFormRender
                         commandInput.Text = String.Empty;
                         historyIndex = -1;
 
-                        RefreshDmgSnapshot();
+                        RefreshEmuSnapshot();
                         RefreshConsoleText();
                     }
                     break;

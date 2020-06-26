@@ -142,6 +142,20 @@ namespace Gba.Core
 					// (REG_IME) Turns all interrupts on or off
 					return gba.Interrupts.InterruptMasterEnable;
 				}
+				else if (address >= 0x40000B0 && address <= 0x40000E0)
+				{
+					// DMA
+					if (address == 0x40000BA) return gba.Dma[0].DmaCnt.dmaCntRegister0;
+					else if (address == 0x40000BB) return gba.Dma[0].DmaCnt.dmaCntRegister1 ;
+					else if (address == 0x40000C6) return gba.Dma[1].DmaCnt.dmaCntRegister0 ;
+					else if (address == 0x40000C7) return gba.Dma[1].DmaCnt.dmaCntRegister1;
+					else if (address == 0x40000D2) return gba.Dma[2].DmaCnt.dmaCntRegister0 ;
+					else if (address == 0x40000D3) return gba.Dma[2].DmaCnt.dmaCntRegister1 ;
+					else if (address == 0x40000DE) return gba.Dma[3].DmaCnt.dmaCntRegister0;
+					else if (address == 0x40000DF) return gba.Dma[3].DmaCnt.dmaCntRegister1;
+
+					else throw new NotImplementedException();
+				}
 				else
 				{
 					// TODO: this should throw?
@@ -190,6 +204,7 @@ namespace Gba.Core
 
 			else
 			{
+				gba.LogMessage(String.Format("BAD MEMORY READ - Unknown address {0:X}", address));
 				// Bad memory reads resolve to an Open Bus read. See Gbatek section on 'unpredictable things'
 				// The open bus value is resolved in the 'checked' functions below
 				return 0;
@@ -229,16 +244,20 @@ namespace Gba.Core
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ushort ReadHalfWord(UInt32 address)
         {
-            // NB: Little Endian
-            return (ushort)((ReadByte((UInt32)(address + 1)) << 8) | ReadByte(address));
+			gba.LogMessage(String.Format("Read16 0x{0:X}", address));
+
+			// NB: Little Endian
+			return (ushort)((ReadByte((UInt32)(address + 1)) << 8) | ReadByte(address));
         }
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public UInt32 ReadWord(UInt32 address)
         {
-            // NB: Little Endian
-            return (UInt32)((ReadByte((UInt32)(address + 3)) << 24) | (ReadByte((UInt32)(address + 2)) << 16) | (ReadByte((UInt32)(address + 1)) << 8) | ReadByte(address));
+			//gba.LogMessage(String.Format("Read32 0x{0:X}", address));
+
+			// NB: Little Endian
+			return (UInt32)((ReadByte((UInt32)(address + 3)) << 24) | (ReadByte((UInt32)(address + 2)) << 16) | (ReadByte((UInt32)(address + 1)) << 8) | ReadByte(address));
         }
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -262,11 +281,10 @@ namespace Gba.Core
 				{
 					gba.LcdController.DisplayControlRegister.Register0 = value;
 
-					if(gba.LcdController.DisplayControlRegister.ForcedBlank)
-                    {
+					//if(gba.LcdController.DisplayControlRegister.ForcedBlank)
+                    //{
 						// TODO : restart LCD
-						int foo = 0;
-                    }
+                    //}
 				}
 				else if (address == 0x04000001)
 				{
@@ -351,16 +369,75 @@ namespace Gba.Core
 				}
 				else if (address == 0x4000202)
 				{
+					//gba.LogMessage(String.Format("IF Ack {0:X}", value));
 					gba.Interrupts.InterruptRequestFlags0 &= (byte)~value;
 				}
 				else if (address == 0x4000203)
 				{
+					//gba.LogMessage(String.Format("IF Ack {0:X}", value + 255));
 					gba.Interrupts.InterruptRequestFlags1 &= (byte)~value;
 				}			
 				else if (address == 0x04000208)
 				{
 					// IME
 					gba.Interrupts.InterruptMasterEnable = value;
+				}
+				else if (address >= 0x40000B0 && address <= 0x40000E0)
+                {
+					// DMA
+					if (address == 0x40000BA) gba.Dma[0].DmaCnt.dmaCntRegister0 = value;
+					else if (address == 0x40000BB) gba.Dma[0].DmaCnt.dmaCntRegister1 = value;
+					else if (address == 0x40000C6) gba.Dma[1].DmaCnt.dmaCntRegister0 = value;
+					else if (address == 0x40000C7) gba.Dma[1].DmaCnt.dmaCntRegister1 = value;
+					else if (address == 0x40000D2) gba.Dma[2].DmaCnt.dmaCntRegister0 = value;
+					else if (address == 0x40000D3) gba.Dma[2].DmaCnt.dmaCntRegister1 = value;
+					else if (address == 0x40000DE) gba.Dma[3].DmaCnt.dmaCntRegister0 = value;
+					else if (address == 0x40000DF) gba.Dma[3].DmaCnt.dmaCntRegister1 = value;
+
+					else if (address == 0x40000B0) gba.Dma[0].sAddr0 = value;
+					else if (address == 0x40000B1) gba.Dma[0].sAddr1 = value;
+					else if (address == 0x40000B2) gba.Dma[0].sAddr2= value;
+					else if (address == 0x40000B3) gba.Dma[0].sAddr3 = value;
+					else if (address == 0x40000BC) gba.Dma[1].sAddr0 = value;
+					else if (address == 0x40000BD) gba.Dma[1].sAddr1 = value;
+					else if (address == 0x40000BE) gba.Dma[1].sAddr2 = value;
+					else if (address == 0x40000BF) gba.Dma[1].sAddr3 = value;
+					else if (address == 0x40000C8) gba.Dma[2].sAddr0 = value;
+					else if (address == 0x40000C9) gba.Dma[2].sAddr1 = value;
+					else if (address == 0x40000CA) gba.Dma[2].sAddr2 = value;
+					else if (address == 0x40000CB) gba.Dma[2].sAddr3 = value;
+					else if (address == 0x40000D4) gba.Dma[3].sAddr0 = value;
+					else if (address == 0x40000D5) gba.Dma[3].sAddr1 = value;
+					else if (address == 0x40000D6) gba.Dma[3].sAddr2 = value;
+					else if (address == 0x40000D7) gba.Dma[3].sAddr3 = value;
+
+					else if (address == 0x40000B4) gba.Dma[0].dAddr0 = value;
+					else if (address == 0x40000B5) gba.Dma[0].dAddr1 = value;
+					else if (address == 0x40000B6) gba.Dma[0].dAddr2 = value;
+					else if (address == 0x40000B7) gba.Dma[0].dAddr3 = value;
+					else if (address == 0x40000C0) gba.Dma[1].dAddr0 = value;
+					else if (address == 0x40000C1) gba.Dma[1].dAddr1 = value;
+					else if (address == 0x40000C2) gba.Dma[1].dAddr2 = value;
+					else if (address == 0x40000C3) gba.Dma[1].dAddr3 = value;
+					else if (address == 0x40000CC) gba.Dma[2].dAddr0 = value;
+					else if (address == 0x40000CD) gba.Dma[2].dAddr1 = value;
+					else if (address == 0x40000CE) gba.Dma[2].dAddr2 = value;
+					else if (address == 0x40000CF) gba.Dma[2].dAddr3 = value;
+					else if (address == 0x40000D8) gba.Dma[3].dAddr0 = value;
+					else if (address == 0x40000D9) gba.Dma[3].dAddr1 = value;
+					else if (address == 0x40000DA) gba.Dma[3].dAddr2 = value;
+					else if (address == 0x40000DB) gba.Dma[3].dAddr3 = value;
+
+					else if (address == 0x40000B8) gba.Dma[0].wordCount0 = value;
+					else if (address == 0x40000B9) gba.Dma[0].wordCount1 = value;
+					else if (address == 0x40000C4) gba.Dma[1].wordCount0 = value;
+					else if (address == 0x40000C5) gba.Dma[1].wordCount1 = value;
+					else if (address == 0x40000D0) gba.Dma[2].wordCount0 = value;
+					else if (address == 0x40000D1) gba.Dma[2].wordCount1 = value;
+					else if (address == 0x40000DC) gba.Dma[3].wordCount0 = value;
+					else if (address == 0x40000DD) gba.Dma[3].wordCount1 = value;
+
+					else throw new NotImplementedException();
 				}
 				else
 				{
@@ -371,13 +448,30 @@ namespace Gba.Core
 			// Palette Ram
 			else if (address >= 0x05000000 && address <= 0x050003FF)
 			{
+				//gba.LogMessage(String.Format("Palette Ram Write Addr {0:X}  Val {1:X}", address, value));
+
 				gba.LcdController.Palettes.UpdatePaletteByte(address - 0x05000000, value);
 			}
+
 			// VRam
 			//else if (address >= 0x06000000 && address <= 0x06017FFF)
 			else if (address >= 0x06000000 && address <= 0x06FFFFFF)
 			{
+				// last vram tile
+				if (address == 0x6007ffe)
+				{
+					int x = 10;
+				}
+
+				// First entry for bg map 0
+				if (address == 0x6001000)
+				{
+					int x = 10;
+				}
+
 				address = address & (0x17FFF | (~address & 0x10000) >> 1);
+
+				
 				VRam[address] = value;
 			}
 			// OAM Ram
@@ -388,9 +482,7 @@ namespace Gba.Core
 			else if (address >= 0x08000000 && address <= 0x09FFFFFF)
 			{
 				// Attempted ROM write...do nothing
-				
-				// TODO: TTY WINDOW FOR THIS!!!!!
-
+				gba.LogMessage(String.Format("INVALID - Attempted ROM Write {0:X}", address));
 			}
 			else if (address >= 0x0E000000 && address <= 0x0E00FFFF)
             {
@@ -398,9 +490,7 @@ namespace Gba.Core
             }
 			else
             {
-
-				// TODO: TTY WINDOW FOR THIS!!!!!
-
+				gba.LogMessage(String.Format("BAD MEMORY WRITE - Unknown address {0:X}", address));
 
 				//throw new ArgumentException("Bad Memory Write");
 			}
@@ -410,7 +500,8 @@ namespace Gba.Core
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteHalfWord(UInt32 address, ushort value)
         {
-            WriteByte(address, (byte)(value & 0x00ff));
+			gba.LogMessage(String.Format("Write16 0x{0:X}", address));
+			WriteByte(address, (byte)(value & 0x00ff));
             WriteByte((address + 1), (byte)((value & 0xff00) >> 8));
         }
 
@@ -418,7 +509,8 @@ namespace Gba.Core
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteWord(UInt32 address, UInt32 value)
         {
-            WriteByte(address, (byte)(value & 0x00ff));
+			gba.LogMessage(String.Format("Write32 0x{0:X}", address));
+			WriteByte(address, (byte)(value & 0x00ff));
             WriteByte((address + 1), (byte)((value & 0xff00) >> 8));
             WriteByte((address + 2), (byte)((value & 0xff0000) >> 16));
             WriteByte((address + 3), (byte)((value & 0xff000000) >> 24));

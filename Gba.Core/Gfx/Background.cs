@@ -30,7 +30,7 @@ namespace Gba.Core
             this.bgNumber = bgNumber;
             CntRegister = gba.LcdController.BgControlRegisters[bgNumber];
 
-            TileMap = new TileMap(gba.Memory.VRam, gba.LcdController.BgControlRegisters[bgNumber]);
+            TileMap = new TileMap(gba.Memory.VRam, gba.LcdController.BgControlRegisters[bgNumber], bgNumber);
         }
 
         public void Reset()

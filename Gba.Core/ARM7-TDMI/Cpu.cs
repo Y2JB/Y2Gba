@@ -233,7 +233,9 @@ namespace Gba.Core
    
         public override String ToString()
         {
-            return String.Format("Mode - {0}{1}R0  - {2:X8}{3}R1  - {4:X8}{5}R2  - {6:X8}{7}R3  - {8:X8}{9}R4  - {10:X8}{11}R5  - {12:X8}{13}R6  - {14:X8}{15}R7  - {16:X8}{17}R8  - {18:X8}{19}R9  - {20:X8}{21}R10 - {22:X8}{23}R11 - {24:X8}{25}R12 - {26:X8}{27}SP  - {28:X8}{29}LR  - {30:X8}{31}PC  - {32:X8}{33}PCX - {34:X8}{35}CPSR - {36:X8}{37}SPSR - {38:X8}{39}",
+            string flags = String.Format("[{0}{1}{2}{3}]", NegativeFlag ? "N" : "-", ZeroFlag ? "Z" : "-", CarryFlag ? "C" : "-", OverflowFlag ? "V" : "-");
+
+            return String.Format("Mode - {0}{1}R0  - {2:X8}{3}R1  - {4:X8}{5}R2  - {6:X8}{7}R3  - {8:X8}{9}R4  - {10:X8}{11}R5  - {12:X8}{13}R6  - {14:X8}{15}R7  - {16:X8}{17}R8  - {18:X8}{19}R9  - {20:X8}{21}R10 - {22:X8}{23}R11 - {24:X8}{25}R12 - {26:X8}{27}SP  - {28:X8}{29}LR  - {30:X8}{31}PC  - {32:X8}{33}PCX - {34:X8}{35}CPSR - {36:X8}{37}{38}{39}SPSR - {40:X8}{41}",
                 
                 Mode, Environment.NewLine,
                 R0, Environment.NewLine, 
@@ -254,6 +256,7 @@ namespace Gba.Core
                 PC, Environment.NewLine,
                 PC_Adjusted, Environment.NewLine,
                 CPSR, Environment.NewLine,
+                flags, Environment.NewLine,
                 SPSR, Environment.NewLine);
         }
     }
