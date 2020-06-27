@@ -128,12 +128,14 @@ namespace Gba.Core
         int Size { get { return (int)((ObjAttrib1H & 0xC0) >> 6); } }
 
         public int TileNumber { get { return ObjAttrib2L + ((ObjAttrib2H & 0x03) << 8); } }
+        
+        public int Priority { get { return ((ObjAttrib2H & 0x0C) >> 2); } }
 
         // Not used in 256 mode
         public int PaletteNumber { get { return ((ObjAttrib2H & 0xF0) >> 4);  } }
 
         public Size Dimensions { get { return ObjSizes[(Shape * 4) + Size];  } }
-
+      
         // How many 8x8 tiles does this sprite use?
         public int TileCount()
         {

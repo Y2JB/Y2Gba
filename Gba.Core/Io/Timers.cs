@@ -13,6 +13,7 @@ namespace Gba.Core
         readonly int[] TimerPeriods = { 1, 64, 256, 1024 };
 
         public GbaTimer[] Timer { get; private set; }
+        UInt32 lastUpdatedOnCycle;
         UInt32 elapsedCycles;
 
 
@@ -28,21 +29,25 @@ namespace Gba.Core
         }
 
 
-        public void Step()
+        public void Update()
         {
-            elapsedCycles++;
-
-            for (int i = 0; i < 4; i++)
+            for(int cycles = 0; cycles < (gba.Cpu.Cycles - lastUpdatedOnCycle); cycles++)
             {
-                if (Timer[i].Enabled)
+                elapsedCycles++;
+
+                for (int i = 0; i < 4; i++)
                 {
-                    if (Timer[i].CascadeMode == false && 
-                        (elapsedCycles % TimerPeriods[Timer[i].Freq]) == 0)
+                    if (Timer[i].Enabled)
                     {
-                        Timer[i].Increment();                                          
+                        if (Timer[i].CascadeMode == false &&
+                            (elapsedCycles % TimerPeriods[Timer[i].Freq]) == 0)
+                        {
+                            Timer[i].Increment();
+                        }
                     }
                 }
             }
+            lastUpdatedOnCycle = gba.Cpu.Cycles;
         }
     }
 
@@ -75,12 +80,18 @@ namespace Gba.Core
             get { return timerCnt; } 
             set
             {
-                // When a timer is enabled, it reloads it's starting value. WHen it is disabled it just maintains its current values
+                // When a timer is enabled, it reloads it's starting value. When it is disabled it just maintains its current values
                 bool wasEnabled = Enabled;
                 timerCnt = value;
                 if(wasEnabled == false && Enabled)
                 {
                     TimerValue = ReloadValue;
+                }
+
+                if(IrqEnable)
+                {
+                    // TODO: We need to schedule when this will happen
+                    throw new NotImplementedException();
                 }
             }
         }
@@ -91,11 +102,12 @@ namespace Gba.Core
         public bool Enabled { get { return ((TimerControlRegister & 0x80) != 0); } }
 
 
-        // REG_TMxD - Read
-        public byte TimerValue0 { get; set; }
-        public byte TimerValue1 { get; set; }
+        // REG_TMxD - Read        
+        byte timerValue0, timerValue1;
+        public byte TimerValue0 { get { return timerValue0; } set { timerValue0 = value; } }
+        public byte TimerValue1 { get { return timerValue1; } set { timerValue1 = value; } }
         public ushort TimerValue
-        {
+        {            
             get { return (ushort)((TimerValue1 << 8) | TimerValue0); }
             set { TimerValue0 = (byte)(value & 0x00FF); TimerValue1 = (byte)((value & 0xFF00) >> 8); }
         }

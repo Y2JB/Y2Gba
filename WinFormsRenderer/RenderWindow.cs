@@ -63,10 +63,13 @@ namespace WinFormRender
             dbgConsole = new GbaDebugConsole(gba);
             
             consoleWindow = new ConsoleWindow(gba, dbgConsole);
+            consoleWindow.VisibleChanged += ConsoleWindow_VisibleChanged;
             consoleWindow.Show();
 
+            
+
             ttyConsole = new TtyConsole(gba);
-            ttyConsole.Show();
+            //ttyConsole.Show();
 
             this.Text = gba.Rom.RomName;
             KeyDown += OnKeyDown;
@@ -101,9 +104,6 @@ namespace WinFormRender
             Height = LcdController.Screen_Y_Resolution * 4 + menu.Height;
             DoubleBuffered = true;
             
-
-            System.Windows.Forms.Application.Idle += new EventHandler(OnApplicationIdle);
-
             timer.Start();
 
 #if THREADED_RENDERER
@@ -111,6 +111,21 @@ namespace WinFormRender
             renderThread = new Thread(new ThreadStart(RenderThread));
             renderThread.Start();
 #endif
+        }
+
+        private void ConsoleWindow_VisibleChanged(object sender, EventArgs e)
+        {
+            Application.Idle -= new EventHandler(OnApplicationIdleDebugger);
+            Application.Idle -= new EventHandler(OnApplicationIdle);
+
+            if (consoleWindow.Visible)
+            {
+                Application.Idle += new EventHandler(OnApplicationIdleDebugger);
+            }   
+            else
+            {
+                Application.Idle += new EventHandler(OnApplicationIdle);
+            }
         }
 
 
@@ -192,15 +207,20 @@ namespace WinFormRender
         }
 
         
-        private void OnApplicationIdle(object sender, EventArgs e)
+        private void OnApplicationIdleDebugger(object sender, EventArgs e)
         {
+            if (InvokeRequired)
+            {
+                Invoke(new Action<object, EventArgs>(OnApplicationIdle), sender, e);
+                return;
+            }
 
             while (IsApplicationIdle())
             {
                 if (dbgConsole.EmulatorMode == GbaDebugConsole.Mode.Running)
                 {
                     // Process several instructions before going to check the Windows message queue
-                    for (int i = 0; i < 512; i++)
+                    for (int i = 0; i < 1024; i++)
                     {
                         gba.Step();
 
@@ -224,6 +244,19 @@ namespace WinFormRender
                         consoleWindow.RefreshEmuSnapshot();
                         consoleWindow.RefreshConsoleText();
                     }
+                }
+            }
+        }
+
+
+        private void OnApplicationIdle(object sender, EventArgs e)
+        {
+            while (IsApplicationIdle())
+            {
+                // Process several instructions before going to check the Windows message queue
+                for (int i = 0; i < 512; i++)
+                {
+                    gba.Step();
                 }
             }
         }

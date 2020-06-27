@@ -4,6 +4,8 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>Y2Gba</AssemblyName>
+    <StartupObject>WinFormRender.Program</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>

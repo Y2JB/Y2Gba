@@ -47,16 +47,25 @@ namespace Gba.Core
             }
             set
             {
+                UInt32 oldScreenBaseBlock = ScreenBlockBaseAddress;
+                
                 reg1 = value;
+
+                if(ScreenBlockBaseAddress != oldScreenBaseBlock)
+                {
+                    lcd.Bg[bgNumber].TileMap.Reset();
+                }
             }
         }
       
 
         LcdController lcd;
-     
-        public BgControlRegister(LcdController lcd)
+        int bgNumber;
+
+        public BgControlRegister(LcdController lcd, int bgNumber)
         {
             this.lcd = lcd;
+            this.bgNumber = bgNumber;
         }
 
         public int Priority { get { return Register0 & 0x03; } }

@@ -45,8 +45,9 @@ namespace GbaDebugger
             help,
             set,                            // set (register) n/nn
             ticks,
-            exit
+            exit,
 
+            CommandCount
         }
 
         public Mode EmulatorMode { get; private set; }
@@ -167,6 +168,9 @@ namespace GbaDebugger
                     ConsoleAddString(String.Format("ticks - {0}", gba.Cpu.Cycles - lastTicks));
                     lastTicks = gba.Cpu.Cycles;
                     return true;
+
+                case ConsoleCommand.help:
+                    return HelpCommand();
                
                 case ConsoleCommand.exit:                    
                     return true;
@@ -229,6 +233,18 @@ namespace GbaDebugger
             // Fail
             ConsoleAddString(String.Format("mem usage: 'mem n' for read, 'mem n n' for write. n can be of the form 255 or 0xFF"));
             return false;
+        }
+
+
+        bool HelpCommand()
+        {
+            ConsoleAddString("Supported Commands:");
+            for(int i = 0; i < (int) ConsoleCommand.CommandCount; i++)
+            {
+                ConsoleCommand cmd = (ConsoleCommand)i;
+                ConsoleAddString(cmd.ToString());
+            }
+            return true;
         }
 
 

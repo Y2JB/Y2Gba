@@ -34,7 +34,8 @@ namespace Gba.Core
         public Background[] Bg { get; private set; }
         
         public Obj[] Obj { get; private set; }
-        
+        // Every frame, put the objs in a bucket based on it's priority
+        List<Obj>[] priorityObjList = new List<Obj>[4];
 
         public byte CurrentScanline { get; private set; }
 
@@ -83,8 +84,10 @@ namespace Gba.Core
             Bg = new Background[4];
             for(int i = 0; i < 4; i++)
             {
-                BgControlRegisters[i] = new BgControlRegister(this);
+                BgControlRegisters[i] = new BgControlRegister(this, i);
                 Bg[i] = new Background(gba, i);
+
+                priorityObjList[i] = new List<Obj>();
             }
 
             Obj = new Obj[Max_Sprites];
@@ -100,7 +103,7 @@ namespace Gba.Core
             CurrentScanline = 0;
         }
 
-        Queue<double> avr = new Queue<double>();
+        //Queue<double> avr = new Queue<double>();
         // Step one cycle
         public void Step()
         {
@@ -169,14 +172,15 @@ namespace Gba.Core
                                 }
 
                                 // Clear the draw buffer to the background color 
-                                using (var graphics = Graphics.FromImage(drawBuffer.Bitmap))
-                                {
-                                    graphics.Clear(Palettes.Palette0[0]);
-                                }
+                                //using (var graphics = Graphics.FromImage(drawBuffer.Bitmap))
+                                //{
+                                //    graphics.Clear(Palettes.Palette0[0]);
+                                //}
                             }
 
                             // lock to 60fps - 1000 / 60.0
                             double fps60 = 16.6666666;
+                           /*
                             double frameTime = gba.EmulatorTimer.Elapsed.TotalMilliseconds - lastFrameTime;
                             avr.Enqueue(frameTime);
                             if (avr.Count == 11)
@@ -185,6 +189,7 @@ namespace Gba.Core
                                 double frameAverage = avr.Average();
                                 gba.LogMessage(String.Format("frame Ms {0:N2}", frameAverage));
                             }
+                           */
                             while (gba.EmulatorTimer.Elapsed.TotalMilliseconds - lastFrameTime < fps60)
                             {
                             }
@@ -228,6 +233,7 @@ namespace Gba.Core
                         {
                            gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VCounterMatch);
                         }
+
                     }
                     else
                     {
@@ -291,14 +297,41 @@ namespace Gba.Core
                     throw new NotImplementedException("Unknown or unimplemented video mode");
             }
 
+            /*
             if (DisplayControlRegister.DisplayObj)
             {
                 RenderObjsScanline();
             }
+            */
         }
+
+
+        private void ObjPrioritySort()
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                priorityObjList[i].Clear();
+            }
+
+            foreach(var obj in Obj)
+            {
+                int sprY = obj.Attributes.YPosition;
+                if (sprY > LcdController.Screen_Y_Resolution) sprY -= 255;
+                
+                if (obj.Attributes.Visible == false ||
+                    CurrentScanline < sprY ||
+                    CurrentScanline >= (sprY + obj.Attributes.Dimensions.Height))
+                {
+                    continue;
+                }
+                priorityObjList[obj.Attributes.Priority].Add(obj);
+            }
+        }
+
 
         private void RenderMode0Scanline()
         {
+            /*
             for(int priority = 3; priority >=0 ; priority--)
             {
                 for(int i=0; i < 4; i++)
@@ -307,10 +340,98 @@ namespace Gba.Core
                         Bg[i].CntRegister.Priority == priority)
                     {
                         // TODO: This needs doing when the reg's change 
-                        Bg[i].Reset();
+                        Bg[i].CacheRenderData();
 
-                        Bg[i].RenderMode0Scanline4bpp(CurrentScanline, LcdController.Screen_X_Resolution, drawBuffer);
+                        Bg[i].RenderMode0Scanline(CurrentScanline, LcdController.Screen_X_Resolution, drawBuffer);
                     }
+                }
+            }
+            
+            return;
+            */
+
+            //IEnumerable<Background> priorityBg = Bg.OrderBy(bg => bg.CntRegister.Priority);
+
+           // IEnumerable<int> bg0Scaline = Bg[0].Mode0Scanline(CurrentScanline, LcdController.Screen_X_Resolution);
+           // IEnumerable<int> bg1Scaline = Bg[1].Mode0Scanline(CurrentScanline, LcdController.Screen_X_Resolution);
+           // IEnumerable<int> bg2Scaline = Bg[2].Mode0Scanline(CurrentScanline, LcdController.Screen_X_Resolution);
+           // IEnumerable<int> bg3Scaline = Bg[3].Mode0Scanline(CurrentScanline, LcdController.Screen_X_Resolution);
+
+
+           //IEnumerator<int> bg0Enumerator = bg0Scaline.GetEnumerator();
+
+            Bg[0].CacheRenderData();
+            Bg[1].CacheRenderData();
+            Bg[2].CacheRenderData();
+            Bg[3].CacheRenderData();
+
+            ObjPrioritySort();
+
+            int scanline = CurrentScanline;
+            int paletteIndex;
+            bool pixelDrawn;
+            for (int x = 0; x < Screen_X_Resolution; x++)
+            {
+                pixelDrawn = false;
+                
+                // Start at the top priority, if something draws to the pixel, we can early out and stop checking 
+                for (int priority = 0; priority < 4; priority++)
+                {                    
+                    // If a sprite has the same priority as a bg, the sprite is drawn on top
+                    foreach (var obj in priorityObjList[priority])
+                    {
+                        paletteIndex = obj.RenderPixel(x, scanline);
+
+                        // Pal 0 == Transparent 
+                        if (paletteIndex == 0)
+                        {
+                            continue;
+                        }
+
+                        drawBuffer.SetPixel(x, scanline, Palettes.Palette1[paletteIndex]);
+                        pixelDrawn = true;
+                        break;
+                    }
+                    if (pixelDrawn)
+                    {
+                        break;
+                    }
+                
+
+                    // No Sprite occupied this pixel, move on to backgrounds
+
+                    // Find the background with this priority                        
+                    for (int bgSelect = 0; bgSelect < 4; bgSelect++)
+                    {
+                        if (Bg[bgSelect].CntRegister.Priority != priority ||
+                            DisplayControlRegister.DisplayBg(Bg[bgSelect].BgNumber) == false)
+                        {
+                            continue;
+                        }
+
+                        paletteIndex = Bg[bgSelect].RenderPixel(x, scanline);
+
+                        // Pal 0 == Transparent 
+                        if (paletteIndex == 0)
+                        {
+                            continue;
+                        }
+
+                        drawBuffer.SetPixel(x, scanline, Palettes.Palette0[paletteIndex]);
+                        pixelDrawn = true;
+                        // Once a pixel has been drawn, no need to check other BG's
+                        break;
+                    }                                        
+                    if(pixelDrawn)
+                    {
+                        break;
+                    }
+                }
+
+                // If nothing is drawn then default to backdrop colour
+                if (pixelDrawn == false)
+                {
+                    drawBuffer.SetPixel(x, scanline, Palettes.Palette0[0]);
                 }
             }
         }
