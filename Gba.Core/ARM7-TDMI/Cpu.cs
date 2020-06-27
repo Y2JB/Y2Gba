@@ -40,6 +40,7 @@ namespace Gba.Core
             Memory = gba.Memory;
             InstructionPipeline = new UInt32[Pipeline_Size];
             CalculateArmDecodeLookUpTable();
+            CalculateThumbDecodeLookUpTable();
             RegisterConditionalHandlers();
         }
 

@@ -42,7 +42,7 @@ namespace Gba.Core
         }
 
        
-        public void RenderMode0Scanline4bpp(int scanline, DirectBitmap drawBuffer)
+        public void RenderMode0Scanline4bpp(int scanline, int scanlineWidth, DirectBitmap drawBuffer)
         {
             Color[] palette = gba.LcdController.Palettes.Palette0;
             int paletteOffset;
@@ -56,7 +56,7 @@ namespace Gba.Core
             int scrollY = ScrollY;
             if (scrollY >= bgHeightInPixel) scrollY -= bgHeightInPixel;
 
-            for (int x = 0; x < LcdController.Screen_X_Resolution; x ++)
+            for (int x = 0; x < scanlineWidth; x ++)
             {
                 // If we reach the edge of the Bg, wrap around
                 int wrappedBgX = scrollX + x;
@@ -91,6 +91,16 @@ namespace Gba.Core
         }
 
 
+        // Used for dumping BG's or drawing to debug windows. The game does not render this way
+        public void RenderFull(DirectBitmap drawBuffer)
+        {
+            for(int y = 0; y < HeightInPixels(); y++)
+            {
+                RenderMode0Scanline4bpp(y, WidthInPixels(), drawBuffer);
+            }
+        }
+
+
         public int WidthInPixels()
         {
             if (Size == BgSize.Bg256x256 || Size == BgSize.Bg256x512) return 256;
@@ -105,8 +115,15 @@ namespace Gba.Core
         }
 
 
-        public void DumpBg()
-        {        
+        public void Dump(bool renderViewPortBox)
+        {
+            var image = new DirectBitmap(WidthInPixels(), HeightInPixels());
+            RenderFull(image);
+            if (renderViewPortBox)
+            {
+                GfxHelpers.DrawViewportBox(image.Bitmap, ScrollX, ScrollY, WidthInPixels(), HeightInPixels());
+            }
+            image.Bitmap.Save(string.Format("../../../../dump/Bg{0}.png", bgNumber));
         }
 
 

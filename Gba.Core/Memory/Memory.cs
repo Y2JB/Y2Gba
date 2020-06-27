@@ -115,8 +115,8 @@ namespace Gba.Core
 					else if (address == 0x400010B) return 0;
 					else if (address == 0x400010E) return gba.Timers.Timer[3].TimerControlRegister;
 					else if (address == 0x400010F) return 0;
-
-					else throw new ArgumentException("Bad Timer read");
+					return 0;
+					//else throw new ArgumentException("Bad Timer read");
 				}
 
 				// Interrupts				
@@ -146,13 +146,59 @@ namespace Gba.Core
 				{
 					// DMA
 					if (address == 0x40000BA) return gba.Dma[0].DmaCnt.dmaCntRegister0;
-					else if (address == 0x40000BB) return gba.Dma[0].DmaCnt.dmaCntRegister1 ;
-					else if (address == 0x40000C6) return gba.Dma[1].DmaCnt.dmaCntRegister0 ;
+					else if (address == 0x40000BB) return gba.Dma[0].DmaCnt.dmaCntRegister1;
+					else if (address == 0x40000C6) return gba.Dma[1].DmaCnt.dmaCntRegister0;
 					else if (address == 0x40000C7) return gba.Dma[1].DmaCnt.dmaCntRegister1;
-					else if (address == 0x40000D2) return gba.Dma[2].DmaCnt.dmaCntRegister0 ;
-					else if (address == 0x40000D3) return gba.Dma[2].DmaCnt.dmaCntRegister1 ;
+					else if (address == 0x40000D2) return gba.Dma[2].DmaCnt.dmaCntRegister0;
+					else if (address == 0x40000D3) return gba.Dma[2].DmaCnt.dmaCntRegister1;
 					else if (address == 0x40000DE) return gba.Dma[3].DmaCnt.dmaCntRegister0;
 					else if (address == 0x40000DF) return gba.Dma[3].DmaCnt.dmaCntRegister1;
+
+					else if (address == 0x40000B0) return gba.Dma[0].sAddr0;
+					else if (address == 0x40000B1) return gba.Dma[0].sAddr1;
+					else if (address == 0x40000B2) return gba.Dma[0].sAddr2;
+					else if (address == 0x40000B3) return gba.Dma[0].sAddr3;
+					else if (address == 0x40000BC) return gba.Dma[1].sAddr0;
+					else if (address == 0x40000BD) return gba.Dma[1].sAddr1;
+					else if (address == 0x40000BE) return gba.Dma[1].sAddr2;
+					else if (address == 0x40000BF) return gba.Dma[1].sAddr3;
+					else if (address == 0x40000C8) return gba.Dma[2].sAddr0;
+					else if (address == 0x40000C9) return gba.Dma[2].sAddr1;
+					else if (address == 0x40000CA) return gba.Dma[2].sAddr2;
+					else if (address == 0x40000CB) return gba.Dma[2].sAddr3;
+					else if (address == 0x40000D4) return gba.Dma[3].sAddr0;
+					else if (address == 0x40000D5) return gba.Dma[3].sAddr1;
+					else if (address == 0x40000D6) return gba.Dma[3].sAddr2;
+					else if (address == 0x40000D7) return gba.Dma[3].sAddr3;
+
+					else if (address == 0x40000B4) return gba.Dma[0].dAddr0;
+					else if (address == 0x40000B5) return gba.Dma[0].dAddr1;
+					else if (address == 0x40000B6) return gba.Dma[0].dAddr2;
+					else if (address == 0x40000B7) return gba.Dma[0].dAddr3;
+					else if (address == 0x40000C0) return gba.Dma[1].dAddr0;
+					else if (address == 0x40000C1) return gba.Dma[1].dAddr1;
+					else if (address == 0x40000C2) return gba.Dma[1].dAddr2;
+					else if (address == 0x40000C3) return gba.Dma[1].dAddr3;
+					else if (address == 0x40000CC) return gba.Dma[2].dAddr0;
+					else if (address == 0x40000CD) return gba.Dma[2].dAddr1;
+					else if (address == 0x40000CE) return gba.Dma[2].dAddr2;
+					else if (address == 0x40000CF) return gba.Dma[2].dAddr3;
+					else if (address == 0x40000D8) return gba.Dma[3].dAddr0;
+					else if (address == 0x40000D9) return gba.Dma[3].dAddr1;
+					else if (address == 0x40000DA) return gba.Dma[3].dAddr2;
+					else if (address == 0x40000DB) return gba.Dma[3].dAddr3;
+
+					else if (address == 0x40000B8) return gba.Dma[0].wordCount0;
+					else if (address == 0x40000B9) return gba.Dma[0].wordCount1;
+					else if (address == 0x40000C4) return gba.Dma[1].wordCount0;
+					else if (address == 0x40000C5) return gba.Dma[1].wordCount1;
+					else if (address == 0x40000D0) return gba.Dma[2].wordCount0;
+					else if (address == 0x40000D1) return gba.Dma[2].wordCount1;
+					else if (address == 0x40000DC) return gba.Dma[3].wordCount0;
+					else if (address == 0x40000DD) return gba.Dma[3].wordCount1;
+
+					// Not used but games write to it
+					else if (address == 0x40000E0) return 0;
 
 					else throw new NotImplementedException();
 				}
@@ -190,8 +236,8 @@ namespace Gba.Core
 			// OAM Ram
 			else if (address >= 0x07000000 && address <= 0x07FFFFFF)
 			{
-				return OamRam[address - 0x7000000];
-				//throw new NotImplementedException();
+				address &= 0x3FF;
+				return OamRam[address];
 			}
 			else if (address >= 0x0A000000 && address <= 0x0BFFFFFF) throw new NotImplementedException();
 			else if (address >= 0x0C000000 && address <= 0x0DFFFFFF) throw new NotImplementedException();
@@ -244,8 +290,6 @@ namespace Gba.Core
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ushort ReadHalfWord(UInt32 address)
         {
-			gba.LogMessage(String.Format("Read16 0x{0:X}", address));
-
 			// NB: Little Endian
 			return (ushort)((ReadByte((UInt32)(address + 1)) << 8) | ReadByte(address));
         }
@@ -254,7 +298,6 @@ namespace Gba.Core
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public UInt32 ReadWord(UInt32 address)
         {
-			//gba.LogMessage(String.Format("Read32 0x{0:X}", address));
 
 			// NB: Little Endian
 			return (UInt32)((ReadByte((UInt32)(address + 3)) << 24) | (ReadByte((UInt32)(address + 2)) << 16) | (ReadByte((UInt32)(address + 1)) << 8) | ReadByte(address));
@@ -396,7 +439,7 @@ namespace Gba.Core
 
 					else if (address == 0x40000B0) gba.Dma[0].sAddr0 = value;
 					else if (address == 0x40000B1) gba.Dma[0].sAddr1 = value;
-					else if (address == 0x40000B2) gba.Dma[0].sAddr2= value;
+					else if (address == 0x40000B2) gba.Dma[0].sAddr2 = value;
 					else if (address == 0x40000B3) gba.Dma[0].sAddr3 = value;
 					else if (address == 0x40000BC) gba.Dma[1].sAddr0 = value;
 					else if (address == 0x40000BD) gba.Dma[1].sAddr1 = value;
@@ -436,7 +479,8 @@ namespace Gba.Core
 					else if (address == 0x40000D1) gba.Dma[2].wordCount1 = value;
 					else if (address == 0x40000DC) gba.Dma[3].wordCount0 = value;
 					else if (address == 0x40000DD) gba.Dma[3].wordCount1 = value;
-
+					// Not used but games write to it
+					else if (address == 0x40000E0) { }
 					else throw new NotImplementedException();
 				}
 				else
@@ -500,7 +544,6 @@ namespace Gba.Core
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteHalfWord(UInt32 address, ushort value)
         {
-			gba.LogMessage(String.Format("Write16 0x{0:X}", address));
 			WriteByte(address, (byte)(value & 0x00ff));
             WriteByte((address + 1), (byte)((value & 0xff00) >> 8));
         }
@@ -509,7 +552,6 @@ namespace Gba.Core
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteWord(UInt32 address, UInt32 value)
         {
-			gba.LogMessage(String.Format("Write32 0x{0:X}", address));
 			WriteByte(address, (byte)(value & 0x00ff));
             WriteByte((address + 1), (byte)((value & 0xff00) >> 8));
             WriteByte((address + 2), (byte)((value & 0xff0000) >> 16));

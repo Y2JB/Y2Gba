@@ -52,12 +52,22 @@ namespace Gba.Core
             //this.Rom = new Rom("../../../../roms/TestRoms/tmr_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/brin_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/obj_demo.gba");
-            
+            //this.Rom = new Rom("../../../../roms/TestRoms/win_demo.gba");
+            //this.Rom = new Rom("../../../../roms/TestRoms/dma_demo.gba");
+
             //this.Rom = new Rom("../../../../roms/NCE-heart.gba");
 
             //this.Rom = new Rom("../../../../roms/Super Dodgeball Advance.gba");
             this.Rom = new Rom("../../../../roms/Kirby.gba");
             //this.Rom = new Rom("../../../../roms/Metal Slug Advance (U).gba");
+            //this.Rom = new Rom("../../../../roms/Super Mario Advance 2 - Super Mario World (U) [!].gba");
+            //this.Rom = new Rom("../../../../roms/Legend of Zelda, The - The Minish Cap (U).gba");
+            //this.Rom = new Rom("../../../../roms/Pokemon Mystery Dungeon - Red Rescue Team (U).gba");
+            //this.Rom = new Rom("../../../../roms/Teenage Mutant Ninja Turtles.gba");
+            //this.Rom = new Rom("../../../../roms/Barbie Horse Adventures.gba");
+            //this.Rom = new Rom("../../../../roms/Pokemon Pinball.gba");
+            //this.Rom = new Rom("../../../../roms/Advance Wars.gba");
+            //this.Rom = new Rom("../../../../roms/Advanced Wars 2 - Black Hole Rising.gba");
 
             this.Memory = new Memory(this);
             this.Cpu = new Cpu(this);
@@ -113,8 +123,8 @@ namespace Gba.Core
 
             // You have to supply the code to get the tiles palette
             Func<int, int> get4BitPaletteNumber = (int tileNumber) =>   { 
-                                                                            ObjAttributes obj = TileHelpers.FindFirstSpriteThatUsesTile(tileNumber, LcdController.Obj);
-                                                                            return (obj == null ? 0 : obj.PaletteNumber * 16);
+                                                                            Obj obj = TileHelpers.FindFirstSpriteThatUsesTile(tileNumber, LcdController.Obj);
+                                                                            return (obj == null ? 0 : obj.Attributes.PaletteNumber * 16);
                                                                          };
 
             DumpTiles(Memory.VRam, vramBaseOffset, palette, true, "Obj", get4BitPaletteNumber);
@@ -196,20 +206,7 @@ namespace Gba.Core
             bool drawGrid = true;
             if (drawGrid)
             {
-                Pen blackPen = new Pen(Color.FromArgb(64, 0, 0, 0), 0.1f);
-                using (var graphics = Graphics.FromImage(image))
-                {
-                    for (int x = 0; x < tileCountX; x++)
-                    {
-                        graphics.DrawLine(blackPen, x * 8, 0, x * 8, tileCountY * 8);
-                    }
-
-                    for (int y = 0; y < tileCountY; y++)
-                    {
-                        graphics.DrawLine(blackPen, 0, y * 8, tileCountX * 8, y * 8);
-                    }
-
-                }
+                GfxHelpers.DrawTileGrid(image, tileCountX, tileCountY);
             }
 
             string bpp = (eightBitColour ? "8bpp" : "4bpp");

@@ -40,7 +40,7 @@ namespace Gba.Core
             CondtionalHandlers[(int)ConditionalExecution.VS] = () => OverflowFlag;
             CondtionalHandlers[(int)ConditionalExecution.VC] = () => OverflowFlag == false;
             CondtionalHandlers[(int)ConditionalExecution.HI] = () => (CarryFlag && ZeroFlag == false);
-            CondtionalHandlers[(int)ConditionalExecution.LS] = () => (CarryFlag == false && ZeroFlag);
+            CondtionalHandlers[(int)ConditionalExecution.LS] = () => (CarryFlag == false || ZeroFlag);
             CondtionalHandlers[(int)ConditionalExecution.GE] = () => ((NegativeFlag && OverflowFlag) || (!NegativeFlag && !OverflowFlag));
             CondtionalHandlers[(int)ConditionalExecution.LT] = () => ((NegativeFlag && !OverflowFlag) || (!NegativeFlag && OverflowFlag));
             CondtionalHandlers[(int)ConditionalExecution.GT] = () => (!ZeroFlag && ((NegativeFlag && OverflowFlag) || (!NegativeFlag && !OverflowFlag)));

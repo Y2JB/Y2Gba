@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Drawing;
+using System.Linq;
 
 namespace Gba.Core
 {
@@ -32,7 +33,7 @@ namespace Gba.Core
         
         public Background[] Bg { get; private set; }
         
-        public ObjAttributes[] Obj { get; private set; }
+        public Obj[] Obj { get; private set; }
         
 
         public byte CurrentScanline { get; private set; }
@@ -86,10 +87,10 @@ namespace Gba.Core
                 Bg[i] = new Background(gba, i);
             }
 
-            Obj = new ObjAttributes[Max_Sprites];
+            Obj = new Obj[Max_Sprites];
             for(int i = 0; i < Max_Sprites; i++)
             {
-                Obj[i] = new ObjAttributes(i * 8, gba.Memory.OamRam);
+                Obj[i] = new Obj(gba, new ObjAttributes(i * 8, gba.Memory.OamRam));
             }
 
             Mode = LcdMode.ScanlineRendering;
@@ -99,7 +100,7 @@ namespace Gba.Core
             CurrentScanline = 0;
         }
 
-
+        Queue<double> avr = new Queue<double>();
         // Step one cycle
         public void Step()
         {
@@ -176,12 +177,20 @@ namespace Gba.Core
 
                             // lock to 60fps - 1000 / 60.0
                             double fps60 = 16.6666666;
-                            //double frameTime = Gba.EmulatorTimer.Elapsed.TotalMilliseconds - lastFrameTime;
+                            double frameTime = gba.EmulatorTimer.Elapsed.TotalMilliseconds - lastFrameTime;
+                            avr.Enqueue(frameTime);
+                            if (avr.Count == 11)
+                            {
+                                avr.Dequeue();
+                                double frameAverage = avr.Average();
+                                gba.LogMessage(String.Format("frame Ms {0:N2}", frameAverage));
+                            }
                             while (gba.EmulatorTimer.Elapsed.TotalMilliseconds - lastFrameTime < fps60)
                             {
                             }
 
                             lastFrameTime = gba.EmulatorTimer.Elapsed.TotalMilliseconds;
+                            
 
                             if (gba.OnFrame != null)
                             {
@@ -284,7 +293,7 @@ namespace Gba.Core
 
             if (DisplayControlRegister.DisplayObj)
             {
-                RenderObjScanline();
+                RenderObjsScanline();
             }
         }
 
@@ -300,7 +309,7 @@ namespace Gba.Core
                         // TODO: This needs doing when the reg's change 
                         Bg[i].Reset();
 
-                        Bg[i].RenderMode0Scanline4bpp(CurrentScanline, drawBuffer);
+                        Bg[i].RenderMode0Scanline4bpp(CurrentScanline, LcdController.Screen_X_Resolution, drawBuffer);
                     }
                 }
             }
@@ -329,102 +338,11 @@ namespace Gba.Core
         }
 
 
-        private void RenderObjScanline()
-        {
-            // OBJ palette is always palette 1
-            Color[] palette = Palettes.Palette1;
-
-            // OBJ Tiles are stored in a separate area in VRAM: 06010000-06017FFF (32 KBytes) in BG Mode 0-2, or 06014000-06017FFF (16 KBytes) in BG Mode 3-5.
-            int vramBaseOffset = 0x00010000;
-
-            bool TileMapping2D = (DisplayControlRegister.ObjectCharacterVramMapping == 0);
-
-            byte[] vram = gba.Memory.VRam;
-
+        private void RenderObjsScanline()
+        {          
             for (int i = 0; i < Max_Sprites; i++)
             {
-                Size spriteDimensions = Obj[i].Dimensions;
-
-                // X value is 9 bit and Y is 8 bit! Clamp the values and wrap when they exceed them
-                int sprX = Obj[i].XPosition;
-                int sprY = Obj[i].YPosition;
-                if(sprY > Screen_Y_Resolution) sprY -= 255;
-
-                if (Obj[i].Visible == false || 
-                   CurrentScanline < sprY || 
-                   CurrentScanline >= (sprY + spriteDimensions.Height))
-                {
-                    continue;
-                }
-
-                int spriteWidthInTiles = spriteDimensions.Width / 8;
-                int spriteHeightInTiles = spriteDimensions.Height / 8;
-
-                bool eightBitColour = Obj[i].PaletteMode == ObjAttributes.PaletteDepth.Bpp8;
-                int tileSize = (eightBitColour ? LcdController.Tile_Size_8bit : LcdController.Tile_Size_4bit);
-                int spriteRowSizeInBytes = tileSize * spriteWidthInTiles;
-
-                // Which row of tiles are we rendering? EG: A 64x64 sprinte will have 8 rows of tiles 
-                int currentSpriteRowInTiles = (CurrentScanline - sprY) / 8;
-                if (Obj[i].VerticalFlip) currentSpriteRowInTiles = (spriteHeightInTiles-1) - currentSpriteRowInTiles;
-
-                int currentRowWithinTile = (CurrentScanline - sprY) % 8;
-                
-                int paletteOffset = 0;
-                if(eightBitColour == false)
-                {
-                    paletteOffset = Obj[i].PaletteNumber * 16;
-                }
-
-                //for (int screenX = Obj[i].XPosition; screenX < Obj[i].XPosition + spriteDimensions.Width; screenX++)
-                for(int spriteX = 0; spriteX < spriteDimensions.Width; spriteX++)
-                {
-                    // Clamp to 9 bit range
-                    int screenX = Obj[i].XPosition + spriteX;
-                    if (screenX >= 512) screenX -= 512;
-
-                    if (screenX < 0 || screenX >= Screen_X_Resolution)
-                    {
-                        continue;
-                    }
-
-                    int currentSpriteColumnInTiles = spriteX / 8;
-                    if (Obj[i].HorizontalFlip) currentSpriteColumnInTiles = (spriteWidthInTiles - 1) - currentSpriteColumnInTiles;
-
-                    int currentColumnWithinTile = spriteX % 8;
-
-                    // This offset will be set to point to the start of the next 8x8 tile we will draw
-                    int vramTileOffset;
-
-                    // Addressing mode (1d / 2d)
-                    if (TileMapping2D)
-                    {
-                        // 2D addressing, vram is thought of as a 32x32 matrix of tiles. A sprites tiles are arranged as you would view them on a screen
-
-                        int full32TileRowSizeInBytes = tileSize * 32;
-
-                        vramTileOffset = vramBaseOffset + (Obj[i].TileNumber * tileSize) + (currentSpriteRowInTiles * full32TileRowSizeInBytes) + (currentSpriteColumnInTiles * tileSize);
-                    }
-                    else
-                    {
-                        // 1D addressing, all the sprites tiles are contiguous in vram
-                        vramTileOffset = vramBaseOffset + (Obj[i].TileNumber * tileSize) + (currentSpriteRowInTiles * spriteRowSizeInBytes) + (currentSpriteColumnInTiles * tileSize);
-                    }
-
-                    // TODO: Draw all 8 pixles here
-
-
-                    // Lookup the actual pixel value (which is a palette index) in the tile data 
-                    int paletteIndex = TileHelpers.GetTilePixel(currentColumnWithinTile, currentRowWithinTile, eightBitColour, vram, vramTileOffset, Obj[i].HorizontalFlip, Obj[i].VerticalFlip);
-
-                    // Pal 0 == Transparent 
-                    if(paletteIndex == 0)
-                    {
-                        continue;
-                    }
-
-                    drawBuffer.SetPixel(screenX, CurrentScanline, palette[paletteOffset + paletteIndex]);
-                }           
+                Obj[i].RenderObjScanline(drawBuffer, CurrentScanline);                          
             }
         }
 

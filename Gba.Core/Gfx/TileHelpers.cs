@@ -34,11 +34,11 @@ namespace Gba.Core
         }
 
 
-        public static ObjAttributes FindFirstSpriteThatUsesTile(int tileNumber, ObjAttributes[] objs)
+        public static Obj FindFirstSpriteThatUsesTile(int tileNumber, Obj[] objs)
         {
             foreach (var obj in objs)
             {
-                if (tileNumber >= obj.TileNumber && tileNumber <= (obj.TileNumber + obj.TileCount()))
+                if (tileNumber >= obj.Attributes.TileNumber && tileNumber <= (obj.Attributes.TileNumber + obj.Attributes.TileCount()))
                 {
                     return obj;
                 }

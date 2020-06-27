@@ -75,7 +75,7 @@ namespace GbaDebugger
             // scanline 125
             //breakpoints.Add(new IrqBreakpoint(gba, Interrupts.InterruptType.HBlank, true, true));
             
-           // breakpoints.Add(new Breakpoint(0x00001250));
+            //breakpoints.Add(new Breakpoint(0x000003CC));
 
             //breakpoints.Add(new Breakpoint(0x64, new ConditionalExpression(snes.memory, 0xFF44, ConditionalExpression.EqualityCheck.Equal, 143)));
 
@@ -258,11 +258,20 @@ namespace GbaDebugger
                         gba.LcdController.Bg[3].TileMap.DumpTileMap();
                         ConsoleAddString("Tilemap dumped.");
                         return true;
+
+                    case "bg":
+                        gba.LcdController.Bg[0].Dump(true);
+                        gba.LcdController.Bg[1].Dump(true);
+                        gba.LcdController.Bg[2].Dump(true);
+                        gba.LcdController.Bg[3].Dump(true);
+                        ConsoleAddString("Backgrounds dumped.");
+                        return true;
+
                 }
             }
 
             // Fail
-            ConsoleAddString(String.Format("dump usage: 'dump <item>'. Supported items 'palettes', 'tiles', 'tilemap'"));
+            ConsoleAddString(String.Format("dump usage: 'dump <item>'. Supported items 'palettes', 'tiles', 'tilemap', 'bg'"));
             return false;
         }
 

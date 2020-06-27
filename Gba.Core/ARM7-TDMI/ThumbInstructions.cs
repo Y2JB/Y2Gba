@@ -1,4 +1,5 @@
-﻿// Full disclosure - I got a huge amount of help and code from Gbe-Plus when writing the CPU emulation
+﻿//#define USE_LUT_THUMB
+// Full disclosure - I got a huge amount of help and code from Gbe-Plus when writing the CPU emulation
 
 using System;
 using System.Collections.Generic;
@@ -11,23 +12,179 @@ namespace Gba.Core
 
 	public partial class Cpu
     {
+		//Dictionary<int, Action<ushort, bool>> ThumbInstructionLut = new Dictionary<int, Action<ushort, bool>>();
+		Action<ushort, bool>[] ThumbInstructionLut = new Action<ushort, bool>[0x100];
+
 		public void DecodeAndExecuteThumbInstruction(ushort rawInstruction)
         {
+#if USE_LUT_THUMB
+			// TODO : You could eliminate this & here by filling in all permutations of the bottom byte...
+			ThumbInstructionLut[rawInstruction >> 8](rawInstruction, false);
+#else
 			DecodeThumbInstruction(rawInstruction, false);
+#endif
 		}
 
 
 		public string PeekThumbInstruction(ushort rawInstruction)
         {
 			peekString = "*UNKNOWN_INSTRUCTION*";
+
+#if USE_LUT_THUMB
+			ThumbInstructionLut[rawInstruction >> 8](rawInstruction, false);
+#else
 			DecodeThumbInstruction(rawInstruction, true);
+#endif
 			return peekString;
-        } 
+        }
+
+
+		void CalculateThumbDecodeLookUpTable()
+		{
+			ushort instruction;
+			for (UInt32 i = 0; i <= 0xFF; i++)
+			{
+				instruction = (ushort) (i << 8);
+				DecodeForThumbLut(instruction);
+			}
+		}
+
+
+		void DecodeForThumbLut(ushort rawInstruction)
+		{
+			if (((rawInstruction >> 13) == 0) && (((rawInstruction >> 11) & 0x7) != 0x3))
+			{
+				//THUMB_1
+				//MoveShiftedRegister(rawInstruction, peek);
+				ThumbInstructionLut[rawInstruction >> 8] = MoveShiftedRegister;
+			}
+
+			else if (((rawInstruction >> 11) & 0x1F) == 0x3)
+			{
+				//THUMB_2
+				//AddSubImmediate(rawInstruction, peek);
+				ThumbInstructionLut[rawInstruction >> 8] = AddSubImmediate;
+			}
+
+			else if ((rawInstruction >> 13) == 0x1)
+			{
+				//THUMB_3
+				//MCASImmediate(rawInstruction, peek);
+				ThumbInstructionLut[rawInstruction >> 8] = MCASImmediate;
+			}
+
+			else if (((rawInstruction >> 10) & 0x3F) == 0x10)
+			{
+				//THUMB_4
+				//AluOps(rawInstruction, peek);
+				ThumbInstructionLut[rawInstruction >> 8] = AluOps;
+			}
+
+			else if (((rawInstruction >> 10) & 0x3F) == 0x11)
+			{
+				//THUMB_5
+				//HiregAndBx(rawInstruction, peek);
+				ThumbInstructionLut[rawInstruction >> 8] = HiregAndBx;
+			}
+
+			else if ((rawInstruction >> 11) == 0x9)
+			{
+				//THUMB_6
+				//LoadPcRelative(rawInstruction, peek);
+				ThumbInstructionLut[rawInstruction >> 8] = LoadPcRelative;
+			}
+
+			else if ((rawInstruction >> 12) == 0x5)
+			{
+				if ((rawInstruction & 0x200) != 0)
+				{
+					//THUMB_8
+					//LoadStoreSignExtended(rawInstruction, peek);
+					ThumbInstructionLut[rawInstruction >> 8] = LoadStoreSignExtended;
+				}
+				else
+				{
+					//THUMB_7
+					//LoadStoreRegOffset(rawInstruction, peek);
+					ThumbInstructionLut[rawInstruction >> 8] = LoadStoreRegOffset;
+				}
+			}
+
+			else if (((rawInstruction >> 13) & 0x7) == 0x3)
+			{
+				//THUMB_9
+				//LoadStoreImmediateOffset(rawInstruction, peek);
+				ThumbInstructionLut[rawInstruction >> 8] = LoadStoreImmediateOffset;
+			}
+
+			else if ((rawInstruction >> 12) == 0x8)
+			{
+				//THUMB_10
+				//LoadStoreHalfword(rawInstruction, peek);
+				ThumbInstructionLut[rawInstruction >> 8] = LoadStoreHalfword;
+			}
+
+			else if ((rawInstruction >> 12) == 0x9)
+			{
+				//THUMB_11
+				//LoadStoreSpRelative(rawInstruction, peek);
+				ThumbInstructionLut[rawInstruction >> 8] = LoadStoreSpRelative;
+			}
+
+			else if ((rawInstruction >> 12) == 0xA)
+			{
+				//THUMB_12
+				//GetRelativeAddress(rawInstruction, peek);
+				ThumbInstructionLut[rawInstruction >> 8] = GetRelativeAddress;
+			}
+
+			else if ((rawInstruction >> 8) == 0xB0)
+			{
+				//THUMB_13
+				//AddOffsetSp(rawInstruction, peek);
+				ThumbInstructionLut[rawInstruction >> 8] = AddOffsetSp;
+			}
+
+			else if ((rawInstruction >> 12) == 0xB)
+			{
+				//THUMB_14
+				//PushPopRegisters(rawInstruction, peek);
+				ThumbInstructionLut[rawInstruction >> 8] = PushPopRegisters;
+			}
+
+			else if ((rawInstruction >> 12) == 0xC)
+			{
+				//THUMB_15
+				//MultipleLoadStore(rawInstruction, peek);
+				ThumbInstructionLut[rawInstruction >> 8] = MultipleLoadStore;
+			}
+
+			else if ((rawInstruction >> 12) == 13)
+			{
+				//THUMB_16
+				//ConditionalBranch(rawInstruction, peek);
+				ThumbInstructionLut[rawInstruction >> 8] = ConditionalBranch;
+			}
+
+			else if ((rawInstruction >> 11) == 0x1C)
+			{
+				//THUMB_18
+				//UnconditionalBranch(rawInstruction, peek);
+				ThumbInstructionLut[rawInstruction >> 8] = UnconditionalBranch;
+			}
+
+			else if ((rawInstruction >> 11) >= 0x1E)
+			{
+				//THUMB_19
+				//LongBranchLink(rawInstruction, peek);
+				ThumbInstructionLut[rawInstruction >> 8] = LongBranchLink;
+			}
+			
+		}
 
 
 		void DecodeThumbInstruction(ushort rawInstruction, bool peek)
-        {
-			
+		{
 			if (((rawInstruction >> 13) == 0) && (((rawInstruction >> 11) & 0x7) != 0x3))
 			{
 				//THUMB_1

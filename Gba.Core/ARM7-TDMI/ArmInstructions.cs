@@ -12,7 +12,7 @@ namespace Gba.Core
 
 	public partial class Cpu
     {
-		Dictionary<UInt32, Action<UInt32, bool>> InstructionLut = new Dictionary<uint, Action<uint, bool>>();
+		Dictionary<UInt32, Action<UInt32, bool>> ArmInstructionLut = new Dictionary<uint, Action<uint, bool>>();
 
 		string peekString;
 
@@ -32,7 +32,7 @@ namespace Gba.Core
 				}
 			}
 
-			InstructionLut[rawInstruction & 0x0FF000F0](rawInstruction, false);
+			ArmInstructionLut[rawInstruction & 0x0FF000F0](rawInstruction, false);
 #else
 			DecodeArmInstruction(rawInstruction, false);
 #endif
@@ -46,7 +46,7 @@ namespace Gba.Core
 			try
 			{
 #if USE_LUT
-				InstructionLut[rawInstruction & 0x0FF000F0](rawInstruction, true);
+				ArmInstructionLut[rawInstruction & 0x0FF000F0](rawInstruction, true);
 #else
 			DecodeArmInstruction(rawInstruction, true);
 #endif
@@ -72,26 +72,25 @@ namespace Gba.Core
 				instruction = ((i & 0x00000FF0) << 16);
 				instruction += ((i & 0x0F) <<4);
 
-				DecodeForLut(instruction);
+				DecodeForArmLut(instruction);
 			}
 		}
 
-
 		
-		void DecodeForLut(UInt32 rawInstruction)
+		void DecodeForArmLut(UInt32 rawInstruction)
         {		
 			try
 			{
 				if (rawInstruction == 0x1200010)
 				{
 					//ARM_3
-					InstructionLut.TryAdd(rawInstruction, BranchExchange);					
+					ArmInstructionLut.TryAdd(rawInstruction, BranchExchange);
 				}
 
 				else if (((rawInstruction >> 25) & 0x7) == 0x5)
 				{
 					//ARM_4
-					InstructionLut.TryAdd(rawInstruction, BranchLink);					
+					ArmInstructionLut.TryAdd(rawInstruction, BranchLink);					
 				}
 
 				else if ((rawInstruction & 0x0D900000) == 0x01000000)
@@ -102,20 +101,20 @@ namespace Gba.Core
 						if (((rawInstruction >> 5) & 0x3) == 0)
 						{
 							//ARM_12;
-							InstructionLut.TryAdd(rawInstruction, SingleDataSwap);						
+							ArmInstructionLut.TryAdd(rawInstruction, SingleDataSwap);						
 						}
 
 						else
 						{
 							//ARM_10;
-							InstructionLut.TryAdd(rawInstruction, HalfwordAndSignedDataTransfer);							
+							ArmInstructionLut.TryAdd(rawInstruction, HalfwordAndSignedDataTransfer);							
 						}
 					}
 
 					else
 					{
 						//ARM_6
-						InstructionLut.TryAdd(rawInstruction, PsrFlagsTransfer);
+						ArmInstructionLut.TryAdd(rawInstruction, PsrFlagsTransfer);
 					}
 				}
 
@@ -126,27 +125,27 @@ namespace Gba.Core
 						//ARM.5
 						if ((rawInstruction & 0x02000000) != 0)
 						{
-							InstructionLut.TryAdd(rawInstruction, DataProcessing);
+							ArmInstructionLut.TryAdd(rawInstruction, DataProcessing);
 						}
 
 						//ARM.5
 						else if (((rawInstruction & 0x00100000) != 0) && (((rawInstruction >> 23) & 0x3) == 0x2))
 						{
 							//ARM_5
-							InstructionLut.TryAdd(rawInstruction, DataProcessing);
+							ArmInstructionLut.TryAdd(rawInstruction, DataProcessing);
 						}
 
 						//ARM.5
 						else if (((rawInstruction >> 23) & 0x3) != 0x2)
 						{
 							// ARM_5
-							InstructionLut.TryAdd(rawInstruction, DataProcessing);
+							ArmInstructionLut.TryAdd(rawInstruction, DataProcessing);
 						}
 
 						//ARM.7
 						else
 						{
-							InstructionLut.TryAdd(rawInstruction, MultiplyAndMultiplyAccumulate);
+							ArmInstructionLut.TryAdd(rawInstruction, MultiplyAndMultiplyAccumulate);
 						}
 					}
 
@@ -158,21 +157,21 @@ namespace Gba.Core
 							if ((rawInstruction & 0x02000000) != 0)
 							{
 								//ARM_5
-								InstructionLut.TryAdd(rawInstruction, DataProcessing);
+								ArmInstructionLut.TryAdd(rawInstruction, DataProcessing);
 							}
 
 							//ARM.12
 							else if (((rawInstruction >> 23) & 0x3) == 0x2)
 							{
 								//ARM_12;
-								InstructionLut.TryAdd(rawInstruction, SingleDataSwap);
+								ArmInstructionLut.TryAdd(rawInstruction, SingleDataSwap);
 							}
 
 							//ARM.7
 							else
 							{
 								//ARM_7;
-								InstructionLut.TryAdd(rawInstruction, MultiplyAndMultiplyAccumulate);
+								ArmInstructionLut.TryAdd(rawInstruction, MultiplyAndMultiplyAccumulate);
 							}
 						}
 
@@ -180,40 +179,40 @@ namespace Gba.Core
 						else if ((rawInstruction & 0x02000000) != 0)
 						{
 							//ARM_5
-							InstructionLut.TryAdd(rawInstruction, DataProcessing);
+							ArmInstructionLut.TryAdd(rawInstruction, DataProcessing);
 						}
 
 						//ARM.10
 						else
 						{
 							//ARM_10;
-							InstructionLut.TryAdd(rawInstruction, HalfwordAndSignedDataTransfer);
+							ArmInstructionLut.TryAdd(rawInstruction, HalfwordAndSignedDataTransfer);
 						}
 					}
 
 					else
 					{
 						//ARM_5
-						InstructionLut.TryAdd(rawInstruction, DataProcessing);
+						ArmInstructionLut.TryAdd(rawInstruction, DataProcessing);
 					}
 				}
 
 				else if (((rawInstruction >> 26) & 0x3) == 0x1)
 				{
 					//ARM_9
-					InstructionLut.TryAdd(rawInstruction, SingleDataTransfer);
+					ArmInstructionLut.TryAdd(rawInstruction, SingleDataTransfer);
 				}
 
 				else if (((rawInstruction >> 25) & 0x7) == 0x4)
 				{
 					//ARM_11
-					InstructionLut.TryAdd(rawInstruction, BlockDataTransfer);
+					ArmInstructionLut.TryAdd(rawInstruction, BlockDataTransfer);
 				}
 
 				else if (((rawInstruction >> 24) & 0xF) == 0xF)
 				{
 					//ARM_13
-					InstructionLut.TryAdd(rawInstruction, SoftwareInterrupt);
+					ArmInstructionLut.TryAdd(rawInstruction, SoftwareInterrupt);
 				}
 			}
 			catch (ArgumentException) 
@@ -702,7 +701,7 @@ namespace Gba.Core
 				case 0x4:
 					if (peek)
 					{
-						peekString = String.Format("ADD {0},[${1:X},${2:X}]", GetRegisterName(destReg), input, operand);
+						peekString = String.Format("ADD {0},[${1:X},${2:X}]", GetRegisterName(destReg), GetRegisterName(srcReg), operand);
 						return;
 					}
 
