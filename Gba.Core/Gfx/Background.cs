@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Gba.Core
 {
@@ -17,9 +18,6 @@ namespace Gba.Core
         public int ScrollY { get; set; }
 
         UInt32 tileDataVramOffset;
-
-        const int tileSize4bit = 32;
-        const int tileSize8bit = 64;
 
         // Cached data for rendering
         int bgWidthInPixel;
@@ -52,9 +50,8 @@ namespace Gba.Core
             eightBitColour = CntRegister.PaletteMode == BgPaletteMode.PaletteMode256x1;
         }
 
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int RenderPixel(int screenX, int screenY)
+        public int PixelValue(int screenX, int screenY)
         {
             int paletteOffset = 0;
 
@@ -85,7 +82,9 @@ namespace Gba.Core
                 paletteOffset = tileMetaData.Palette * 16;
             }
 
-            int tileVramOffset = (int)(tileDataVramOffset + ((tileMetaData.TileNumber) * tileSize4bit));
+            int tileSize = (eightBitColour ? LcdController.Tile_Size_8bit : LcdController.Tile_Size_4bit);
+
+            int tileVramOffset = (int)(tileDataVramOffset + ((tileMetaData.TileNumber) * tileSize));
 
             int paletteIndex = TileHelpers.GetTilePixel(tileColumn, tileRow, eightBitColour, gba.Memory.VRam, tileVramOffset, tileMetaData.FlipHorizontal, tileMetaData.FlipVertical);
 
@@ -93,6 +92,7 @@ namespace Gba.Core
 
             return paletteOffset + paletteIndex;          
         }
+
 
         public void RenderMode0Scanline(int scanline, int scanlineWidth, DirectBitmap drawBuffer)
         {
@@ -130,8 +130,10 @@ namespace Gba.Core
                     paletteOffset = tileMetaData.Palette * 16;
                 }
 
+                int tileSize = (eightBitColour ? LcdController.Tile_Size_8bit : LcdController.Tile_Size_4bit);
+
                 // 4 bytes represent one row of pixel data for a single tile
-                int tileVramOffset = (int)(tileDataVramOffset + ((tileMetaData.TileNumber) * tileSize4bit));
+                int tileVramOffset = (int)(tileDataVramOffset + ((tileMetaData.TileNumber) * tileSize));
 
                 int paletteIndex = TileHelpers.GetTilePixel(tileColumn, tileRow, eightBitColour, gba.Memory.VRam, tileVramOffset, tileMetaData.FlipHorizontal, tileMetaData.FlipVertical);
                 

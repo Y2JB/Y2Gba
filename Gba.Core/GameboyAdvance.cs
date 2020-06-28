@@ -52,13 +52,13 @@ namespace Gba.Core
             //this.Rom = new Rom("../../../../roms/TestRoms/tmr_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/brin_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/obj_demo.gba");
-            //this.Rom = new Rom("../../../../roms/TestRoms/win_demo.gba");
+            this.Rom = new Rom("../../../../roms/TestRoms/win_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/dma_demo.gba");
 
             //this.Rom = new Rom("../../../../roms/NCE-heart.gba");
 
             //this.Rom = new Rom("../../../../roms/Super Dodgeball Advance.gba");
-            this.Rom = new Rom("../../../../roms/Kirby.gba");
+            //this.Rom = new Rom("../../../../roms/Kirby.gba");
             //this.Rom = new Rom("../../../../roms/Metal Slug Advance (U).gba");
             //this.Rom = new Rom("../../../../roms/Super Mario Advance 2 - Super Mario World (U) [!].gba");
             //this.Rom = new Rom("../../../../roms/Legend of Zelda, The - The Minish Cap (U).gba");
@@ -104,7 +104,7 @@ namespace Gba.Core
 
 
         // TODO: The Conditinal Attribute should use a dedicated logging preprocessor directive 
-        //[Conditional("DEBUG")]
+        [Conditional("DEBUG")]
         public void LogMessage(string msg)
         {
             if(OnLogMessage != null)
@@ -153,6 +153,9 @@ namespace Gba.Core
 
             DumpTiles(Memory.VRam, vramBaseOffset0, palette, false, "BGV0", get4BitPaletteNumber);
             DumpTiles(Memory.VRam, vramBaseOffset1, palette, false, "BGV1", get4BitPaletteNumber);
+
+            DumpTiles(Memory.VRam, vramBaseOffset0, palette, true, "BGV0", get4BitPaletteNumber);
+            DumpTiles(Memory.VRam, vramBaseOffset1, palette, true, "BGV1", get4BitPaletteNumber);
         }
 
 

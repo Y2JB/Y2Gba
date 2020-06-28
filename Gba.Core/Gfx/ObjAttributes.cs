@@ -100,7 +100,6 @@ namespace Gba.Core
         //}
 
 
-        // Can be negative 
         public int YPosition { get { return ObjAttrib0L; } }
         public int XPosition { get { return ObjAttrib1L + ((ObjAttrib1H & 1) * 256); } }
 

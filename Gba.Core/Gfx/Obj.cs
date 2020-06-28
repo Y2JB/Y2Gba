@@ -14,6 +14,9 @@ namespace Gba.Core
 
         Color[] palette;
 
+        // Set during rendering so that the renderer can discard it after the scanline passes the sprites right edge
+        public int RightEdgeScreen { get; set; }
+
         public Obj(GameboyAdvance gba, ObjAttributes attributes)
         {
             this.gba = gba;
@@ -24,7 +27,7 @@ namespace Gba.Core
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int RenderPixel(int screenX, int screenY)
+        public int PixelValue(int screenX, int screenY)
         {
             // OBJ Tiles are stored in a separate area in VRAM: 06010000-06017FFF (32 KBytes) in BG Mode 0-2, or 06014000-06017FFF (16 KBytes) in BG Mode 3-5.
             int vramBaseOffset = 0x00010000;
@@ -73,16 +76,6 @@ namespace Gba.Core
                 paletteOffset = Attributes.PaletteNumber * 16;
             }            
 
-   /*
-            // Clamp to 9 bit range
-            int objX = Attributes.XPosition + spriteX;
-            if (objX >= 512) objX -= 512;
-
-            if (objX < 0 || objX >= LcdController.Screen_X_Resolution)
-            {
-                return 0;
-            }
-*/
             int currentSpriteColumnInTiles = spriteX / 8;
             if (Attributes.HorizontalFlip) currentSpriteColumnInTiles = (spriteWidthInTiles - 1) - currentSpriteColumnInTiles;
 
@@ -207,6 +200,14 @@ namespace Gba.Core
 
                 drawBuffer.SetPixel(screenX, scanline, palette[paletteOffset + paletteIndex]);
             }
+        }
+
+
+        public void SetRightEdgeScreen()
+        {
+            int sprX = Attributes.XPosition;
+            if (sprX >= LcdController.Screen_X_Resolution) sprX -= 512;
+            RightEdgeScreen = sprX + Attributes.Dimensions.Width;
         }
     }
 }
