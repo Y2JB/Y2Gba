@@ -415,8 +415,7 @@ namespace Gba.Core
             ObjPrioritySort();
 
             int scanline = CurrentScanline;
-            bool windowing = (DisplayControlRegister.DisplayWin0 || DisplayControlRegister.DisplayWin1 || DisplayControlRegister.DisplayWin1);
-
+            bool windowing = (DisplayControlRegister.DisplayWin0 || DisplayControlRegister.DisplayWin1 || DisplayControlRegister.DisplayWin1 || DisplayControlRegister.DisplayObjWin);
 
             // We render front to back. Once a pixel is drawn we stop going through the layers.
             // TODO: In order to do blending we may need to go through all the layers for each pixel
@@ -434,10 +433,13 @@ namespace Gba.Core
 
                 // Windowing can disable obj's and bg's
                 bool objVisibleOverride = false;
+
+                int windowRegion = 0;
+
                 int bgVisibleOverride = 0; // bitmask for bg visible (from window)
                 if (windowing)
                 {
-                    int windowRegion = TileHelpers.PixelWindowRegion(x, CurrentScanline, gba);
+                    windowRegion = TileHelpers.PixelWindowRegion(x, CurrentScanline, gba);
 
                     // 0 is outside of all windows
                     if (windowRegion == 0)
@@ -470,7 +472,7 @@ namespace Gba.Core
                                             Windows[(int)Window.WindowName.Window1].DisplayBg3;
                     }
 
-                    // TODO OBJ WINDOW
+
                 }
                 else
                 {
@@ -483,31 +485,54 @@ namespace Gba.Core
                 {
 
                     // Sprite rendering
-                    if (objVisibleOverride)
+                    if (DisplayControlRegister.DisplayObj)
                     {
-                        // If a sprite has the same priority as a bg, the sprite is drawn on top, therefore we check sprites first 
-                        foreach (var obj in priorityObjList[priority])
+                        bool objWindowPixel = false;
+
+                        if (!windowing || (windowing && objVisibleOverride))
                         {
-                            if (x >= obj.RightEdgeScreen)
+                            // If a sprite has the same priority as a bg, the sprite is drawn on top, therefore we check sprites first 
+                            foreach (var obj in priorityObjList[priority])
                             {
-                                continue;
+                                if (x >= obj.RightEdgeScreen)
+                                {
+                                    continue;
+                                }
+                                
+                                paletteIndex = obj.PixelValue(x, scanline);
+
+                                // Pal 0 == Transparent 
+                                if (paletteIndex == 0)
+                                {
+                                    continue;
+                                }
+
+
+                                // TODO: I *think* this will render the Obj window correctly but i cannot test it yet
+                                // This pixel belongs to a sprite in the Obj Window and Win 0 & 1 are not enclosing this pixel
+                                if (windowing &&
+                                    DisplayControlRegister.DisplayObjWin && 
+                                    obj.Attributes.Mode == ObjAttributes.ObjMode.ObjWindow &&
+                                    ((windowRegion & (int)TileHelpers.WindowRegion.WindowIn) == 0))
+                                {
+                                    bgVisibleOverride =  Windows[(int)Window.WindowName.WindowObj].DisplayBg0 |
+                                                         Windows[(int)Window.WindowName.WindowObj].DisplayBg1 |
+                                                         Windows[(int)Window.WindowName.WindowObj].DisplayBg2 |
+                                                         Windows[(int)Window.WindowName.WindowObj].DisplayBg3;
+
+                                    objWindowPixel = true;
+
+                                    break;
+                                }
+
+                                drawBuffer.SetPixel(x, scanline, Palettes.Palette1[paletteIndex]);
+                                pixelDrawn = true;
+                                break;
                             }
-
-                            paletteIndex = obj.PixelValue(x, scanline);
-
-                            // Pal 0 == Transparent 
-                            if (paletteIndex == 0)
+                            if (pixelDrawn || objWindowPixel)
                             {
-                                continue;
+                                break;
                             }
-
-                            drawBuffer.SetPixel(x, scanline, Palettes.Palette1[paletteIndex]);
-                            pixelDrawn = true;
-                            break;
-                        }
-                        if (pixelDrawn)
-                        {
-                            break;
                         }
                     }
 
