@@ -45,6 +45,10 @@ namespace GbaDebugger
             help,
             set,                            // set (register) n/nn
             ticks,
+
+            //lcd,
+            win,
+
             exit,
 
             CommandCount
@@ -168,6 +172,9 @@ namespace GbaDebugger
                     ConsoleAddString(String.Format("ticks - {0}", gba.Cpu.Cycles - lastTicks));
                     lastTicks = gba.Cpu.Cycles;
                     return true;
+
+                case ConsoleCommand.win:
+                    return WinCommand();
 
                 case ConsoleCommand.help:
                     return HelpCommand();
@@ -457,6 +464,43 @@ namespace GbaDebugger
                 {
                     ConsoleAddString(bp.ToString());
                 }
+            }
+            return true;
+        }
+
+
+        bool WinCommand()
+        {
+            ConsoleAddString(String.Format("Window 0: {0}", gba.LcdController.DisplayControlRegister.DisplayWin0 ? "On" : "Off"));
+            if(gba.LcdController.DisplayControlRegister.DisplayWin0)
+            {
+                ConsoleAddString(String.Format("Window 0: X1 {0} Y1 {1}", gba.LcdController.Windows[0].Left, gba.LcdController.Windows[0].Top));
+                ConsoleAddString(String.Format("Window 0: X2 {0} Y2 {1}", gba.LcdController.Windows[0].Right, gba.LcdController.Windows[0].Bottom));
+                ConsoleAddString(String.Format("Bgs Visible: {0} {1} {2} {3}", gba.LcdController.Windows[0].DisplayBgInWindow(0) ? "0" : "x", gba.LcdController.Windows[0].DisplayBgInWindow(1) ? "1" : "x", gba.LcdController.Windows[0].DisplayBgInWindow(2) ? "2" : "x", gba.LcdController.Windows[0].DisplayBgInWindow(3) ? "3" : "x"));
+                ConsoleAddString(String.Format("Display Objs: {0}", gba.LcdController.Windows[0].DisplayObjs.ToString()));
+                ConsoleAddString(Environment.NewLine);
+            }
+
+            ConsoleAddString(String.Format("Window 1: {0}", gba.LcdController.DisplayControlRegister.DisplayWin1 ? "On" : "Off"));
+            if (gba.LcdController.DisplayControlRegister.DisplayWin1)
+            {
+                ConsoleAddString(String.Format("Window 1: X1 {0} Y1 {1}", gba.LcdController.Windows[1].Left, gba.LcdController.Windows[1].Top));
+                ConsoleAddString(String.Format("Window 1: X2 {0} Y2 {1}", gba.LcdController.Windows[1].Right, gba.LcdController.Windows[1].Bottom));
+                ConsoleAddString(String.Format("Bgs Visible: {0} {1} {2} {3}", gba.LcdController.Windows[1].DisplayBgInWindow(0) ? "0" : "x", gba.LcdController.Windows[1].DisplayBgInWindow(1) ? "1" : "x", gba.LcdController.Windows[1].DisplayBgInWindow(2) ? "2" : "x", gba.LcdController.Windows[1].DisplayBgInWindow(3) ? "3" : "x"));
+                ConsoleAddString(String.Format("Display Objs: {0}", gba.LcdController.Windows[1].DisplayObjs.ToString()));
+                ConsoleAddString(Environment.NewLine);
+            }
+
+            ConsoleAddString("Outside Window");
+            ConsoleAddString(String.Format("Bgs Visible: {0} {1} {2} {3}", gba.LcdController.Windows[2].DisplayBgInWindow(0) ? "0" : "x", gba.LcdController.Windows[2].DisplayBgInWindow(1) ? "1" : "x", gba.LcdController.Windows[2].DisplayBgInWindow(2) ? "2" : "x", gba.LcdController.Windows[2].DisplayBgInWindow(3) ? "3" : "x"));
+            ConsoleAddString(String.Format("Display Objs: {0}", gba.LcdController.Windows[2].DisplayObjs.ToString()));
+            ConsoleAddString(Environment.NewLine);
+
+            ConsoleAddString(String.Format("Obj Window: {0}", gba.LcdController.DisplayControlRegister.DisplayObjWin ? "On" : "Off"));
+            if (gba.LcdController.DisplayControlRegister.DisplayObjWin)
+            {
+                ConsoleAddString(String.Format("Bgs Visible: {0} {1} {2} {3}", gba.LcdController.Windows[3].DisplayBgInWindow(0) ? "0" : "x", gba.LcdController.Windows[3].DisplayBgInWindow(1) ? "1" : "x", gba.LcdController.Windows[3].DisplayBgInWindow(2) ? "2" : "x", gba.LcdController.Windows[3].DisplayBgInWindow(3) ? "3" : "x"));
+                ConsoleAddString(String.Format("Display Objs: {0}", gba.LcdController.Windows[3].DisplayObjs.ToString()));                
             }
             return true;
         }

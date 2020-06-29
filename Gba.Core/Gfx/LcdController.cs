@@ -1,14 +1,18 @@
-﻿using System;
+﻿//#define ParallelizeScanline
+//#define THREADED_SCANLINE
+
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using System.Threading;
 
 namespace Gba.Core
 {
-    public class LcdController
+    public class LcdController : IDisposable
     {
         public const byte Screen_X_Resolution = 240;
         public const byte Screen_Y_Resolution = 160;
@@ -39,8 +43,8 @@ namespace Gba.Core
         // Every frame, put the objs in a bucket based on it's priority
         List<Obj>[] priorityObjList = new List<Obj>[4];
 
-        public Window[] Window { get; private set; }
-        public WinOutRegister WinOutRegister { get; private set; }
+        // Win0, Win1, WinOut, WinObj
+        public Window[] Windows { get; private set; }
 
         public byte CurrentScanline { get; private set; }
 
@@ -65,14 +69,37 @@ namespace Gba.Core
         DirectBitmap frameBuffer1;
         double lastFrameTime;
 
+
+#if THREADED_SCANLINE
+        bool drawScanline;
+        bool exitThread;
+        System.Threading.Thread scanlineThread;
+#endif 
+
+
         GameboyAdvance gba { get; set; }
 
         public LcdController(GameboyAdvance gba)
         {
             this.gba = gba;
-            
+
+
+#if THREADED_SCANLINE
+            drawScanline = false;
+            exitThread = false;
+            scanlineThread = new Thread(new ThreadStart(ScanlineThread));
+            scanlineThread.Start();
+#endif
         }
 
+
+        public void Dispose()
+        {
+#if THREADED_SCANLINE
+            exitThread = true;
+            Thread.Sleep(200);
+#endif 
+        }
 
         public void Reset()
         {
@@ -101,12 +128,11 @@ namespace Gba.Core
                 Obj[i] = new Obj(gba, new ObjAttributes(i * 8, gba.Memory.OamRam));
             }
 
-            Window = new Window[2];
-            for (int i = 0; i < 2; i++)
+            Windows = new Window[4];
+            for (int i = 0; i < 4; i++)
             {
-                Window[i] = new Window(gba);
+                Windows[i] = new Window(gba);
             }
-            WinOutRegister = new WinOutRegister();
 
             Mode = LcdMode.ScanlineRendering;
             LcdCycles = 0;
@@ -128,9 +154,21 @@ namespace Gba.Core
             {
                 case LcdMode.ScanlineRendering:
                     if (LcdCycles >= HDraw_Length)
-                    {                       
+                    {
+#if THREADED_SCANLINE
+                        if (scanlineThread.IsAlive == false)
+                        {
+                            throw new ArgumentException("Thread pop!");
+                        }
+
+                        // Wait for scanline rendering to finsih
+                        while (drawScanline == true) 
+                        {
+                        }
+#endif
                         LcdCycles -= HDraw_Length;
                         Mode = LcdMode.HBlank;
+
 
                         if (DispStatRegister.HBlankIrqEnabled)
                         {
@@ -157,7 +195,6 @@ namespace Gba.Core
                         if (CurrentScanline == 160)
                         {
                             Mode = LcdMode.VBlank;
-
                             VblankScanlineCycles = 0;
 
                             if (DispStatRegister.VBlankIrqEnabled)
@@ -298,8 +335,19 @@ namespace Gba.Core
             switch(DisplayControlRegister.BgMode)
             {
                 case 0x0:
+#if THREADED_SCANLINE
+                    if(scanlineThread.IsAlive == false)
+                    {
+                        throw new ArgumentException("Thread pop");
+                    }
+                    if(drawScanline)
+                    {
+                        throw new ArgumentException("Scanline already true???");
+                    }
+                    drawScanline = true;
+#else
                     RenderScanline();
-                    //RenderScanlineParallel();
+#endif
                     break;
 
                 case 0x4:
@@ -310,13 +358,6 @@ namespace Gba.Core
                 default:
                     throw new NotImplementedException("Unknown or unimplemented video mode");
             }
-
-            /*
-            if (DisplayControlRegister.DisplayObj)
-            {
-                RenderObjsScanline();
-            }
-            */
         }
 
 
@@ -346,9 +387,25 @@ namespace Gba.Core
         }
 
 
-        // Right now this isn't any faster (it's actually slightly slower) than running scanline rendering syncronously. However it may become viable when we
-        // do belnding, rotation etc
-        private void RenderScanlineParallel()
+#if THREADED_SCANLINE
+        void ScanlineThread()
+        {
+            while (exitThread == false)
+            {
+                if (drawScanline)
+                {
+                    lock (drawBuffer)
+                    {
+                        RenderScanline();
+                        drawScanline = false;
+                    }
+                }
+            }
+        }
+#endif
+
+
+        private void RenderScanline()
         {
             Bg[0].CacheRenderData();
             Bg[1].CacheRenderData();
@@ -358,18 +415,75 @@ namespace Gba.Core
             ObjPrioritySort();
 
             int scanline = CurrentScanline;
+            bool windowing = (DisplayControlRegister.DisplayWin0 || DisplayControlRegister.DisplayWin1 || DisplayControlRegister.DisplayWin1);
 
-            var paritioner = Partitioner.Create(0, LcdController.Screen_X_Resolution, 120);
 
+            // We render front to back. Once a pixel is drawn we stop going through the layers.
+            // TODO: In order to do blending we may need to go through all the layers for each pixel
+#if ParallelizeScanline
+            var paritioner = Partitioner.Create(0, LcdController.Screen_X_Resolution, 80);
             var result = Parallel.ForEach(paritioner, (range) =>
             {
-                for (int x = range.Item1; x < range.Item2; x++)
-                {
-                    int paletteIndex;
-                    bool pixelDrawn = false;
+            for (int x = range.Item1; x < range.Item2; x++)
+#else
+            for (int x = 0; x < Screen_X_Resolution; x++)
+#endif
+            {
+                int paletteIndex;
+                bool pixelDrawn = false;
 
-                    // Start at the top priority, if something draws to the pixel, we can early out and stop processing this pixel 
-                    for (int priority = 0; priority < 4; priority++)
+                // Windowing can disable obj's and bg's
+                bool objVisibleOverride = false;
+                int bgVisibleOverride = 0; // bitmask for bg visible (from window)
+                if (windowing)
+                {
+                    int windowRegion = TileHelpers.PixelWindowRegion(x, CurrentScanline, gba);
+
+                    // 0 is outside of all windows
+                    if (windowRegion == 0)
+                    {
+                        objVisibleOverride = Windows[(int) Window.WindowName.WindowOut].DisplayObjs;
+
+                        bgVisibleOverride = Windows[(int)Window.WindowName.WindowOut].DisplayBg0 |
+                                            Windows[(int)Window.WindowName.WindowOut].DisplayBg1 |
+                                            Windows[(int)Window.WindowName.WindowOut].DisplayBg2 |
+                                            Windows[(int)Window.WindowName.WindowOut].DisplayBg3;
+                    }
+                    // Window 0 takes priority over window 1. We don't need to check if the point is within both areas as it is done in the function call above
+                    else if((windowRegion & (int)TileHelpers.WindowRegion.Window0) != 0)
+                    {
+                        objVisibleOverride = Windows[(int)Window.WindowName.Window0].DisplayObjs;
+
+                        bgVisibleOverride = Windows[(int)Window.WindowName.Window0].DisplayBg0 |
+                                            Windows[(int)Window.WindowName.Window0].DisplayBg1 |
+                                            Windows[(int)Window.WindowName.Window0].DisplayBg2 |
+                                            Windows[(int)Window.WindowName.Window0].DisplayBg3;
+
+                    }
+                    else if ((windowRegion & (int)TileHelpers.WindowRegion.Window1) != 0)
+                    {
+                        objVisibleOverride = Windows[(int)Window.WindowName.Window1].DisplayObjs;
+
+                        bgVisibleOverride = Windows[(int)Window.WindowName.Window1].DisplayBg0 |
+                                            Windows[(int)Window.WindowName.Window1].DisplayBg1 |
+                                            Windows[(int)Window.WindowName.Window1].DisplayBg2 |
+                                            Windows[(int)Window.WindowName.Window1].DisplayBg3;
+                    }
+
+                    // TODO OBJ WINDOW
+                }
+                else
+                {
+                    objVisibleOverride = true;
+                    bgVisibleOverride = 0;
+                }
+
+                // Start at the top priority, if something draws to the pixel, we can early out and stop processing this pixel 
+                for (int priority = 0; priority < 4; priority++)
+                {
+
+                    // Sprite rendering
+                    if (objVisibleOverride)
                     {
                         // If a sprite has the same priority as a bg, the sprite is drawn on top, therefore we check sprites first 
                         foreach (var obj in priorityObjList[priority])
@@ -395,121 +509,18 @@ namespace Gba.Core
                         {
                             break;
                         }
-
-
-                        // No Sprite occupied this pixel, move on to backgrounds
-
-                        // Find the background with this priority                        
-                        for (int bgSelect = 0; bgSelect < 4; bgSelect++)
-                        {
-                            if (Bg[bgSelect].CntRegister.Priority != priority ||
-                                DisplayControlRegister.DisplayBg(Bg[bgSelect].BgNumber) == false)
-                            {
-                                continue;
-                            }
-
-                            paletteIndex = Bg[bgSelect].PixelValue(x, scanline);
-
-                            // Pal 0 == Transparent 
-                            if (paletteIndex == 0)
-                            {
-                                continue;
-                            }
-
-                            drawBuffer.SetPixel(x, scanline, Palettes.Palette0[paletteIndex]);
-                            pixelDrawn = true;
-                            // Once a pixel has been drawn, no need to check other BG's
-                            break;
-                        }
-                        if (pixelDrawn)
-                        {
-                            break;
-                        }
                     }
 
-                    // If nothing is drawn then default to backdrop colour
-                    if (pixelDrawn == false)
-                    {
-                        drawBuffer.SetPixel(x, scanline, Palettes.Palette0[0]);
-                    }
-                }
-
-            }); // Parallel.For
-
-            //while (result.IsCompleted == false) ;
-        }
-
-        private void RenderScanline()
-        {
-            /*
-            for(int priority = 3; priority >=0 ; priority--)
-            {
-                for(int i=0; i < 4; i++)
-                {
-                    if( DisplayControlRegister.DisplayBg(i) && 
-                        Bg[i].CntRegister.Priority == priority)
-                    {
-                        // TODO: This needs doing when the reg's change 
-                        Bg[i].CacheRenderData();
-
-                        Bg[i].RenderMode0Scanline(CurrentScanline, LcdController.Screen_X_Resolution, drawBuffer);
-                    }
-                }
-            }
-            
-            return;
-            */
-
-            Bg[0].CacheRenderData();
-            Bg[1].CacheRenderData();
-            Bg[2].CacheRenderData();
-            Bg[3].CacheRenderData();
-
-            ObjPrioritySort();
-
-            int scanline = CurrentScanline;
-            int paletteIndex;
-            bool pixelDrawn;
-            for (int x = 0; x < Screen_X_Resolution; x++)
-            {
-                pixelDrawn = false;
-                
-                // Start at the top priority, if something draws to the pixel, we can early out and stop processing this pixel 
-                for (int priority = 0; priority < 4; priority++)
-                {                    
-                    // If a sprite has the same priority as a bg, the sprite is drawn on top, therefore we check sprites first 
-                    foreach (var obj in priorityObjList[priority])
-                    {
-                        if(x >= obj.RightEdgeScreen)
-                        {
-                            continue;
-                        }
-
-                        paletteIndex = obj.PixelValue(x, scanline);
-
-                        // Pal 0 == Transparent 
-                        if (paletteIndex == 0)
-                        {
-                            continue;
-                        }
-
-                        drawBuffer.SetPixel(x, scanline, Palettes.Palette1[paletteIndex]);
-                        pixelDrawn = true;
-                        break;
-                    }
-                    if (pixelDrawn)
-                    {
-                        break;
-                    }
-                
 
                     // No Sprite occupied this pixel, move on to backgrounds
 
+                    // Bg Rendering
                     // Find the background with this priority                        
                     for (int bgSelect = 0; bgSelect < 4; bgSelect++)
                     {
                         if (Bg[bgSelect].CntRegister.Priority != priority ||
-                            DisplayControlRegister.DisplayBg(Bg[bgSelect].BgNumber) == false)
+                            DisplayControlRegister.BgVisible(Bg[bgSelect].BgNumber) == false ||
+                            (windowing && ((bgVisibleOverride & (1 << bgSelect)) == 0)))
                         {
                             continue;
                         }
@@ -539,6 +550,10 @@ namespace Gba.Core
                     drawBuffer.SetPixel(x, scanline, Palettes.Palette0[0]);
                 }
             }
+#if ParallelizeScanline
+            }); // Parallel.For
+            //while (result.IsCompleted == false) ;
+#endif
         }
 
 

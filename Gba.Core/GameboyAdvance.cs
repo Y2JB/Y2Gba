@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Text;
+using System.Threading;
 
 namespace Gba.Core
 {
-    public class GameboyAdvance
+    public class GameboyAdvance : IDisposable
     {
         public Bios Bios { get; private set; }
         public Rom Rom { get; private set; }
@@ -35,6 +36,12 @@ namespace Gba.Core
         {
             EmulatorTimer = new Stopwatch();
             PoweredOn = false;
+        }
+
+
+        public void Dispose()
+        {
+            LcdController.Dispose();
         }
 
 
@@ -104,7 +111,8 @@ namespace Gba.Core
 
 
         // TODO: The Conditinal Attribute should use a dedicated logging preprocessor directive 
-        [Conditional("DEBUG")]
+        //[Conditional("DEBUG")]
+        [Conditional("DEBUG_LOGGING")]
         public void LogMessage(string msg)
         {
             if(OnLogMessage != null)

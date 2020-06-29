@@ -106,6 +106,8 @@ namespace WinFormRender
             
             timer.Start();
 
+            //Thread.CurrentThread.Priority = ThreadPriority.Highest;
+
 #if THREADED_RENDERER
             drawFrame = false;
             renderThread = new Thread(new ThreadStart(RenderThread));
@@ -220,7 +222,7 @@ namespace WinFormRender
                 if (dbgConsole.EmulatorMode == GbaDebugConsole.Mode.Running)
                 {
                     // Process several instructions before going to check the Windows message queue
-                    for (int i = 0; i < 1024; i++)
+                    for (int i = 0; i < 512; i++)
                     {
                         gba.Step();
 
@@ -345,9 +347,9 @@ namespace WinFormRender
 
         private void OnApplicationExit(object sender, EventArgs e)
         {
-            //dmg.rom.SaveMbc1BatteryBackData();
+            gba.Dispose();
             exitThread = true;
-            Thread.Sleep(500);
+            Thread.Sleep(250);
         }
 
 

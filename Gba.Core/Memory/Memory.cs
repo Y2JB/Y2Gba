@@ -98,21 +98,21 @@ namespace Gba.Core
 				else if (address >= 0x4000040 && address <= 0x400004B)
                 {
 					// Window registers
-					if (address == 0x4000040) return gba.LcdController.Window[0].Right;
-					else if (address == 0x4000041) return gba.LcdController.Window[0].Left;
-					else if (address == 0x4000042) return gba.LcdController.Window[1].Right;
-					else if (address == 0x4000043) return gba.LcdController.Window[1].Left;
-					else if (address == 0x4000044) return gba.LcdController.Window[0].Bottom;
-					else if (address == 0x4000045) return gba.LcdController.Window[0].Top;
-					else if (address == 0x4000046) return gba.LcdController.Window[1].Bottom;
-					else if (address == 0x4000047) return gba.LcdController.Window[1].Top;
-					else if (address == 0x4000048) return gba.LcdController.Window[0].WinIn;
-					else if (address == 0x4000049) return gba.LcdController.Window[1].WinIn;
-					else if (address == 0x400004A) return gba.LcdController.WinOutRegister.WinOutL;
-					else if (address == 0x400004B) return gba.LcdController.WinOutRegister.WinOutH;
+					if (address == 0x4000040) return gba.LcdController.Windows[0].Right;
+					else if (address == 0x4000041) return gba.LcdController.Windows[0].Left;
+					else if (address == 0x4000042) return gba.LcdController.Windows[1].Right;
+					else if (address == 0x4000043) return gba.LcdController.Windows[1].Left;
+					else if (address == 0x4000044) return gba.LcdController.Windows[0].Bottom;
+					else if (address == 0x4000045) return gba.LcdController.Windows[0].Top;
+					else if (address == 0x4000046) return gba.LcdController.Windows[1].Bottom;
+					else if (address == 0x4000047) return gba.LcdController.Windows[1].Top;
+					else if (address == 0x4000048) return gba.LcdController.Windows[0].Register;
+					else if (address == 0x4000049) return gba.LcdController.Windows[1].Register;
+					else if (address == 0x400004A) return gba.LcdController.Windows[2].Register;
+					else if (address == 0x400004B) return gba.LcdController.Windows[3].Register;
 					else throw new ArgumentException("Bad Window read");
 				}
-				else if (address >= 0x04000100 && address <= 0x04000110)
+				else if (address >= 0x04000100 && address <= 0x400010F)
 				{
 					// Timers
 
@@ -400,21 +400,21 @@ namespace Gba.Core
 								else if (address >= 0x4000040 && address <= 0x400004B)
 								{
 									// Window registers
-									if (address == 0x4000040) gba.LcdController.Window[0].Right = value;
-									else if (address == 0x4000041) gba.LcdController.Window[0].Left = value;
-									else if (address == 0x4000042) gba.LcdController.Window[1].Right = value;
-									else if (address == 0x4000043) gba.LcdController.Window[1].Left = value;
-									else if (address == 0x4000044) gba.LcdController.Window[0].Bottom = value;
-									else if (address == 0x4000045) gba.LcdController.Window[0].Top = value;
-									else if (address == 0x4000046) gba.LcdController.Window[1].Bottom = value;
-									else if (address == 0x4000047) gba.LcdController.Window[1].Top = value;
-									else if (address == 0x4000048) gba.LcdController.Window[0].WinIn = value;
-									else if (address == 0x4000049) gba.LcdController.Window[1].WinIn = value;
-									else if (address == 0x400004A) gba.LcdController.WinOutRegister.WinOutL = value;
-									else if (address == 0x400004B) gba.LcdController.WinOutRegister.WinOutH = value;
+									if (address == 0x4000040) gba.LcdController.Windows[0].Right = value;
+									else if (address == 0x4000041) gba.LcdController.Windows[0].Left = value;
+									else if (address == 0x4000042) gba.LcdController.Windows[1].Right = value;
+									else if (address == 0x4000043) gba.LcdController.Windows[1].Left = value;
+									else if (address == 0x4000044) gba.LcdController.Windows[0].Bottom = value;
+									else if (address == 0x4000045) gba.LcdController.Windows[0].Top = value;
+									else if (address == 0x4000046) gba.LcdController.Windows[1].Bottom = value;
+									else if (address == 0x4000047) gba.LcdController.Windows[1].Top = value;
+									else if (address == 0x4000048) gba.LcdController.Windows[0].Register = value;
+									else if (address == 0x4000049) gba.LcdController.Windows[1].Register = value;
+									else if (address == 0x400004A) gba.LcdController.Windows[2].Register = value;
+									else if (address == 0x400004B) gba.LcdController.Windows[3].Register = value;
 									else throw new ArgumentException("Bad Window write");
 								}
-								else if (address >= 0x04000100 && address <= 0x04000110)
+								else if (address >= 0x04000100 && address < 0x400010F)
 								{
 									// Timers
 									if (address == 0x4000100) gba.Timers.Timer[0].ReloadValue0 = value;

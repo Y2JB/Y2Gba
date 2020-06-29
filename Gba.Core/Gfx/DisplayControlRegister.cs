@@ -77,7 +77,7 @@ namespace Gba.Core
         public bool DisplayWin1 { get { return ((Register1 & 0x40) != 0); } }
         public bool DisplayObjWin { get { return ((Register1 & 0x80) != 0); } }
 
-        public bool DisplayBg(int i)
+        public bool BgVisible(int i)
         {
             return ((Register1 & (1 << i)) != 0);
         }

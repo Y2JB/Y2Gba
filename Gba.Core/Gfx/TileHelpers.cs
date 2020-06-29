@@ -34,6 +34,41 @@ namespace Gba.Core
         }
 
 
+        public enum WindowRegion
+        {
+            WindowOut = 0,
+            Window0   = 1 << 0,
+            Window1   = 1 << 1,
+            WindowIn  = 1 << 2,
+            WindowObj = 1 << 3
+        }
+        public static int PixelWindowRegion(int screenX, int screenY, GameboyAdvance gba)
+        {
+            int result = 0;
+
+            if ( gba.LcdController.DisplayControlRegister.DisplayWin0 &&
+                screenX >= gba.LcdController.Windows[0].Left && screenX < gba.LcdController.Windows[0].RightAdjusted() &&
+                screenY >= gba.LcdController.Windows[0].Top && screenY < gba.LcdController.Windows[0].BottomAdjusted())
+            {
+                result |= (int) WindowRegion.Window0;
+                result |= (int) WindowRegion.WindowIn;
+            }
+
+            if (gba.LcdController.DisplayControlRegister.DisplayWin1 &&
+                screenX >= gba.LcdController.Windows[1].Left && screenX < gba.LcdController.Windows[1].RightAdjusted() &&
+                screenY >= gba.LcdController.Windows[1].Top && screenY < gba.LcdController.Windows[1].BottomAdjusted())
+            {
+                result |= (int) WindowRegion.Window1;
+                result |= (int) WindowRegion.WindowIn;
+            }
+
+            // TODO : OBJ WINDOW
+
+
+            return result;
+        }
+
+
         public static Obj FindFirstSpriteThatUsesTile(int tileNumber, Obj[] objs)
         {
             foreach (var obj in objs)

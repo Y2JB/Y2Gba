@@ -50,6 +50,10 @@ namespace Gba.Core
             State = CpuState.Arm;
             Mode = CpuMode.System;
 
+            // Boot from BIOS
+            PC = 0x00000000;
+
+            // Jump straight to the game rom
             PC = 0x08000000;
             SP = 0x03007F00;
             R13 = SP_Fiq = SP_Abt = SP_Und = 0x03007F00;
@@ -57,6 +61,7 @@ namespace Gba.Core
             SP_Irq = 0x03007FA0;
             //reg.r15 = 0x8000000;
             //CPSR = 0x5F;
+            
 
             Cycles = 0;
 

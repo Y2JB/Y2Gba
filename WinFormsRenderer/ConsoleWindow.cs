@@ -52,7 +52,7 @@ namespace WinFormRender
             codeWnd.Multiline = true;
             codeWnd.ReadOnly = true;
             codeWnd.Width = 900;
-            codeWnd.Height = 450;
+            codeWnd.Height = 300;
             codeWnd.Enabled = true;
             codeWnd.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
             this.Controls.Add(codeWnd);
@@ -61,7 +61,7 @@ namespace WinFormRender
             console.Multiline = true;
             console.ReadOnly = true;
             console.Width = 900;
-            console.Height = 450;
+            console.Height = 600;
             console.Enabled = true;
             console.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
             this.Controls.Add(console);
