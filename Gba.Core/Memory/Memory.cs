@@ -543,7 +543,8 @@ namespace Gba.Core
 							// OAM Ram
 							else if (address >= 0x07000000 && address <= 0x07FFFFFF)
 							{
-								OamRam[address - 0x7000000] = value;
+								address &= 0x3FF;
+								OamRam[address] = value;
 							}
 							else if (address >= 0x08000000 && address <= 0x09FFFFFF)
 							{

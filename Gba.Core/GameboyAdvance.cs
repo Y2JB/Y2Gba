@@ -59,20 +59,24 @@ namespace Gba.Core
             //this.Rom = new Rom("../../../../roms/TestRoms/tmr_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/brin_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/obj_demo.gba");
-            this.Rom = new Rom("../../../../roms/TestRoms/win_demo.gba");
+            //this.Rom = new Rom("../../../../roms/TestRoms/win_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/dma_demo.gba");
 
             //this.Rom = new Rom("../../../../roms/NCE-heart.gba");
 
             //this.Rom = new Rom("../../../../roms/Super Dodgeball Advance.gba");
             //this.Rom = new Rom("../../../../roms/Kirby.gba");
-            //this.Rom = new Rom("../../../../roms/Metal Slug Advance (U).gba");
+            this.Rom = new Rom("../../../../roms/Metal Slug Advance (U).gba");
             //this.Rom = new Rom("../../../../roms/Super Mario Advance 2 - Super Mario World (U) [!].gba");
             //this.Rom = new Rom("../../../../roms/Legend of Zelda, The - The Minish Cap (U).gba");
             //this.Rom = new Rom("../../../../roms/Pokemon Mystery Dungeon - Red Rescue Team (U).gba");
             //this.Rom = new Rom("../../../../roms/Teenage Mutant Ninja Turtles.gba");
             //this.Rom = new Rom("../../../../roms/Barbie Horse Adventures.gba");
             //this.Rom = new Rom("../../../../roms/Pokemon Pinball.gba");
+
+            // Intro uses OBJ Win...
+            //this.Rom = new Rom("../../../../roms/Pokemon - Emerald Version (U).gba");
+            
             //this.Rom = new Rom("../../../../roms/Advance Wars.gba");
             //this.Rom = new Rom("../../../../roms/Advanced Wars 2 - Black Hole Rising.gba");
 
@@ -85,7 +89,7 @@ namespace Gba.Core
             this.Dma = new DmaChannel[4];
             for(int i=0; i < 4; i ++)
             {
-                Dma[i] = new DmaChannel(this);
+                Dma[i] = new DmaChannel(this, i);
             }
             
             EmulatorTimer.Reset();

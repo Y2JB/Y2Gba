@@ -51,7 +51,8 @@ namespace Gba.Core
             Mode = CpuMode.System;
 
             // Boot from BIOS
-            PC = 0x00000000;
+            //PC = 0x00000000;
+
 
             // Jump straight to the game rom
             PC = 0x08000000;
@@ -195,6 +196,10 @@ namespace Gba.Core
                 Gba.LcdController.Step();
                 //Gba.Joypad.Step();
                 //Gba.Timers.Step();
+                Gba.Dma[0].Step();
+                Gba.Dma[1].Step();
+                Gba.Dma[2].Step();
+                Gba.Dma[3].Step();
 
                 cycles--;
             }

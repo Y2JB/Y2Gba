@@ -174,6 +174,16 @@ namespace Gba.Core
                         {
                             gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.HBlank);
                         }
+
+                        // Start hblank DMA's (HDMA)
+                        for(int i=0; i < 4; i++)
+                        {
+                            if(gba.Dma[i].DmaCnt.StartTiming == DmaControlRegister.DmaStartTiming.HBlank &&
+                               gba.Dma[i].DmaCnt.ChannelEnabled == true)
+                            {
+                                gba.Dma[i].Started = true;
+                            }
+                        }
                     }
                     break;
 
