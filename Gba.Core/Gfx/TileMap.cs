@@ -41,6 +41,9 @@ namespace Gba.Core
                 screenBlock2[i] = new TileMapEntry(vram);
                 screenBlock3[i] = new TileMapEntry(vram);
             }
+
+            // This reset is important, we have to have default values set as some games don't setup the bg registers, they assume default values
+            Reset();
         }
 
         public int TileCount
@@ -86,16 +89,18 @@ namespace Gba.Core
 
 
         // Returns the item from within a screen block
-        TileMapEntry TileMapItemFromScreenBlockXY(TileMapEntry[] screenBlock, int x, int y)
+        TileMapEntry TileMapEntryFromScreenBlockXY(TileMapEntry[] screenBlock, int x, int y)
         {
             // X & Y can only be 0 - 256 but we can't add checks everytime or things will slow to a crawl, keep this commented out unless debugging 
-            if (x >= 256 || y >= 256)
-            {
-                throw new ArgumentException("Bad screen block call");
-            }
+            //if (x >= 256 || y >= 256)
+            //{
+            //    throw new ArgumentException("Bad screen block call");
+            //}
 
             int tileX = (x / 8);
             int tileY = (y / 8);
+
+            //NB: 32 is the number of TileMap entries per row not a byte count!
             return screenBlock[((tileY * 32) + tileX)];
         }
 
@@ -112,12 +117,12 @@ namespace Gba.Core
                 if (y < 256)
                 {
                     // 00
-                    return TileMapItemFromScreenBlockXY(screenBlock0, x, y);
+                    return TileMapEntryFromScreenBlockXY(screenBlock0, x, y);
                 }
                 else
                 {
                     // 22
-                    return TileMapItemFromScreenBlockXY(screenBlock2, x, y - 256);
+                    return TileMapEntryFromScreenBlockXY(screenBlock2, x, y - 256);
                 }
             }
             else
@@ -126,12 +131,12 @@ namespace Gba.Core
                 if (y < 256)
                 {
                     // 11
-                    return TileMapItemFromScreenBlockXY(screenBlock1, x - 256, y);
+                    return TileMapEntryFromScreenBlockXY(screenBlock1, x - 256, y);
                 }
                 else
                 {
                     // 33
-                    return TileMapItemFromScreenBlockXY(screenBlock3, x - 256, y - 256);
+                    return TileMapEntryFromScreenBlockXY(screenBlock3, x - 256, y - 256);
                 }
             }
 

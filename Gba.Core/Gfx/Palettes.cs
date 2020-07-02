@@ -72,12 +72,18 @@ namespace Gba.Core
         }
 
 
-
         public void DumpPaletteToPng(int paletteNumber)
         {
-            const int Rect_Size = 32;
             var image = new Bitmap(512, 512);
+            DrawPalette(paletteNumber, image);
+            image.Save(string.Format("../../../../dump/palette{0}.png", paletteNumber));
+        }
 
+
+        public void DrawPalette(int paletteNumber, Bitmap image)
+        {
+            const int Rect_Size = 32;
+            
             Color[] palette = paletteNumber == 0 ? Palette0 : Palette1;
 
             using (var graphics = Graphics.FromImage(image))
@@ -107,8 +113,7 @@ namespace Gba.Core
                         graphics.DrawLine(pen, 0, y * Rect_Size, 512, y * Rect_Size);
                     }
                 }
-            }
-            image.Save(string.Format("../../../../dump/palette{0}.png", paletteNumber));
+            }            
         }
     }
 }

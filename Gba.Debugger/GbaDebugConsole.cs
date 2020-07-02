@@ -75,12 +75,20 @@ namespace GbaDebugger
             NextInstructions = new List<StoredInstruction>();
 
             // SB : b $64 if [IO_LY] == 2
-          
+
 
             // scanline 125
             //breakpoints.Add(new IrqBreakpoint(gba, Interrupts.InterruptType.HBlank, true, true));
-            
-            //breakpoints.Add(new Breakpoint(0x000003CC));
+
+            //breakpoints.Add(new Breakpoint(0x08000EFE));
+
+
+            //breakpoints.Add(new Breakpoint(0x08000ef0));
+            //breakpoints.Add(new Breakpoint(0x08000efe));
+            //breakpoints.Add(new Breakpoint(0x08000f00));
+
+            //breakpoints.Add(new Breakpoint(0x8000F08));
+            //breakpoints.Add(new Breakpoint(0x0800efe));
 
             //breakpoints.Add(new Breakpoint(0x64, new ConditionalExpression(snes.memory, 0xFF44, ConditionalExpression.EqualityCheck.Equal, 143)));
 
@@ -494,7 +502,7 @@ namespace GbaDebugger
             ConsoleAddString("Outside Window");
             ConsoleAddString(String.Format("Bgs Visible: {0} {1} {2} {3}", gba.LcdController.Windows[2].DisplayBgInWindow(0) ? "0" : "x", gba.LcdController.Windows[2].DisplayBgInWindow(1) ? "1" : "x", gba.LcdController.Windows[2].DisplayBgInWindow(2) ? "2" : "x", gba.LcdController.Windows[2].DisplayBgInWindow(3) ? "3" : "x"));
             ConsoleAddString(String.Format("Display Objs: {0}", gba.LcdController.Windows[2].DisplayObjs.ToString()));
-            ConsoleAddString(Environment.NewLine);
+            //ConsoleAddString(Environment.NewLine);
 
             ConsoleAddString(String.Format("Obj Window: {0}", gba.LcdController.DisplayControlRegister.DisplayObjWin ? "On" : "Off"));
             if (gba.LcdController.DisplayControlRegister.DisplayObjWin)

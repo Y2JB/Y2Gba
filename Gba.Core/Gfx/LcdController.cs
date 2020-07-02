@@ -356,12 +356,16 @@ namespace Gba.Core
                     }
                     drawScanline = true;
 #else
-                    RenderScanline();
+                    RenderScanlineMode0();
 #endif
                     break;
 
+                case 0x1:
+                    RenderScanlineMode0();
+                    break;
+
                 case 0x4:
-                    // What about sprites here?
+                    // TODO: What about sprites here?
                     RenderMode4Scanline();
                     break;
 
@@ -415,8 +419,9 @@ namespace Gba.Core
 #endif
 
 
-        private void RenderScanline()
+        private void RenderScanlineMode0()
         {
+            // TODO: This only needs to happen when the BG registers are updated 
             Bg[0].CacheRenderData();
             Bg[1].CacheRenderData();
             Bg[2].CacheRenderData();

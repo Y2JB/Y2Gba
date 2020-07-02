@@ -62,6 +62,8 @@ namespace Gba.Core
         public AddressControl SourceAddressControl { get { return (AddressControl)(((dmaCntRegister0 & 0x80) >> 7) + ((dmaCntRegister1 & 0x1) * 2)); } }
 
 
+        public int GamePakDrq { get { return ((dmaCntRegister1 & 0x08) >> 3); } }
+
 
         public enum DmaTransferType
         {

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 namespace Gba.Core
@@ -62,17 +63,22 @@ namespace Gba.Core
 
         public void Step()
         {
+            /* You cannot support this until you are cycle accurate otherwise dma's mess up
             if (DelayTransfer > 0)
             {
                 DelayTransfer--;
                 return;
-            }
+            }*/
 
             if(DmaCnt.ChannelEnabled == false)
             {
                 return;
-            }
-
+            }  
+            
+            //if(DmaCnt.StartTiming != DmaControlRegister.DmaStartTiming.Special)
+            //{
+            //    gba.LogMessage(String.Format("DMA: Ch: {0} Source 0x{1:X} Dest 0x{2:X} Size 0x{3:X}", channelNumber, SourceAddress, DestAddress, WordCount));
+            //}
 
             switch(DmaCnt.StartTiming)
             {
@@ -92,7 +98,15 @@ namespace Gba.Core
                     break;
 
                 case DmaControlRegister.DmaStartTiming.Special:
-                    gba.LogMessage("WARNING: DmaStartTiming.Special");
+
+                    if (channelNumber == 1 || channelNumber == 2)
+                    {
+                        //Transfer();
+                    }
+                    else
+                    {
+                        gba.LogMessage("WARNING: Invalid DmaStartTiming.Special");
+                    }
                     break;
 
                 default:
@@ -105,6 +119,7 @@ namespace Gba.Core
         void Transfer()
         {
             // unit == 2 or 4 bytes depending on transfer type
+            
             int unitsToTransfer = WordCount;
             if (unitsToTransfer == 0)
             {
@@ -112,12 +127,47 @@ namespace Gba.Core
                 else unitsToTransfer = 0x4000;
             }
 
-            // Align addresses to half word
-            UInt32 sourceAddress = (UInt32) (SourceAddress & ~0x1);
-            UInt32 destinationAddress = (UInt32) (DestAddress & ~0x1);
+            if (channelNumber == 3)
+            {
+                if (DmaCnt.GamePakDrq != 0)
+                {
+                    throw new NotImplementedException("DMA: GamePakDrq");
+                }
+
+                if ((DestAddress >= 0xD000000) && (DestAddress <= 0xDFFFFFF))
+                {
+                    throw new NotImplementedException("DMA: EEPROM DMA");
+                }
+            }
 
             DmaControlRegister.DmaTransferType transferType = DmaCnt.TransferType;
-            UInt32 unitSize = transferType == DmaControlRegister.DmaTransferType.U16 ? 2u : 4u;
+            UInt32 unitSize;
+
+            
+            // TODO: this is different for each channel, also check the 'checked' memory fucntions which is doing stuff
+            //SourceAddress &= 0xFFFFFFF;
+            //DestAddress &= 0xFFFFFFF;
+
+
+            UInt32 sourceAddress = SourceAddress;
+            UInt32 destinationAddress = DestAddress;
+
+            if (transferType == DmaControlRegister.DmaTransferType.U16)
+            {
+                unitSize = 2u;
+
+                // Align addresses to half word 
+                sourceAddress &= ~0x1u;
+                destinationAddress &= ~0x1u;
+            }
+            else
+            {
+                unitSize = 4u;
+
+                // Align addresses to word
+                sourceAddress &= ~0x3u;
+                destinationAddress &= ~0x3u;
+            }
 
             while (unitsToTransfer > 0)
             {
@@ -136,6 +186,7 @@ namespace Gba.Core
                 // Address control
                 if (DmaCnt.SourceAddressControl == DmaControlRegister.AddressControl.Increment) sourceAddress += unitSize;
                 else if (DmaCnt.SourceAddressControl == DmaControlRegister.AddressControl.Decrement) sourceAddress -= unitSize;
+                // This is not allowed but it does happen. Treat it as Increment
                 else if (DmaCnt.SourceAddressControl == DmaControlRegister.AddressControl.IncrementAndReload) sourceAddress += unitSize;
 
                 if (DmaCnt.DestinationAddressControl == DmaControlRegister.AddressControl.Increment) destinationAddress += unitSize;

@@ -79,6 +79,12 @@ namespace Gba.Core
             int currentSpriteColumnInTiles = spriteX / 8;
             if (Attributes.HorizontalFlip) currentSpriteColumnInTiles = (spriteWidthInTiles - 1) - currentSpriteColumnInTiles;
 
+            if(Attributes.Mode == ObjAttributes.ObjMode.SemiTransparent)
+            {
+                // Blending 
+                //throw new NotImplementedException();
+            }
+
             int currentColumnWithinTile = spriteX % 8;
 
             // This offset will be set to point to the start of the next 8x8 tile we will draw

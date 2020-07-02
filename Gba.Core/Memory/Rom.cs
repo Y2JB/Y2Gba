@@ -56,6 +56,7 @@ namespace Gba.Core
             Cache16BitRomValues();
 
             RomName = Encoding.UTF8.GetString(romData, RomNameOffset, 12).TrimEnd((Char)0);
+            RomName = RomName.Replace("/", String.Empty);
 
             EntryPoint = ReadWord(0);
         }

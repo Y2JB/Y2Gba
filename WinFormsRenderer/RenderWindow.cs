@@ -27,6 +27,7 @@ namespace WinFormRender
        
         ConsoleWindow consoleWindow;
         TtyConsole ttyConsole;
+        GfxInspector gfxInspectorWindow;
 
         Stopwatch timer = new Stopwatch();
         long elapsedMs;
@@ -65,11 +66,11 @@ namespace WinFormRender
             consoleWindow = new ConsoleWindow(gba, dbgConsole);
             consoleWindow.VisibleChanged += ConsoleWindow_VisibleChanged;
             consoleWindow.Show();
-
-            
-
+           
             ttyConsole = new TtyConsole(gba);
             //ttyConsole.Show();
+
+            gfxInspectorWindow = new GfxInspector(gba);
 
             this.Text = gba.Rom.RomName;
             KeyDown += OnKeyDown;
@@ -93,7 +94,7 @@ namespace WinFormRender
                         {
                             new ToolStripMenuItem("Console", null, (sender, args) => { consoleWindow.Visible = !consoleWindow.Visible; }),
                             new ToolStripMenuItem("Tty", null, (sender, args) => { ttyConsole.Visible = !ttyConsole.Visible; }),
-                            //new ToolStripMenuItem("Bg Viewer", null, (sender, args) => { bgWnd.Visible = !bgWnd.Visible; })
+                            new ToolStripMenuItem("Gfx Inspector", null, (sender, args) => { gfxInspectorWindow.Visible = !gfxInspectorWindow.Visible; })
                         }
                     }
                 }
@@ -169,6 +170,7 @@ namespace WinFormRender
             }
         }
 
+
         private void OnKeyDown(Object o, KeyEventArgs a)
         {
             if (InvokeRequired)
@@ -187,6 +189,7 @@ namespace WinFormRender
             else if (a.KeyCode == Keys.Enter) gba.Joypad.UpdateKeyState(Joypad.GbaKey.Start, true);
             else if (a.KeyCode == Keys.Back) gba.Joypad.UpdateKeyState(Joypad.GbaKey.Select, true);
         }
+
 
         private void OnKeyUp(Object o, KeyEventArgs a)
         {
@@ -314,15 +317,13 @@ namespace WinFormRender
                 framesDrawn = 0;
             }
 
-            /*
-            // If the Bg viewer is open, then update it at 5fps
-            if (bgWnd.Visible &&
-                timer.ElapsedMilliseconds - elapsedMsBgWin >= (200))
+            // If the Bg viewer is open, then update it at a lower fps
+            if (gfxInspectorWindow.Visible) // &&
+                //timer.ElapsedMilliseconds - elapsedMsBgWin >= (200))
             {
-                elapsedMsBgWin = timer.ElapsedMilliseconds;
-                bgWnd.RenderBg();
-            }             
-            */
+                //elapsedMsBgWin = timer.ElapsedMilliseconds;
+                gfxInspectorWindow.RenderPalettes();
+            }
 
             // Wait for previous frame to finish drawing while also locking to 60fps
             while (drawFrame)

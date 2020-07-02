@@ -23,6 +23,7 @@ namespace Gba.Core
         int bgWidthInPixel;
         int bgHeightInPixel;
         bool eightBitColour;
+        int tileSize;
 
         public int BgNumber { get; private set; }
 
@@ -38,6 +39,7 @@ namespace Gba.Core
             TileMap = new TileMap(gba.Memory.VRam, gba.LcdController.BgControlRegisters[bgNumber], bgNumber);
         }
 
+
         public void CacheRenderData()
         {          
             // TODO: Just make this a LUT
@@ -48,7 +50,9 @@ namespace Gba.Core
             bgHeightInPixel = HeightInPixels();
 
             eightBitColour = CntRegister.PaletteMode == BgPaletteMode.PaletteMode256x1;
+            tileSize = (eightBitColour ? LcdController.Tile_Size_8bit : LcdController.Tile_Size_4bit);
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int PixelValue(int screenX, int screenY)
@@ -80,9 +84,7 @@ namespace Gba.Core
             if (eightBitColour == false)
             {
                 paletteOffset = tileMetaData.Palette * 16;
-            }
-
-            int tileSize = (eightBitColour ? LcdController.Tile_Size_8bit : LcdController.Tile_Size_4bit);
+            }            
 
             int tileVramOffset = (int)(tileDataVramOffset + ((tileMetaData.TileNumber) * tileSize));
 

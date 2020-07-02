@@ -195,7 +195,7 @@ namespace Gba.Core
             {
                 Gba.LcdController.Step();
                 //Gba.Joypad.Step();
-                //Gba.Timers.Step();
+                //Gba.Timers.Update();
                 Gba.Dma[0].Step();
                 Gba.Dma[1].Step();
                 Gba.Dma[2].Step();
