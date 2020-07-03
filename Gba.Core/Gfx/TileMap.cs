@@ -12,8 +12,8 @@ namespace Gba.Core
 
 
         // BG's are laid out in memory in 'screen blocks' like so:
-        //   0011
-        //   2233
+        // |00|or  |0011| or |00| or |0011| 
+        //                   |11|    |2233|
         // Where 00, 11, 22, 33 are each a single screen block of 32x32 tiles (256x256 pixels). Therefore pixel (256, 0) is in tile screen block in 11
         // 00 uses BG screen base address (Bit 8-12 of BG#CNT), 11 uses same address +2K, 22 address +4K, 33 address +6K
         TileMapEntry[] screenBlock0;
@@ -113,7 +113,7 @@ namespace Gba.Core
             // 2233
             if(x < 256)
             {
-                // Must be 00 or 22
+                // Must be 00 or 22 except in the special case of 256x512
                 if (y < 256)
                 {
                     // 00
@@ -121,8 +121,13 @@ namespace Gba.Core
                 }
                 else
                 {
-                    // 22
-                    return TileMapEntryFromScreenBlockXY(screenBlock2, x, y - 256);
+                    // 00
+                    // 11
+                    if(cntReg.Size == BgSize.Bg256x512) return TileMapEntryFromScreenBlockXY(screenBlock1, x, y - 256);
+                    
+                    // 0011
+                    // 2233
+                    else return TileMapEntryFromScreenBlockXY(screenBlock2, x, y - 256);
                 }
             }
             else

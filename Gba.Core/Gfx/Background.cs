@@ -96,6 +96,8 @@ namespace Gba.Core
         }
 
 
+
+        // Used for debug rendering BG's. Renders the source BG, does not scroll etc 
         public void RenderMode0Scanline(int scanline, int scanlineWidth, DirectBitmap drawBuffer)
         {
             Color[] palette = gba.LcdController.Palettes.Palette0;
@@ -103,28 +105,15 @@ namespace Gba.Core
 
             bool eightBitColour = CntRegister.PaletteMode == BgPaletteMode.PaletteMode256x1;
 
-            int scrollX = ScrollX;
-            if (scrollX >= bgWidthInPixel) scrollX -= bgWidthInPixel;
-
-            int scrollY = ScrollY;
-            if (scrollY >= bgHeightInPixel) scrollY -= bgHeightInPixel;
-
-            int wrappedBgY = scrollY + scanline;
-            if (wrappedBgY >= bgHeightInPixel) wrappedBgY -= bgHeightInPixel;
-
             // Which line within the current tile are we rendering?
-            int tileRow = wrappedBgY % 8;
+            int tileRow = scanline % 8;
 
             for (int x = 0; x < scanlineWidth; x ++)
             {
-                // If we reach the edge of the Bg, wrap around
-                int wrappedBgX = scrollX + x;
-                if (wrappedBgX >= bgWidthInPixel) wrappedBgX -= bgWidthInPixel;
-
                 // Which column within the current tile are we rendering?
-                int tileColumn = wrappedBgX % 8;
+                int tileColumn = x % 8;
 
-                var tileMetaData = TileMap.TileMapItemFromBgXY(wrappedBgX, wrappedBgY);
+                var tileMetaData = TileMap.TileMapItemFromBgXY(x, scanline);
 
                 // If we are in 4 bpp mode the tilemap contains which 16 colour palette to use. 16 entries per palette
                 if (eightBitColour == false)

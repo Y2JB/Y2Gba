@@ -388,8 +388,8 @@ namespace Gba.Core
 			if (shiftOut == 1) SetFlag(StatusFlag.Carry);
 			else if (shiftOut == 0) ClearFlag(StatusFlag.Carry);
 
-			//Clock CPU and controllers - 1S
-			//clock(reg.r15, false);
+			// 1S
+			CycleWithAccessTiming(R15, false);
 		}
 
 		// THUMB.2
@@ -463,8 +463,8 @@ namespace Gba.Core
 			if ((op & 0x1) != 0) { UpdateFlagsForArithmeticOps(input, operand, result, false); }
 			else { UpdateFlagsForArithmeticOps(input, operand, result, true); }
 
-			//Clock CPU and controllers - 1S
-			//clock(reg.r15, false);
+			// 1S
+			CycleWithAccessTiming(R15, false);
 		}
 
 
@@ -508,8 +508,8 @@ namespace Gba.Core
 
 					SetRegisterValue(destReg, result);
 
-					//Clock CPU and controllers - 1S
-					//clock(reg.r15, false);
+					// 1S
+					CycleWithAccessTiming(R15, false);
 
 					break;
 
@@ -531,8 +531,8 @@ namespace Gba.Core
 
 					SetRegisterValue(destReg, result);
 
-					//Clock CPU and controllers - 1S
-					//clock(reg.r15, false);
+					// 1S
+					CycleWithAccessTiming(R15, false);
 
 					break;
 
@@ -560,13 +560,12 @@ namespace Gba.Core
 						else if (shiftOut == 0) ClearFlag(StatusFlag.Carry);
 					}
 
-					//Clock CPU and controllers - 1I
-					//clock();
+					Cycle();
 
 					SetRegisterValue(destReg, result);
 
-					//Clock CPU and controllers - 1S
-					//clock((reg.r15 + 2), false);
+					// 1S
+					CycleWithAccessTiming((R15 + 2), false);
 
 					break;
 
@@ -594,13 +593,12 @@ namespace Gba.Core
 						else if (shiftOut == 0) ClearFlag(StatusFlag.Carry);
 					}
 
-					//Clock CPU and controllers - 1I
-					//clock();
+					Cycle();
 
 					SetRegisterValue(destReg, result);
 
-					//Clock CPU and controllers - 1S
-					//clock((reg.r15 + 2), false);
+					// 1S
+					CycleWithAccessTiming((R15 + 2), false);
 
 					break;
 
@@ -628,13 +626,12 @@ namespace Gba.Core
 						else if (shiftOut == 0) ClearFlag(StatusFlag.Carry);
 					}
 
-					//Clock CPU and controllers - 1I
-					//clock();
+					Cycle();
 
 					SetRegisterValue(destReg, result);
 
-					//Clock CPU and controllers - 1S
-					//clock((reg.r15 + 2), false);
+					// 1S
+					CycleWithAccessTiming((R15 + 2), false);
 
 					break;
 
@@ -651,8 +648,8 @@ namespace Gba.Core
 
 					SetRegisterValue(destReg, result);
 
-					//Clock CPU and controllers - 1S
-					//clock(reg.r15, false);
+					// 1S
+					CycleWithAccessTiming(R15, false);
 
 					break;
 
@@ -679,8 +676,8 @@ namespace Gba.Core
 
 					SetRegisterValue(destReg, result);
 
-					//Clock CPU and controllers - 1S
-					//clock(reg.r15, false);
+					// 1S
+					CycleWithAccessTiming(R15, false);
 
 					break;
 
@@ -708,13 +705,12 @@ namespace Gba.Core
 						else if (shiftOut == 0) ClearFlag(StatusFlag.Carry);
 					}
 
-					//Clock CPU and controllers - 1I
-					//clock();
+					Cycle();
 
 					SetRegisterValue(destReg, result);
 
-					//Clock CPU and controllers - 1S
-					//clock(reg.r15, false);
+					// 1S
+					CycleWithAccessTiming(R15, false);
 
 					break;
 
@@ -734,8 +730,8 @@ namespace Gba.Core
 					if ((result & 0x80000000) != 0) SetFlag(StatusFlag.Negative);
 					else ClearFlag(StatusFlag.Negative);
 
-					//Clock CPU and controllers - 1S
-					//clock(reg.r15, false);
+					// 1S
+					CycleWithAccessTiming(R15, false);
 
 					break;
 
@@ -753,8 +749,8 @@ namespace Gba.Core
 
 					SetRegisterValue(destReg, result);
 
-					//Clock CPU and controllers - 1S
-					//clock(reg.r15, false);
+					// 1S
+					CycleWithAccessTiming(R15, false);
 
 					break;
 
@@ -770,8 +766,8 @@ namespace Gba.Core
 
 					UpdateFlagsForArithmeticOps(input, operand, result, false);
 
-					//Clock CPU and controllers - 1S
-					//clock(reg.r15, false);
+					// 1S
+					CycleWithAccessTiming(R15, false);
 
 					break;
 
@@ -786,8 +782,8 @@ namespace Gba.Core
 					result = (input + operand);
 					UpdateFlagsForArithmeticOps(input, operand, result, true);
 
-					//Clock CPU and controllers - 1S
-					//clock(reg.r15, false);
+					// 1S
+					CycleWithAccessTiming(R15, false);
 
 					break;
 
@@ -809,8 +805,8 @@ namespace Gba.Core
 
 					SetRegisterValue(destReg, result);
 
-					//Clock CPU and controllers - 1S
-					//clock(reg.r15, false);
+					// 1S
+					CycleWithAccessTiming(R15, false);
 
 					break;
 
@@ -854,8 +850,8 @@ namespace Gba.Core
 
 					SetRegisterValue(destReg, result);
 
-					//Clock CPU and controllers - 1S
-					//clock(reg.r15, false);
+					// 1S
+					CycleWithAccessTiming(R15, false);
 
 					break;
 
@@ -877,8 +873,8 @@ namespace Gba.Core
 
 					SetRegisterValue(destReg, result);
 
-					//Clock CPU and controllers - 1S
-					//clock(reg.r15, false);
+					// 1S
+					CycleWithAccessTiming(R15, false);
 
 					break;
 			}
@@ -961,8 +957,8 @@ namespace Gba.Core
 			// Do not update the destination register if CMP is the operation!
 			if (op != 1) SetRegisterValue(destReg, result);
 
-			//Clock CPU and controllers - 1S
-			//clock(reg.r15, false);
+			// 1S
+			CycleWithAccessTiming(R15, false);
 		}
 
 
@@ -1015,8 +1011,8 @@ namespace Gba.Core
 						result = (input + operand);
 						SetRegisterValue(destReg, result);
 
-						//Clock CPU and controllers - 1S
-						//clock(reg.r15, false);
+						// 1S
+						CycleWithAccessTiming(R15, false);
 					}
 
 					// Destination is PC
@@ -1025,16 +1021,16 @@ namespace Gba.Core
 						// When the destination register is the PC, auto-align operand to half-word
 						operand &= ~0x1U;
 
-						//Clock CPU and controllers - 1N
-						//clock(reg.r15, true);
+						// 1N
+						CycleWithAccessTiming(R15, true);
 
 						result = (input + operand);
 						SetRegisterValue(destReg, result);
 						requestFlushPipeline = true;
 
-						//Clock CPU and controllers - 2S
-						//clock(reg.r15, false);
-						//clock((reg.r15 + 2), false);
+						// 2S
+						CycleWithAccessTiming(R15, false);
+						CycleWithAccessTiming((R15 + 2), false);
 					}
 					break;
 
@@ -1050,8 +1046,8 @@ namespace Gba.Core
 					result = (input - operand);
 					UpdateFlagsForArithmeticOps(input, operand, result, false);
 
-					//Clock CPU and controllers - 1S
-					//clock(reg.r15, false);
+					// 1S
+					CycleWithAccessTiming(R15, false);
 
 					break;
 
@@ -1069,8 +1065,8 @@ namespace Gba.Core
 						result = operand;
 						SetRegisterValue(destReg, result);
 
-						//Clock CPU and controllers - 1S
-						//clock(reg.r15, false);
+						// 1S
+						CycleWithAccessTiming(R15, false);
 					}
 
 					// Operand is PC
@@ -1079,16 +1075,16 @@ namespace Gba.Core
 						// When the destination register is the PC, auto-align operand to half-word
 						operand &= ~0x1U;
 
-						//Clock CPU and controllers - 1N
-						//clock(reg.r15, true);
+						// 1N
+						CycleWithAccessTiming(R15, true);
 
 						result = operand;
 						SetRegisterValue(destReg, result);
 						requestFlushPipeline = true;
 
-						//Clock CPU and controllers - 2S
-						//clock(reg.r15, false);
-						//clock((reg.r15 + 2), false);
+						// 2S
+						CycleWithAccessTiming(R15, false);
+						CycleWithAccessTiming((R15 + 2), false);
 					}
 
 					break;
@@ -1112,8 +1108,8 @@ namespace Gba.Core
 						operand &= ~0x1U; 
 					}
 
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
+					// 1N
+					CycleWithAccessTiming(R15, true);
 
 					// Auto-align PC when using R15 as an operand
 					if (srcReg == 15)
@@ -1125,9 +1121,9 @@ namespace Gba.Core
 						PC = operand; 
 					}
 
-					//Clock CPU and controllers - 2S
-					//clock(reg.r15, false);
-					//clock((reg.r15 + 2), false);
+					// 2S
+					CycleWithAccessTiming(R15, false);
+					CycleWithAccessTiming((R15 + 2), false);
 
 					requestFlushPipeline = true;
 					break;
@@ -1154,18 +1150,18 @@ namespace Gba.Core
 				return;
 			}
 
-			//Clock CPU and controllers - 1N
-			//clock(reg.r15, true);
+			// 1N
+			CycleWithAccessTiming(R15, true);
 
-			//Clock CPU and controllers - 1I
 			//mem_check_32(load_addr, value, true);
 			Memory.ReadWriteWord_Checked(load_addr, ref value, true);
 			//value = Memory.ReadWord(load_addr);
-			//clock();
+			
+			Cycle();
 
-			//Clock CPU and controllers - 1S
+			// 1S
 			SetRegisterValue(dest_reg, value);
-			//clock((reg.r15 + 2), false);
+			CycleWithAccessTiming((R15 + 2), false);
 		}
 
 
@@ -1199,14 +1195,14 @@ namespace Gba.Core
 						return;
 					}
 
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
+					// 1N
+					CycleWithAccessTiming(R15, true);
 
-					//Clock CPU and controllers - 1N
+					// 1N
 					value = GetRegisterValue(srcDestReg);
 					//mem->write_u32(op_addr, value);
 					Memory.WriteWord(opAddr, value);
-					//clock(op_addr, true);
+					CycleWithAccessTiming(opAddr, true);
 
 					break;
 
@@ -1218,16 +1214,16 @@ namespace Gba.Core
 						return;
 					}
 
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
+					// 1N
+					CycleWithAccessTiming(R15, true);
 
-					//Clock CPU and controllers - 1N
+					// 1N
 					value = GetRegisterValue(srcDestReg);
 					value &= 0xFF;
 					//mem_check_8(op_addr, value, false);
 					Memory.ReadWriteByte_Checked(opAddr, ref value, false);
 					//Memory.WriteByte(opAddr, (byte)value);
-					//clock(op_addr, true);
+					CycleWithAccessTiming(opAddr, true);
 
 					break;
 
@@ -1239,18 +1235,18 @@ namespace Gba.Core
 						return;
 					}
 
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
+					// 1N
+					CycleWithAccessTiming(R15, true);
 
-					//Clock CPU and controllers - 1I
 					//mem_check_32(op_addr, value, true);
 					//value = Memory.ReadWord(opAddr);
 					Memory.ReadWriteWord_Checked(opAddr, ref value, true);
-					//clock();
 
-					//Clock CPU and controllers - 1S
+					Cycle();
+
+					// 1S
 					SetRegisterValue(srcDestReg, value);
-					//clock((reg.r15 + 2), false);
+					CycleWithAccessTiming((R15 + 2), false);
 
 					break;
 
@@ -1261,18 +1257,19 @@ namespace Gba.Core
 						peekString = String.Format("LDRB {0},[${1:X}]", GetRegisterName(srcDestReg), opAddr);
 						return;
 					}
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
 
-					//Clock CPU and controllers - 1I
+					// 1N
+					CycleWithAccessTiming(R15, true);
+
 					//mem_check_8(op_addr, value, true);
 					Memory.ReadWriteByte_Checked(opAddr, ref value, true);
 					//value = Memory.ReadByte(opAddr);
-					//clock();
 
-					//Clock CPU and controllers - 1S
+					Cycle();
+
+					// 1S
 					SetRegisterValue(srcDestReg, value);
-					//clock((reg.r15 + 2), false);
+					CycleWithAccessTiming((R15 + 2), false);
 
 					break;
 			}
@@ -1306,16 +1303,16 @@ namespace Gba.Core
 						peekString = String.Format("STRh {0}, ({1} + {2})", GetRegisterName(srcDestReg), GetRegisterName(baseReg), GetRegisterName(offsetReg));
 						return;
 					}
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
+					// 1N
+					CycleWithAccessTiming(R15, true);
 
-					//Clock CPU and controllers - 1N
+					// 1N
 					value = GetRegisterValue(srcDestReg);
 					value &= 0xFFFF;
 					//mem_check_16(op_addr, value, false);
 					Memory.ReadWriteHalfWord_Checked(opAddr, ref value, false);
 					//Memory.WriteHalfWord(opAddr, (ushort) value);
-					//clock(reg.r15, true);
+					CycleWithAccessTiming(R15, true);
 					break;
 
 				//LDSB
@@ -1325,13 +1322,13 @@ namespace Gba.Core
 						peekString = String.Format("LDSB {0}, ({1} + {2})", GetRegisterName(srcDestReg), GetRegisterName(baseReg), GetRegisterName(offsetReg));
 						return;
 					}
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
+					// 1N
+					CycleWithAccessTiming(R15, true);
 
-					//Clock CPU and controllers - 1I
 					//value = mem->read_u8(op_addr);
 					value = Memory.ReadByte(opAddr);
-					//clock();
+
+					Cycle();
 
 					// Sign extend from Bit 7
 					if ((value & 0x80) != 0) 
@@ -1341,7 +1338,7 @@ namespace Gba.Core
 
 					// Clock CPU and controllers - 1S
 					SetRegisterValue(srcDestReg, value);
-					//clock((reg.r15 + 2), false);
+					CycleWithAccessTiming((R15 + 2), false);
 					break;
 
 				//LDRH
@@ -1353,18 +1350,18 @@ namespace Gba.Core
 					}
 					//Since value is u32 and 0, it is already zero-extended :)
 
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
+					// 1N
+					CycleWithAccessTiming(R15, true);
 
-					//Clock CPU and controllers - 1I
 					//mem_check_16(op_addr, value, true);
 					Memory.ReadWriteHalfWord_Checked(opAddr, ref value, true);
 					//value = Memory.ReadHalfWord(opAddr);
-					//clock();
 
-					//Clock CPU and controllers - 1S
+					Cycle();
+
+					// 1S
 					SetRegisterValue(srcDestReg, value);
-					//clock((reg.r15 + 2), false);
+					CycleWithAccessTiming((R15 + 2), false);
 					break;
 
 				//LDSH
@@ -1374,14 +1371,14 @@ namespace Gba.Core
 						peekString = String.Format("LDSH {0}, ({1} + {2})", GetRegisterName(srcDestReg), GetRegisterName(baseReg), GetRegisterName(offsetReg));
 						return;
 					}
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
+					// 1N
+					CycleWithAccessTiming(R15, true);
 
-					//Clock CPU and controllers - 1I
 					//mem_check_16(op_addr, value, true);
 					Memory.ReadWriteHalfWord_Checked(opAddr, ref value, true);
 					//value = Memory.ReadHalfWord(opAddr);
-					//clock();
+
+					Cycle();
 
 					// Sign extend from Bit 15
 					if ((value & 0x8000) != 0) 
@@ -1389,9 +1386,9 @@ namespace Gba.Core
 						value |= 0xFFFF0000; 
 					}
 
-					//Clock CPU and controllers - 1S
+					// 1S
 					SetRegisterValue(srcDestReg, value);
-					//clock((reg.r15 + 2), false);
+					CycleWithAccessTiming((R15 + 2), false);
 					break;
 			}
 		}
@@ -1420,11 +1417,11 @@ namespace Gba.Core
 			{
 				// STR
 				case 0x0:
-					//Clock CPU and controllers - 1N
+					// 1N
 					value = GetRegisterValue(srcDestReg);
 					offset <<= 2;
 					opAddr += offset;
-					//clock(reg.r15, true);
+					CycleWithAccessTiming(R15, true);
 
 					if (peek)
 					{
@@ -1432,19 +1429,19 @@ namespace Gba.Core
 						return;
 					}
 
-					//Clock CPU and controllers - 1N
+					// 1N
 					//mem_check_32(op_addr, value, false);
 					Memory.WriteWord(opAddr, value);
-					//clock(op_addr, true);
+					CycleWithAccessTiming(opAddr, true);
 
 					break;
 
 				// LDR
 				case 0x1:
-					//Clock CPU and controllers - 1N
+					// 1N
 					offset <<= 2;
 					opAddr += offset;
-					//clock(reg.r15, true);
+					CycleWithAccessTiming(R15, true);
 
 					if (peek)
 					{
@@ -1452,24 +1449,24 @@ namespace Gba.Core
 						return;
 					}
 
-					//Clock CPU and controllers - 1I
 					//mem_check_32(op_addr, value, true);
 					Memory.ReadWriteWord_Checked(opAddr, ref value, true);
 					//value = Memory.ReadWord(opAddr);
-					//clock();
 
-					//Clock CPU and controllers - 1S
+					Cycle();
+
+					// 1S
 					SetRegisterValue(srcDestReg, value);
-					//clock((reg.r15 + 2), false);
+					CycleWithAccessTiming((R15 + 2), false);
 
 					break;
 
 				// STRB
 				case 0x2:
-					//Clock CPU and controllers - 1N
+					// 1N
 					value = GetRegisterValue(srcDestReg);
 					opAddr += offset;
-					//clock(reg.r15, true);
+					CycleWithAccessTiming(R15, true);
 
 					if (peek)
 					{
@@ -1477,19 +1474,19 @@ namespace Gba.Core
 						return;
 					}
 
-					//Clock CPU and controllers - 1N
+					// 1N
 					//mem_check_8(op_addr, value, false);
 					Memory.ReadWriteByte_Checked(opAddr, ref value, false);
 					//Memory.WriteByte(opAddr, (byte)value);
-					//clock(op_addr, true);
+					CycleWithAccessTiming(opAddr, true);
 
 					break;
 
 				// LDRB
 				case 0x3:
-					//Clock CPU and controllers - 1N
+					// 1N
 					opAddr += offset;
-					//clock(reg.r15, true);
+					CycleWithAccessTiming(R15, true);
 
 					if (peek)
 					{
@@ -1497,15 +1494,15 @@ namespace Gba.Core
 						return;
 					}
 
-					//Clock CPU and controllers - 1I
 					//mem_check_8(op_addr, value, true);
 					Memory.ReadWriteByte_Checked(opAddr, ref value, true);
 					//value = Memory.ReadByte(opAddr);
-					//clock();
 
-					//Clock CPU and controllers - 1S
+					Cycle();
+
+					// 1S
 					SetRegisterValue(srcDestReg, value);
-					//clock((reg.r15 + 2), false);
+					CycleWithAccessTiming((R15 + 2), false);
 
 					break;
 			}
@@ -1544,15 +1541,15 @@ namespace Gba.Core
 						return;
 					}
 
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
+					// 1N
+					CycleWithAccessTiming(R15, true);
 
-					//Clock CPU and controllers - 1N
+					// 1N
 					value = GetRegisterValue(srcDestReg);
 					//mem_check_16(op_addr, value, false);
 					Memory.ReadWriteHalfWord_Checked(opAddr, ref value, false);
 					//Memory.WriteHalfWord(opAddr, (ushort) value);
-					//clock(op_addr, true);
+					CycleWithAccessTiming(opAddr, true);
 
 					break;
 
@@ -1564,18 +1561,17 @@ namespace Gba.Core
 						return;
 					}
 
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
+					// 1N
+					CycleWithAccessTiming(R15, true);
 
-					//Clock CPU and controllers - 1I
 					//mem_check_16(op_addr, value, true);
 					Memory.ReadWriteHalfWord_Checked(opAddr, ref value, true);
 					//value = Memory.ReadHalfWord(opAddr);
-					//clock();
+					Cycle();
 
-					//Clock CPU and controllers - 1S
+					// 1S
 					SetRegisterValue(srcDestReg, value);
-					//clock((reg.r15 + 2), false);
+					CycleWithAccessTiming((R15 + 2), false);
 
 					break;
 			}
@@ -1611,14 +1607,14 @@ namespace Gba.Core
 						return;
 					}
 
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
+					// 1N
+					CycleWithAccessTiming(R15, true);
 
-					//Clock CPU and controllers - 1N
+					// 1N
 					value = GetRegisterValue(srcDestReg);
 					//mem_check_32(op_addr, value, false);
 					Memory.WriteWord(opAddr, value);
-					//clock(op_addr, true);
+					CycleWithAccessTiming(opAddr, true);
 
 					break;
 
@@ -1629,17 +1625,17 @@ namespace Gba.Core
 						peekString = String.Format("LDR {0},SP", GetRegisterName(srcDestReg));
 						return;
 					}
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
+					// 1N
+					CycleWithAccessTiming(R15, true);
 
-					//Clock CPU and controllers - 1I
 					//mem_check_32(op_addr, value, true);
 					value = Memory.ReadWord(opAddr);
-					//clock();
 
-					//Clock CPU and controllers - 1S
+					Cycle();
+
+					// 1S
 					SetRegisterValue(srcDestReg, value);
-					//clock((reg.r15 + 2), false);
+					CycleWithAccessTiming((R15 + 2), false);
 
 					break;
 			}
@@ -1689,8 +1685,8 @@ namespace Gba.Core
 					break;
 			}
 
-			//Clock CPU and controllers - 1S
-			//clock(reg.r15, false);
+			// 1S
+			CycleWithAccessTiming(R15, false);
 		}
 
 
@@ -1736,8 +1732,8 @@ namespace Gba.Core
 			//Update stack pointer for current CPU mode
 			SP = r13;
 
-			//Clock CPU and controllers - 1S
-			//clock(reg.r15, false);
+			// 1S
+			CycleWithAccessTiming(R15, false);
 		}
 
 
@@ -1779,8 +1775,8 @@ namespace Gba.Core
 						return;
 					}
 
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
+					// 1N
+					CycleWithAccessTiming(R15, true);
 
 					//Optionally store LR onto the stack
 					if (pcLr)
@@ -1790,8 +1786,8 @@ namespace Gba.Core
 						Memory.WriteWord(sp, lr);
 						LR = lr;
 
-						//Clock CPU and controllers - 1S
-						//clock(r13, false);
+						// 1S
+						CycleWithAccessTiming(R13, false);
 					}
 
 					//Cycle through the register list
@@ -1804,17 +1800,18 @@ namespace Gba.Core
 							//mem_check_32(r13, push_value, false);
 							Memory.WriteWord(sp, push_value);
 
-							//Clock CPU and controllers - (n)S
+							// (n)S
 							if ((nCount - 1) != 0) 
 							{ 
-								//clock(r13, false); 
+								CycleWithAccessTiming(R13, false); 
 								nCount--; 
 							}
 
-							//Clock CPU and controllers - 1N
+							// 1N
 							else 
 							{ 
-								//clock(r13, true); x = 10; 
+								CycleWithAccessTiming(R13, true); 
+								x = 10; 
 								break; 
 							}
 						}
@@ -1830,8 +1827,8 @@ namespace Gba.Core
 						return;
 					}
 
-					//Clock CPU and controllers - 1N
-					//clock(reg.r15, true);
+					// 1N
+					CycleWithAccessTiming(R15, true);
 
 					//Cycle through the register list
 					for (int x = 0; x < 8; x++)
@@ -1844,10 +1841,10 @@ namespace Gba.Core
 							SetRegisterValue((UInt32)x, pop_value);
 							sp += 4;
 
-							//Clock CPU and controllers - (n)S
+							// (n)S
 							if (nCount > 1) 
 							{ 
-								//clock(r13, false); 
+								CycleWithAccessTiming(R13, false); 
 							}
 						}
 
@@ -1857,31 +1854,29 @@ namespace Gba.Core
 					//Optionally load PC from the stack
 					if (pcLr)
 					{
-						//Clock CPU and controllers - 1I
-						//clock();
+						Cycle();
 
-						//Clock CPU and controllers - 1N
-						//clock(reg.r15, true);
+						// 1N
+						CycleWithAccessTiming(R15, true);
 
-						//Clock CPU and controllers - 2S
+						// 2S
 						//mem_check_32(r13, reg.r15, true);
 						PC = Memory.ReadWord(sp);
 						PC &= ~0x1U;
 						sp += 4;
 						requestFlushPipeline = true;
 
-						//clock(reg.r15, false);
-						//clock((reg.r15 + 2), false);
+						CycleWithAccessTiming(R15, false);
+						CycleWithAccessTiming((R15 + 2), false);
 					}
 
 					//If PC not loaded, last cycles are Internal then Sequential
 					else
-					{
-						//Clock CPU and controllers - 1I
-						//clock();
+					{			
+						Cycle();
 
-						//Clock CPU and controllers - 1S
-						//clock((reg.r15 + 2), false);
+						// 1S
+						CycleWithAccessTiming((R15 + 2), false);
 					}
 
 					break;
@@ -1948,8 +1943,8 @@ namespace Gba.Core
 							return;
 						}
 
-						//Clock CPU and controllers - 1N
-						//clock(reg.r15, true);
+						// 1N
+						CycleWithAccessTiming(R15, true);
 
 						//Cycle through the register list
 						for (UInt32 x = 0; x < 8; x++)
@@ -1976,11 +1971,20 @@ namespace Gba.Core
 								baseAddr += 4;
 								SetRegisterValue(baseReg, baseAddr);
 
-								//Clock CPU and controllers - (n)S
-								//if ((n_count - 1) != 0) { clock(base_addr, false); n_count--; }
-
-								//Clock CPU and controllers - 1N
-								//else { clock(base_addr, true); x = 10; break; }
+								
+								if ((nCount - 1) != 0) 
+								{
+									// (n)S
+									CycleWithAccessTiming(baseAddr, false);
+									nCount--; 
+								}								
+								else 
+								{
+									// 1N
+									CycleWithAccessTiming(baseAddr, true); 
+									x = 10; 
+									break; 
+								}
 							}
 
 							registerList >>= 1;
@@ -2019,8 +2023,8 @@ namespace Gba.Core
 							return;
 						}
 
-						//Clock CPU and controllers - 1N
-						//clock(reg.r15, true);
+						// 1N
+						CycleWithAccessTiming(R15, true);
 
 						// Walk the register list bitmask
 						for (UInt32 x = 0; x < 8; x++)
@@ -2039,19 +2043,21 @@ namespace Gba.Core
 								{ 
 									SetRegisterValue(baseReg, baseAddr); 
 								}
-
-								//Clock CPU and controllers - (n)S
-								//if (n_count > 1) { clock(base_addr, false); }
+								
+								if (nCount > 1) 
+								{
+									// (n)S
+									CycleWithAccessTiming(baseAddr, false); 
+								}
 							}
 
 							registerList >>= 1;
 						}
 
-						//Clock CPU and controllers - 1I
-						//clock();
+						Cycle();
 
-						//Clock CPU and controllers - 1S
-						//clock((reg.r15 + 2), false);
+						// 1S
+						CycleWithAccessTiming((R15 + 2), false);
 					}
 
 					//Special case with empty list
@@ -2339,20 +2345,20 @@ namespace Gba.Core
 
 			if (requestFlushPipeline)
 			{
-				//Clock CPU and controllers - 1N
-				//clock(reg.r15, true);
+				// 1N
+				CycleWithAccessTiming(R15, true);
 
-				//Clock CPU and controllers - 2S 
+				// 2S 
 				int newPc = (int) (PC + jump_addr);
 				PC = (UInt32) newPc;
-				//clock(reg.r15, false);
-				//clock((reg.r15 + 2), false);
+				CycleWithAccessTiming(R15, false);
+				CycleWithAccessTiming((R15 + 2), false);
 			}
 
 			else
 			{
-				//Clock CPU and controllers - 1S
-				//clock(reg.r15, false);
+				// 1S
+				CycleWithAccessTiming(R15, false);
 			}
 		}
 
@@ -2386,14 +2392,14 @@ namespace Gba.Core
 
 			requestFlushPipeline = true;
 
-			//Clock CPU and controllers - 1N
-			//clock(reg.r15, true);
+			// 1N
+			CycleWithAccessTiming(R15, true);
 
-			//Clock CPU and controllers - 2S 
+			// 2S 
 			int pc = (int)PC + jumpAddr;
 			PC = (UInt32) pc;
-			//clock(reg.r15, false);
-			//clock((reg.r15 + 2), false);
+			CycleWithAccessTiming(R15, false);
+			CycleWithAccessTiming((R15 + 2), false);
 		}
 
 
@@ -2427,8 +2433,8 @@ namespace Gba.Core
 				// Save label to LR
 				SetRegisterValue(14, labelAddr);
 
-				//Clock CPU and controllers - 1S
-				//clock(reg.r15, false);
+				// 1S
+				CycleWithAccessTiming(R15, false);
 			}
 
 			// Perform 2nd 16-bit operation
@@ -2448,8 +2454,8 @@ namespace Gba.Core
 					return;
 				}
 
-				//Clock CPU and controllers - 1N
-				//clock(reg.r15, true);
+				// 1N
+				CycleWithAccessTiming(R15, true);
 
 				PC = labelAddr;
 				PC &= ~0x1U;
@@ -2457,9 +2463,9 @@ namespace Gba.Core
 				requestFlushPipeline = true;
 				R14 = nextInstrAddr;
 
-				//Clock CPU and controllers - 2S
-				//clock(reg.r15, false);
-				//clock((reg.r15 + 2), false);
+				// 2S
+				CycleWithAccessTiming(R15, false);
+				CycleWithAccessTiming((R15 + 2), false);
 			}
 		}
 

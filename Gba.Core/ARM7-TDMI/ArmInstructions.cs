@@ -405,15 +405,15 @@ namespace Gba.Core
 					else
 					{
 						//Clock CPU and controllers - 1N
-						//clock(reg.r15, true);
+						CycleWithAccessTiming(R15, true);
 
 						PC = (final_addr);
 
 						requestFlushPipeline = true;
 
 						//Clock CPU and controllers - 2S
-						//clock(reg.r15, false);
-						//clock((reg.r15 + 4), false);
+						CycleWithAccessTiming(R15, false);
+						CycleWithAccessTiming((R15 + 4), false);
 						return;
 					}
 					
@@ -428,7 +428,7 @@ namespace Gba.Core
 					else
 					{
 						//Clock CPU and controllers - 1N
-						//clock(reg.r15, true);
+						CycleWithAccessTiming(R15, true);
 
 						LR = PC - 4;
 						PC = final_addr;
@@ -436,8 +436,8 @@ namespace Gba.Core
 						requestFlushPipeline = true;
 
 						//Clock CPU and controllers - 2S
-						//clock(reg.r15, false);
-						//clock((reg.r15 + 4), false);
+						CycleWithAccessTiming(R15, false);
+						CycleWithAccessTiming((R15 + 4), false);
 						return;
 					};
 			}
@@ -479,15 +479,15 @@ namespace Gba.Core
 					//Branch
 					case 0x1:
 						//Clock CPU and controllers - 1N
-						//clock(reg.r15, true);
+						CycleWithAccessTiming(R15, true);
 
 						PC = result;
 
 						requestFlushPipeline = true;
 
 						//Clock CPU and controllers - 2S
-						//clock(reg.r15, false);
-						//clock((reg.r15 + 4), false);
+						CycleWithAccessTiming(R15, false);
+						CycleWithAccessTiming((R15 + 4), false);
 
 						break;
 
@@ -596,7 +596,7 @@ namespace Gba.Core
 				}
 
 				//Clock CPU and controllers - 1I
-				//clock();
+				Cycle();
 			}
 
 			//TODO - When op is 0x8 through 0xB, make sure Bit 20 is 1 (rather force it? Unsure)
@@ -608,7 +608,7 @@ namespace Gba.Core
 			{
 				if (peek == false)
 				{
-					//clock(reg.r15, true);
+					CycleWithAccessTiming(R15, true);
 
 					//When the set condition parameter is 1 and destination register is R15, change CPSR to SPSR
 					if (setCondition)
@@ -905,15 +905,15 @@ namespace Gba.Core
 
 				//Clock CPU and controllers - 2S
 				requestFlushPipeline = true;
-				//clock(reg.r15, false);
-				//clock((reg.r15 + 4), false);
+				CycleWithAccessTiming(R15, false);
+				CycleWithAccessTiming((R15 + 4), false);
 			}
 
 			//Timings for regular registers
 			else
 			{
 				//Clock CPU and controllers - 1S
-				//clock((reg.r15 + 4), false);
+				CycleWithAccessTiming((R15 + 4), false);
 			}
 		}
 
@@ -1085,7 +1085,7 @@ namespace Gba.Core
 			}
 
 			//Clock CPU and controllers - 1S
-			//clock((reg.r15 + 4), false);
+			CycleWithAccessTiming((R15 + 4), false);
 		}
 
 
@@ -1408,7 +1408,7 @@ namespace Gba.Core
 			}
 
 			//Clock CPU and controllers - 1N
-			//clock(reg.r15, true);
+			CycleWithAccessTiming(R15, true);
 
 			//Store Byte or Word
 			if (loadStore == 0)
@@ -1440,7 +1440,7 @@ namespace Gba.Core
 				}
 
 				//Clock CPU and controllers - 1N
-				//clock(base_addr, true);
+				CycleWithAccessTiming(baseAddr, true);
 			}
 
 			//Load Byte or Word
@@ -1459,10 +1459,10 @@ namespace Gba.Core
 					Memory.ReadWriteByte_Checked(baseAddr, ref value, true);
 					//value = Memory.ReadByte(baseAddr);
 
-					//clock();
+					Cycle();
 
 					//Clock CPU and controllers - 1N
-					//if (destReg == 15) { clock((reg.r15 + 4), true); }
+					if (destReg == 15) { CycleWithAccessTiming((R15 + 4), true); }
 
 					SetRegisterValue(destReg, value);
 				}
@@ -1474,10 +1474,10 @@ namespace Gba.Core
 					Memory.ReadWriteWord_Checked(baseAddr, ref value, true);
 					//value = Memory.ReadWord(base_addr);
 
-					//clock();
+					Cycle();
 
 					//Clock CPU and controllers - 1N
-					//if (destReg == 15) { clock((reg.r15 + 4), true); }
+					if (destReg == 15) { CycleWithAccessTiming((R15 + 4), true); }
 
 					SetRegisterValue(destReg, value);
 				}
@@ -1499,8 +1499,8 @@ namespace Gba.Core
 			if ((destReg == 15) && (loadStore == 1))
 			{
 				//Clock CPU and controllser - 2S
-				//clock(reg.r15, false);
-				//clock((reg.r15 + 4), false);
+				CycleWithAccessTiming(R15, false);
+				CycleWithAccessTiming((R15 + 4), false);
 				requestFlushPipeline = true;
 			}
 
@@ -1508,7 +1508,7 @@ namespace Gba.Core
 			else if ((destReg != 15) && (loadStore == 1))
 			{
 				//Clock CPU and controllers - 1S
-				//clock(reg.r15, false);
+				CycleWithAccessTiming(R15, false);
 			}
 		}
 

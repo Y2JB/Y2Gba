@@ -187,22 +187,71 @@ namespace Gba.Core
         }
 
 
-        public void Cycle(uint cycles)
+        // Determines how many cycles should elapse when emulating Wait States and access timing
+        void CycleWithAccessTiming(UInt32 accessAddr, bool firstAccess)
         {
-            Cycles += cycles;
+            // JB: TODO: These can change depending on wait state 
+            const UInt32 nonSequentialAccessTime = 4;
+            const UInt32 sequentialAccessTime = 2;
+            
+            UInt32 cycleCount = 1;
 
-            while (cycles > 0)
+            // vram 
+            // TODO: Need to consider mirroring?
+            if ((accessAddr >= 0x5000000) && (accessAddr <= 0x70003FF))
+            {
+                // Access time is +1 if outside of H-Blank & V-Blank. Otherwise each 16-bit access is 1 cycle
+                if (Gba.LcdController.Mode == LcdController.LcdMode.ScanlineRendering) 
+                { 
+                    cycleCount++; 
+                }
+            }
+
+            // Wait State 0
+            else if ((accessAddr >= 0x8000000) && (accessAddr <= 0x9FFFFFF))
+            {
+                if (firstAccess) 
+                { 
+                    cycleCount += nonSequentialAccessTime; 
+                }
+                else 
+                { 
+                    cycleCount += sequentialAccessTime; 
+                }
+            }
+
+            Cycles += cycleCount;
+
+            //Run controllers for each cycle		 
+            while (cycleCount > 0)
             {
                 Gba.LcdController.Step();
                 //Gba.Joypad.Step();
                 //Gba.Timers.Update();
-                Gba.Dma[0].Step();
-                Gba.Dma[1].Step();
-                Gba.Dma[2].Step();
-                Gba.Dma[3].Step();
 
-                cycles--;
+                if (Gba.Dma[0].DmaCnt.ChannelEnabled) Gba.Dma[0].Step();
+                if (Gba.Dma[1].DmaCnt.ChannelEnabled) Gba.Dma[1].Step();
+                if (Gba.Dma[2].DmaCnt.ChannelEnabled) Gba.Dma[2].Step();
+                if (Gba.Dma[3].DmaCnt.ChannelEnabled) Gba.Dma[3].Step();
+
+                cycleCount--;
             }
+        }
+
+
+        // Cycles a single instrcution / cycle 
+        public void Cycle()
+        {
+            Cycles++;
+
+            Gba.LcdController.Step();
+            //Gba.Joypad.Step();
+            //Gba.Timers.Update();
+
+            if (Gba.Dma[0].DmaCnt.ChannelEnabled) Gba.Dma[0].Step();
+            if (Gba.Dma[1].DmaCnt.ChannelEnabled) Gba.Dma[1].Step();
+            if (Gba.Dma[2].DmaCnt.ChannelEnabled) Gba.Dma[2].Step();
+            if (Gba.Dma[3].DmaCnt.ChannelEnabled) Gba.Dma[3].Step();
         }
 
 
@@ -237,7 +286,7 @@ namespace Gba.Core
             }
 
             // Even if conditional prevented execution? 
-            Cycle(1);
+            //Cycle(1);
         }
 
 

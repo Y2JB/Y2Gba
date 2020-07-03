@@ -61,18 +61,18 @@ namespace Gba.Core
             //this.Rom = new Rom("../../../../roms/TestRoms/obj_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/win_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/dma_demo.gba");
-
-            //this.Rom = new Rom("../../../../roms/NCE-heart.gba");
+            //this.Rom = new Rom("../../../../roms/TestRoms/m3_demo.gba");
+            //this.Rom = new Rom("../../../../roms/TestRoms/m7_demo.gba");
 
             //this.Rom = new Rom("../../../../roms/Super Dodgeball Advance.gba");
             //this.Rom = new Rom("../../../../roms/Kirby.gba");
-            this.Rom = new Rom("../../../../roms/Metal Slug Advance (U).gba");
+            //this.Rom = new Rom("../../../../roms/Metal Slug Advance (U).gba");
             //this.Rom = new Rom("../../../../roms/Super Mario Advance 2 - Super Mario World (U) [!].gba");
             //this.Rom = new Rom("../../../../roms/Legend of Zelda, The - The Minish Cap (U).gba");
             //this.Rom = new Rom("../../../../roms/Pokemon Mystery Dungeon - Red Rescue Team (U).gba");
             //this.Rom = new Rom("../../../../roms/Teenage Mutant Ninja Turtles.gba");
             //this.Rom = new Rom("../../../../roms/Barbie Horse Adventures.gba");
-            //this.Rom = new Rom("../../../../roms/Pokemon Pinball.gba");
+            this.Rom = new Rom("../../../../roms/Pokemon Pinball.gba");
 
             // Intro uses OBJ Win...
             //this.Rom = new Rom("../../../../roms/Pokemon - Emerald Version (U).gba");
@@ -116,7 +116,7 @@ namespace Gba.Core
 
         // TODO: The Conditinal Attribute should use a dedicated logging preprocessor directive 
         //[Conditional("DEBUG")]
-        [Conditional("DEBUG_LOGGING")]
+        //[Conditional("DEBUG_LOGGING")]
         public void LogMessage(string msg)
         {
             if(OnLogMessage != null)
@@ -128,6 +128,8 @@ namespace Gba.Core
 
         public void DumpObjTiles()
         {
+            var image = new DirectBitmap(256, 256);
+
             // OBJ Tiles are stored in a separate area in VRAM: 06010000-06017FFF (32 KBytes) in BG Mode 0-2, or 06014000-06017FFF (16 KBytes) in BG Mode 3-5.
             // We dump the whole memory area in both 4 and 8 bit modes. Some will look wrong depending on Bg mode, colour depth etc
             int vramBaseOffset = 0x00010000;
@@ -139,13 +141,18 @@ namespace Gba.Core
                                                                             return (obj == null ? 0 : obj.Attributes.PaletteNumber * 16);
                                                                          };
 
-            DumpTiles(Memory.VRam, vramBaseOffset, palette, true, "Obj", get4BitPaletteNumber);
-            DumpTiles(Memory.VRam, vramBaseOffset, palette, false, "Obj", get4BitPaletteNumber);
+            DrawTiles(image, Memory.VRam, vramBaseOffset, palette, true, get4BitPaletteNumber);
+            image.Bitmap.Save(string.Format("../../../../dump/{0}Tiles{1}_{2}.png", "Obj", "8bpp", Rom.RomName));
+
+            DrawTiles(image, Memory.VRam, vramBaseOffset, palette, false, get4BitPaletteNumber);
+            image.Bitmap.Save(string.Format("../../../../dump/{0}Tiles{1}_{2}.png", "Obj", "4bpp", Rom.RomName));
         }
 
 
         public void DumpBgTiles()
         {
+            var image = new DirectBitmap(256, 256);
+
             int vramBaseOffset0 = 0x0;
             int vramBaseOffset1 = 0x8000;
             Color[] palette = LcdController.Palettes.Palette0;
@@ -163,20 +170,25 @@ namespace Gba.Core
                                                                             return 0;
                                                                         };
 
-            DumpTiles(Memory.VRam, vramBaseOffset0, palette, false, "BGV0", get4BitPaletteNumber);
-            DumpTiles(Memory.VRam, vramBaseOffset1, palette, false, "BGV1", get4BitPaletteNumber);
+            DrawTiles(image, Memory.VRam, vramBaseOffset0, palette, false, get4BitPaletteNumber);
+            image.Bitmap.Save(string.Format("../../../../dump/{0}Tiles{1}_{2}.png", "BGV0", "4bpp", Rom.RomName));
 
-            DumpTiles(Memory.VRam, vramBaseOffset0, palette, true, "BGV0", get4BitPaletteNumber);
-            DumpTiles(Memory.VRam, vramBaseOffset1, palette, true, "BGV1", get4BitPaletteNumber);
+            DrawTiles(image, Memory.VRam, vramBaseOffset1, palette, false, get4BitPaletteNumber);
+            image.Bitmap.Save(string.Format("../../../../dump/{0}Tiles{1}_{2}.png", "BGV1", "4bpp", Rom.RomName));
+
+            DrawTiles(image, Memory.VRam, vramBaseOffset0, palette, true, get4BitPaletteNumber);
+            image.Bitmap.Save(string.Format("../../../../dump/{0}Tiles{1}_{2}.png", "BGV0", "8bpp", Rom.RomName));
+
+            DrawTiles(image, Memory.VRam, vramBaseOffset1, palette, true, get4BitPaletteNumber);
+            image.Bitmap.Save(string.Format("../../../../dump/{0}Tiles{1}_{2}.png", "BGV1", "8bpp", Rom.RomName));
         }
 
 
         // Code to dump both BG and Obj tiles. Quite a complex list of parameters in order to make it work for both
-        void DumpTiles(byte[] vram, int vramBaseOffset, Color[] palette, bool eightBitColour, string filenameMoniker, Func<int, int> getTile4BitPaletteNumber)
-        {            
+        public void DrawTiles(DirectBitmap image, byte[] vram, int vramBaseOffset, Color[] palette, bool eightBitColour, Func<int, int> getTile4BitPaletteNumber)
+        {
             int tileCountX = 32;
             int tileCountY = 32;
-            var image = new Bitmap(tileCountX * 8, tileCountY * 8);
 
             int tileX = 0;
             int tileY = 0;
@@ -221,11 +233,8 @@ namespace Gba.Core
             bool drawGrid = true;
             if (drawGrid)
             {
-                GfxHelpers.DrawTileGrid(image, tileCountX, tileCountY);
+                GfxHelpers.DrawTileGrid(image.Bitmap, tileCountX, tileCountY);
             }
-
-            string bpp = (eightBitColour ? "8bpp" : "4bpp");
-            image.Save(string.Format("../../../../dump/{0}Tiles{1}_{2}.png", filenameMoniker, bpp, Rom.RomName));
         }
 
 
