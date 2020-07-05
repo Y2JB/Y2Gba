@@ -404,14 +404,14 @@ namespace Gba.Core
 					}
 					else
 					{
-						//Clock CPU and controllers - 1N
+						// 1N
 						CycleWithAccessTiming(R15, true);
 
 						PC = (final_addr);
 
 						requestFlushPipeline = true;
 
-						//Clock CPU and controllers - 2S
+						// 2S
 						CycleWithAccessTiming(R15, false);
 						CycleWithAccessTiming((R15 + 4), false);
 						return;
@@ -427,7 +427,7 @@ namespace Gba.Core
 					}
 					else
 					{
-						//Clock CPU and controllers - 1N
+						// 1N
 						CycleWithAccessTiming(R15, true);
 
 						LR = PC - 4;
@@ -435,7 +435,7 @@ namespace Gba.Core
 
 						requestFlushPipeline = true;
 
-						//Clock CPU and controllers - 2S
+						// 2S
 						CycleWithAccessTiming(R15, false);
 						CycleWithAccessTiming((R15 + 4), false);
 						return;
@@ -478,14 +478,14 @@ namespace Gba.Core
 				{
 					//Branch
 					case 0x1:
-						//Clock CPU and controllers - 1N
+						// 1N
 						CycleWithAccessTiming(R15, true);
 
 						PC = result;
 
 						requestFlushPipeline = true;
 
-						//Clock CPU and controllers - 2S
+						// 2S
 						CycleWithAccessTiming(R15, false);
 						CycleWithAccessTiming((R15 + 4), false);
 
@@ -595,7 +595,6 @@ namespace Gba.Core
 						break;
 				}
 
-				//Clock CPU and controllers - 1I
 				Cycle();
 			}
 
@@ -603,7 +602,7 @@ namespace Gba.Core
 			//TODO - 2nd Operand for TST/TEQ/CMP/CMN must be R0 (rather force it to be R0)
 			//TODO - See GBATEK - S=1, with unused Rd bits=1111b
 
-			//Clock CPU and controllers - 1N
+			// 1N
 			if (destReg == 15)
 			{
 				if (peek == false)
@@ -903,16 +902,16 @@ namespace Gba.Core
 					PC &= (UInt32)(~3U); 
 				}
 
-				//Clock CPU and controllers - 2S
+				// 2S
 				requestFlushPipeline = true;
 				CycleWithAccessTiming(R15, false);
 				CycleWithAccessTiming((R15 + 4), false);
 			}
 
-			//Timings for regular registers
+			// Timings for regular registers
 			else
 			{
-				//Clock CPU and controllers - 1S
+				// 1S
 				CycleWithAccessTiming((R15 + 4), false);
 			}
 		}
@@ -1020,7 +1019,6 @@ namespace Gba.Core
 						//Use register as input
 						else
 						{
-							//Grab source register - Bits 0-3
 							byte srcReg = (byte) (rawInstruction & 0xF);
 
 							if (peek)
@@ -1044,7 +1042,7 @@ namespace Gba.Core
 							CPSR &= ~opFieldMask;
 							CPSR |= input;
 						
-							//Set the CPU mode accordingly
+							// Set the CPU mode accordingly
 							
 							switch ((CPSR & 0x1F))
 							{
@@ -1084,7 +1082,7 @@ namespace Gba.Core
 					break;
 			}
 
-			//Clock CPU and controllers - 1S
+			// 1S
 			CycleWithAccessTiming((R15 + 4), false);
 		}
 
@@ -1147,11 +1145,9 @@ namespace Gba.Core
 
 					if (setCondition)
 					{
-						//Negative flag
 						if ((value_32 & 0x80000000) != 0) SetFlag(StatusFlag.Negative);
 						else ClearFlag(StatusFlag.Negative);
 
-						//Zero flag
 						if (value_32 == 0) SetFlag(StatusFlag.Zero);
 						else ClearFlag(StatusFlag.Zero);
 					}
@@ -1171,7 +1167,6 @@ namespace Gba.Core
 
 					if (setCondition)
 					{
-						//Negative flag
 						if ((value_32 & 0x80000000) != 0) SetFlag(StatusFlag.Negative);
 						else ClearFlag(StatusFlag.Negative);
 
@@ -1191,7 +1186,7 @@ namespace Gba.Core
 
 					value_64 = (value_64 * Rm * Rs);
 
-					//Set Rn to low 32-bits, Rd to high 32-bits
+					// Set Rn to low 32-bits, Rd to high 32-bits
 					Rn = (UInt32) (value_64 & 0xFFFFFFFF);
 					Rd = (UInt32) (value_64 >> 32);
 
@@ -1219,7 +1214,7 @@ namespace Gba.Core
 						return;
 					}
 
-					//This looks weird, but it is a workaround for compilers that support 64-bit unsigned ints, but complain about shifts greater than 32
+					// This looks weird, but it is a workaround for compilers that support 64-bit unsigned ints, but complain about shifts greater than 32
 					hiLo = Rd;
 					hiLo <<= 16;
 					hiLo <<= 16;
@@ -1227,7 +1222,7 @@ namespace Gba.Core
 
 					value_64 = (value_64 * Rm * Rs) + hiLo;
 
-					//Set Rn to low 32-bits, Rd to high 32-bits
+					// Set Rn to low 32-bits, Rd to high 32-bits
 					Rn = (UInt32) (value_64 & 0xFFFFFFFF);
 					Rd = (UInt32) (value_64 >> 32);
 
@@ -1236,11 +1231,11 @@ namespace Gba.Core
 
 					if (setCondition)
 					{
-						//Negative flag
+						// Negative flag
 						if ((value_64 & 0x8000000000000000) != 0) SetFlag(StatusFlag.Negative);
 						else ClearFlag(StatusFlag.Negative);
 
-						//Zero flag
+						// Zero flag
 						if (value_64 == 0) SetFlag(StatusFlag.Zero);
 						else ClearFlag(StatusFlag.Zero);
 					}
@@ -1256,11 +1251,11 @@ namespace Gba.Core
 						return;
 					}
 
-					//Messy casting... It works though, and this is what we need
+					// Messy casting... It works though, and this is what we need
 					value_s64 = (value_s64 * (Int32)Rm * (Int32)Rs);
 					value_64 = (UInt64) value_s64;
 
-					//Set Rn to low 32-bits, Rd to high 32-bits
+					// Set Rn to low 32-bits, Rd to high 32-bits
 					Rn = (UInt32) (value_s64 & 0xFFFFFFFF);
 					Rd = (UInt32) (value_s64 >> 32);
 
@@ -1269,12 +1264,12 @@ namespace Gba.Core
 
 					if (setCondition)
 					{
-						//Negative flag
+						// Negative flag
 						//if ((value_s64 & 0x8000000000000000) != 0) SetFlag(StatusFlag.Negative);
 						if (value_s64 < 0) SetFlag(StatusFlag.Negative);
 						else ClearFlag(StatusFlag.Negative);
 
-						//Zero flag
+						// Zero flag
 						if (value_s64 == 0) SetFlag(StatusFlag.Zero);
 						else ClearFlag(StatusFlag.Zero);
 					}
@@ -1289,17 +1284,17 @@ namespace Gba.Core
 						return;
 					}
 
-					//This looks weird, but it is a workaround for compilers that support 64-bit unsigned ints, but complain about shifts greater than 32
+					// This looks weird, but it is a workaround for compilers that support 64-bit unsigned ints, but complain about shifts greater than 32
 					hiLo = Rd;
 					hiLo <<= 16;
 					hiLo <<= 16;
 					hiLo |= Rn;
 
-					//Messy casting... It works though, and this is what we need
+					// Messy casting... It works though, and this is what we need
 					value_s64 = (value_s64 * (Int32)Rm * (Int32)Rs) + (Int64)hiLo;
 					value_64 = (UInt64) value_s64;
 
-					//Set Rn to low 32-bits, Rd to high 32-bits
+					// Set Rn to low 32-bits, Rd to high 32-bits
 					Rn = (UInt32) (value_s64 & 0xFFFFFFFF);
 					Rd = (UInt32) (value_s64 >> 32);
 
@@ -1308,22 +1303,17 @@ namespace Gba.Core
 
 					if (setCondition)
 					{
-						//Negative flag
+						// Negative flag
 						//if (((value_s64 & 0x8000000000000000) != 0) != 0) SetFlag(StatusFlag.Negative);
 						if (value_s64 < 0) SetFlag(StatusFlag.Negative);
 						else ClearFlag(StatusFlag.Negative);
 
-						//Zero flag
+						// Zero flag
 						if (value_s64 == 0) SetFlag(StatusFlag.Zero);
 						else ClearFlag(StatusFlag.Zero);
 					}
 
 					break;
-
-
-				//default:
-				//	std::cout << "CPU::Warning:: - ARM.7 Invalid or unimplemented opcode : " << std::hex << (int)op_code << "\n"; std::cout << "OP -> 0x" << current_arm_instruction << "\n";
-				//	std::cout << "PC -> 0x" << std::hex << reg.r15 << "\n";
 			}
 		}
 
@@ -1407,7 +1397,7 @@ namespace Gba.Core
 				else { baseAddr -= baseOffset; }
 			}
 
-			//Clock CPU and controllers - 1N
+			// 1N
 			CycleWithAccessTiming(R15, true);
 
 			//Store Byte or Word
@@ -1439,7 +1429,7 @@ namespace Gba.Core
 					Memory.WriteWord(baseAddr, value);
 				}
 
-				//Clock CPU and controllers - 1N
+				// 1N
 				CycleWithAccessTiming(baseAddr, true);
 			}
 
@@ -1454,14 +1444,13 @@ namespace Gba.Core
 
 				if (byteWord == 1)
 				{
-					//Clock CPU and controllers - 1I
 					//mem_check_8(base_addr, value, true);
 					Memory.ReadWriteByte_Checked(baseAddr, ref value, true);
 					//value = Memory.ReadByte(baseAddr);
 
 					Cycle();
 
-					//Clock CPU and controllers - 1N
+					// 1N
 					if (destReg == 15) { CycleWithAccessTiming((R15 + 4), true); }
 
 					SetRegisterValue(destReg, value);
@@ -1469,33 +1458,41 @@ namespace Gba.Core
 
 				else
 				{
-					//Clock CPU and controllers - 1I
 					//mem_check_32(base_addr, value, true);
 					Memory.ReadWriteWord_Checked(baseAddr, ref value, true);
 					//value = Memory.ReadWord(base_addr);
 
 					Cycle();
-
-					//Clock CPU and controllers - 1N
-					if (destReg == 15) { CycleWithAccessTiming((R15 + 4), true); }
+					
+					if (destReg == 15) 
+					{
+						// 1N
+						CycleWithAccessTiming((R15 + 4), true); 
+					}
 
 					SetRegisterValue(destReg, value);
 				}
 			}
 
-			//Increment or decrement after transfer if post-indexing
+			// Increment or decrement after transfer if post-indexing
 			if (prePost == 0)
 			{
 				if (upDown == 1) { baseAddr += baseOffset; }
 				else { baseAddr -= baseOffset; }
 			}
 
-			//Write back into base register
-			//Post-indexing ALWAYS does this. Pre-Indexing does this optionally
-			if ((prePost == 0) && (baseReg != destReg)) { SetRegisterValue(baseReg, baseAddr); }
-			else if ((prePost == 1) && (writeBack == 1) && (baseReg != destReg)) { SetRegisterValue(baseReg, baseAddr); }
+			// Write back into base register
+			// Post-indexing ALWAYS does this. Pre-Indexing does this optionally
+			if ((prePost == 0) && (baseReg != destReg)) 
+			{ 
+				SetRegisterValue(baseReg, baseAddr); 
+			}
+			else if ((prePost == 1) && (writeBack == 1) && (baseReg != destReg)) 
+			{ 
+				SetRegisterValue(baseReg, baseAddr); 
+			}
 
-			//Timings for LDR - PC
+			// Timings for LDR - PC
 			if ((destReg == 15) && (loadStore == 1))
 			{
 				//Clock CPU and controllser - 2S
@@ -1504,10 +1501,10 @@ namespace Gba.Core
 				requestFlushPipeline = true;
 			}
 
-			//Timings for LDR - No PC
+			// Timings for LDR - No PC
 			else if ((destReg != 15) && (loadStore == 1))
 			{
-				//Clock CPU and controllers - 1S
+				// 1S
 				CycleWithAccessTiming(R15, false);
 			}
 		}

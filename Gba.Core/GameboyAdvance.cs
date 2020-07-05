@@ -50,6 +50,7 @@ namespace Gba.Core
             PoweredOn = true;
 
             this.Bios = new Bios(this, "../../../../GBA.BIOS");
+
             //this.Rom = new Rom("../../../../roms/TestRoms/armwrestler.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/suite.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/arm.gba");
@@ -59,6 +60,7 @@ namespace Gba.Core
             //this.Rom = new Rom("../../../../roms/TestRoms/tmr_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/brin_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/obj_demo.gba");
+            this.Rom = new Rom("../../../../roms/TestRoms/obj_aff.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/win_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/dma_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/m3_demo.gba");
@@ -69,14 +71,16 @@ namespace Gba.Core
             //this.Rom = new Rom("../../../../roms/Metal Slug Advance (U).gba");
             //this.Rom = new Rom("../../../../roms/Super Mario Advance 2 - Super Mario World (U) [!].gba");
             //this.Rom = new Rom("../../../../roms/Legend of Zelda, The - The Minish Cap (U).gba");
+            //this.Rom = new Rom("../../../../roms/Legend of Zelda, The - A Link To The Past Four Swords.gba");
+
             //this.Rom = new Rom("../../../../roms/Pokemon Mystery Dungeon - Red Rescue Team (U).gba");
             //this.Rom = new Rom("../../../../roms/Teenage Mutant Ninja Turtles.gba");
             //this.Rom = new Rom("../../../../roms/Barbie Horse Adventures.gba");
-            this.Rom = new Rom("../../../../roms/Pokemon Pinball.gba");
+            //this.Rom = new Rom("../../../../roms/Pokemon Pinball.gba");
 
             // Intro uses OBJ Win...
             //this.Rom = new Rom("../../../../roms/Pokemon - Emerald Version (U).gba");
-            
+
             //this.Rom = new Rom("../../../../roms/Advance Wars.gba");
             //this.Rom = new Rom("../../../../roms/Advanced Wars 2 - Black Hole Rising.gba");
 
@@ -237,8 +241,6 @@ namespace Gba.Core
             }
         }
 
-
-       
 
     }
 }

@@ -36,16 +36,25 @@ namespace Gba.Core
 		// 0x03008000 will be byte 0 again
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public byte ReadByte(UInt32 address)
-        {
+        {			
+			// ROM
+			if (address >= 0x08000000 && address <= 0x0DFFFFFF)
+			{
+				address &= 0x1FFFFFF;
+				if (address < gba.Rom.RomSize)
+				{
+					return gba.Rom.ReadByte(address);
+				}
+				else
+				{
+					return 0;
+					//return open_bus(cpu->pc);
+				}				
+			}
 			// BIOS
-			if (address >= 0x00000000 && address <= 0x00003FFF)
+			else if (address >= 0x00000000 && address <= 0x00003FFF)
 			{
 				return gba.Bios.ReadByte(address);
-			}
-			// ROM
-			else if (address >= 0x08000000 && address <= 0x09FFFFFF)
-			{
-				return gba.Rom.ReadByte(address - 0x08000000);
 			}
 			// IO Registers
 			else if (address >= 0x04000000 && address <= 0x040003FE)
@@ -259,16 +268,32 @@ namespace Gba.Core
 				address &= 0x3FF;
 				return OamRam[address];
 			}
-			else if (address >= 0x0A000000 && address <= 0x0BFFFFFF) throw new NotImplementedException();
+			else if (address >= 0x0A000000 && address <= 0x0BFFFFFF)
+            {
+				// TODO : WAIT STATE 
+				// ROM access covers first 0x2000000 bytes
+				//return gba.Rom.ReadByte(address - 0x0A000000);
+				throw new NotImplementedException();
+			}
 
 			// EEPROM, can be access via DMA 3
-			else if (address >= 0x0C000000 && address <= 0x0DFFFFFF) throw new NotImplementedException();
+			//else if (address >= 0x0C000000 && address <= 0x0DFFFFFF) throw new NotImplementedException();
 
 			else if (address >= 0x0E000000 && address <= 0x0E00FFFF)
 			{
-				// SRAM TODO 
+				// Specifically to get Pokemon Emerald to run without flash ram support ....
+				// In your memory bus, simply return the following values on 8 - bit reads to the specified addresses.
+				// 8 - bit read address  Value Meaning
+				// 0x0E000000  0x62    Sanyo manufacturer ID
+				// 0x0E000001  0x13    Sanyo device ID
+				if (address == 0x0E000000) return 0x62;
+				else if (address == 0x0E000001) return 0x13;
+
 				return 0;
-				//throw new NotImplementedException();
+				// SRAM, EEPROM, FLASH...
+
+				// SRAM
+				return gba.Rom.SRam[address - 0xE000000];
 			}
 
 			else
@@ -326,6 +351,7 @@ namespace Gba.Core
 			return (UInt32)((ReadByte((UInt32)(address + 3)) << 24) | (ReadByte((UInt32)(address + 2)) << 16) | (ReadByte((UInt32)(address + 1)) << 8) | ReadByte(address));
 		}
 
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteByte(UInt32 address, byte value)
 		{
@@ -343,6 +369,10 @@ namespace Gba.Core
 			}
 			else if (address >= 0x04000000 && address <= 0x040003FE)
 			{
+
+				// TODO:  rather than these long chains of if else if, all the data should go into one buffer and then registers should just new new'd up with the mem offset
+				// then all this mess can go away!
+
 				if (address == 0x04000000)
 				{
 					gba.LcdController.DisplayControlRegister.Register0 = value;
@@ -548,6 +578,10 @@ namespace Gba.Core
 			// OAM Ram
 			else if (address >= 0x07000000 && address <= 0x07FFFFFF)
 			{
+				if(address >= 0x07000080 && address <= 0x07000088)
+                {
+					int x = 10;
+                }
 				address &= 0x3FF;
 				OamRam[address] = value;
 			}
@@ -559,6 +593,10 @@ namespace Gba.Core
 			else if (address >= 0x0E000000 && address <= 0x0E00FFFF)
 			{
 				// SRAM
+				if (address >= 0xE000000 && address <= 0xE007FFF)
+				{
+					gba.Rom.SRam[address - 0xE000000] = value;
+				}
 			}
 			else
 			{

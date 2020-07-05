@@ -30,13 +30,13 @@ namespace Gba.Core
         GameboyAdvance gba;
 
 
-        public Background(GameboyAdvance gba, int bgNumber)
+        public Background(GameboyAdvance gba, int bgNumber, BgControlRegister cntRegister)
         {
             this.gba = gba;
             this.BgNumber = bgNumber;
-            CntRegister = gba.LcdController.BgControlRegisters[bgNumber];
+            CntRegister = cntRegister;
 
-            TileMap = new TileMap(gba.Memory.VRam, gba.LcdController.BgControlRegisters[bgNumber], bgNumber);
+            TileMap = new TileMap(gba.Memory.VRam, cntRegister, bgNumber);
         }
 
 

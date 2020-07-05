@@ -1,4 +1,4 @@
-﻿//#define ParallelizeScanline
+﻿#define ParallelizeScanline
 //#define THREADED_SCANLINE
 
 using System;
@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Threading;
+using System.Runtime.CompilerServices;
 
 namespace Gba.Core
 {
@@ -18,6 +19,7 @@ namespace Gba.Core
         public const byte Screen_Y_Resolution = 160;
 
         public const byte Max_Sprites = 128;
+        public const byte Max_OAM_Matrices = 32;
 
         public const int Tile_Size_4bit = 32;
         public const int Tile_Size_8bit = 64;
@@ -40,6 +42,7 @@ namespace Gba.Core
         public Background[] Bg { get; private set; }
 
         public Obj[] Obj { get; private set; }
+        public OamAffineMatrix[] OamAffineMatrices { get; private set; }
         // Every frame, put the objs in a bucket based on it's priority
         List<Obj>[] priorityObjList = new List<Obj>[4];
 
@@ -84,6 +87,46 @@ namespace Gba.Core
             this.gba = gba;
 
 
+            frameBuffer0 = new DirectBitmap(Screen_X_Resolution, Screen_Y_Resolution);
+            frameBuffer1 = new DirectBitmap(Screen_X_Resolution, Screen_Y_Resolution);
+            FrameBuffer = frameBuffer0;
+            drawBuffer = frameBuffer1;
+
+            this.Palettes = new Palettes();
+
+            DisplayControlRegister = new DisplayControlRegister(this);
+            DispStatRegister = new DisplayStatusRegister(this);
+            BgControlRegisters = new BgControlRegister[4];
+            Bg = new Background[4];
+            for (int i = 0; i < 4; i++)
+            {
+                BgControlRegisters[i] = new BgControlRegister(this, i);
+                Bg[i] = new Background(gba, i, BgControlRegisters[i]);
+
+                priorityObjList[i] = new List<Obj>();
+            }
+
+            Obj = new Obj[Max_Sprites];
+            for (int i = 0; i < Max_Sprites; i++)
+            {
+                Obj[i] = new Obj(gba, new ObjAttributes(gba, i * 8, gba.Memory.OamRam));
+            }
+
+            OamAffineMatrices = new OamAffineMatrix[Max_OAM_Matrices];
+            UInt32 address = 0x00000006;
+            for (int i = 0; i < 32; i++)
+            {
+                OamAffineMatrices[i] = new OamAffineMatrix(gba.Memory.OamRam, address);
+
+                address += 0x20;
+            }
+
+            Windows = new Window[4];
+            for (int i = 0; i < 4; i++)
+            {
+                Windows[i] = new Window(gba);
+            }
+
 #if THREADED_SCANLINE
             drawScanline = false;
             exitThread = false;
@@ -103,36 +146,7 @@ namespace Gba.Core
 
         public void Reset()
         {
-            frameBuffer0 = new DirectBitmap(Screen_X_Resolution, Screen_Y_Resolution);
-            frameBuffer1 = new DirectBitmap(Screen_X_Resolution, Screen_Y_Resolution);
-            FrameBuffer = frameBuffer0;
-            drawBuffer = frameBuffer1;
-
-            this.Palettes = new Palettes();
-
-            DisplayControlRegister = new DisplayControlRegister(this);
-            DispStatRegister = new DisplayStatusRegister(this);
-            BgControlRegisters = new BgControlRegister[4];
-            Bg = new Background[4];
-            for(int i = 0; i < 4; i++)
-            {
-                BgControlRegisters[i] = new BgControlRegister(this, i);
-                Bg[i] = new Background(gba, i);
-
-                priorityObjList[i] = new List<Obj>();
-            }
-
-            Obj = new Obj[Max_Sprites];
-            for(int i = 0; i < Max_Sprites; i++)
-            {
-                Obj[i] = new Obj(gba, new ObjAttributes(i * 8, gba.Memory.OamRam));
-            }
-
-            Windows = new Window[4];
-            for (int i = 0; i < 4; i++)
-            {
-                Windows[i] = new Window(gba);
-            }
+ 
 
             Mode = LcdMode.ScanlineRendering;
             LcdCycles = 0;
@@ -361,6 +375,7 @@ namespace Gba.Core
                     break;
 
                 case 0x1:
+                case 0x2:
                     RenderScanlineMode0();
                     break;
 
@@ -386,15 +401,25 @@ namespace Gba.Core
             {
                 int sprY = obj.Attributes.YPosition;
                 if (sprY > LcdController.Screen_Y_Resolution) sprY -= 255;
-                
-                if (obj.Attributes.Visible == false ||
+
+                int height = obj.Attributes.Dimensions.Height;
+                if (obj.Attributes.RotationAndScaling && obj.Attributes.DoubleSize)
+                {
+                    height *= 2;
+                }
+
+                // Visible is only valid if rotation and scaling is not enabled 
+                if ((obj.Attributes.RotationAndScaling == false && obj.Attributes.Visible == false) ||
                     CurrentScanline < sprY ||
-                    CurrentScanline >= (sprY + obj.Attributes.Dimensions.Height))
+                    CurrentScanline >= (sprY + height))
                 {
                     continue;
                 }
 
+                // This needs to go
                 obj.SetRightEdgeScreen();
+
+                obj.CalcBoundingBox();
 
                 priorityObjList[obj.Attributes.Priority].Add(obj);
             }
@@ -408,9 +433,9 @@ namespace Gba.Core
             {
                 if (drawScanline)
                 {
-                    lock (drawBuffer)
+                    //lock (drawBuffer)
                     {
-                        RenderScanline();
+                        RenderScanlineMode0();
                         drawScanline = false;
                     }
                 }
@@ -418,6 +443,88 @@ namespace Gba.Core
         }
 #endif
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        bool RenderSpritePixel(int screenX, int screenY, int priority, bool windowing, int windowRegion, ref int bgVisibleOverride)
+        {
+            int paletteIndex;
+        
+            // If a sprite has the same priority as a bg, the sprite is drawn on top, therefore we check sprites first 
+            foreach (var obj in priorityObjList[priority])
+            {
+                if (obj.Attributes.RotationAndScaling)
+                {
+                    // Clip against the bounding box which can be DoubleSize. This is the only time doublesize is actually checed
+                    if (obj.BoundingBoxScreenSpace.ContainsPoint(screenX, screenY) == false)
+                    {
+                        continue;
+                    }
+
+                    int sourceWidth = obj.Attributes.Dimensions.Width;
+                    int sourceHeight = obj.Attributes.Dimensions.Height;
+
+                    // The game will have set up the matrix to be the inverse texture mapping matrix. I.E it maps from screen space to texture space. Just what we need!                    
+                    OamAffineMatrix rotScaleMatrix = obj.Attributes.AffineMatrix();
+
+                    // NB: Order of operations counts here!
+                    // Transform with the origin set to the centre of the sprite (that's what the - width/height /2 below is for)
+                    int originX = screenX - obj.Attributes.XPosition - (sourceWidth / 2);
+                    int originY = screenY - obj.Attributes.YPosition - (sourceHeight / 2);
+                    // Not well documented anywhere but when double size is enabled we render offset by half the original source width / height
+                    if(obj.Attributes.DoubleSize)
+                    {
+                        originX -= sourceWidth / 2;
+                        originY -= sourceHeight / 2;
+                    }
+
+                    int transformedX, transformedY;
+                    rotScaleMatrix.Multiply(originX , originY, out transformedX, out transformedY);
+
+                    // Transform back from centre of sprite
+                    transformedX += (sourceWidth / 2);
+                    transformedY += (sourceHeight / 2);
+
+                    paletteIndex = obj.PixelValue(transformedX, transformedY);
+                }
+                else
+                {
+                    if (screenX < obj.Attributes.XPositionAdjusted() ||
+                        screenX >= obj.RightEdgeScreen)
+                    {
+                        continue;
+                    }
+
+                    //paletteIndex = obj.PixelScreenValue(x, scanline);
+                    paletteIndex = obj.PixelValue(screenX - obj.Attributes.XPositionAdjusted(), screenY - obj.Attributes.YPositionAdjusted());
+                }
+
+                // Pal 0 == Transparent 
+                if (paletteIndex == 0)
+                {
+                    continue;
+                }
+
+
+                // TODO: I *think* this will render the Obj window correctly but i cannot test it yet
+                // This pixel belongs to a sprite in the Obj Window and Win 0 & 1 are not enclosing this pixel
+                if (windowing &&
+                    DisplayControlRegister.DisplayObjWin &&
+                    obj.Attributes.Mode == ObjAttributes.ObjMode.ObjWindow &&
+                    ((windowRegion & (int)TileHelpers.WindowRegion.WindowIn) == 0))
+                {
+                    bgVisibleOverride = Windows[(int)Window.WindowName.WindowObj].DisplayBg0 |
+                                            Windows[(int)Window.WindowName.WindowObj].DisplayBg1 |
+                                            Windows[(int)Window.WindowName.WindowObj].DisplayBg2 |
+                                            Windows[(int)Window.WindowName.WindowObj].DisplayBg3;
+
+                    return false;
+                }
+
+                drawBuffer.SetPixel(screenX, screenY, Palettes.Palette1[paletteIndex]);
+                return true;
+                   
+            }                        
+            return false;
+        }
 
         private void RenderScanlineMode0()
         {
@@ -498,59 +605,16 @@ namespace Gba.Core
                 // Start at the top priority, if something draws to the pixel, we can early out and stop processing this pixel 
                 for (int priority = 0; priority < 4; priority++)
                 {
-
                     // Sprite rendering
-                    if (DisplayControlRegister.DisplayObj)
+                    if (DisplayControlRegister.DisplayObj &&
+                        (!windowing || (windowing && objVisibleOverride)))
                     {
-                        bool objWindowPixel = false;
-
-                        if (!windowing || (windowing && objVisibleOverride))
+                        pixelDrawn = RenderSpritePixel(x, scanline, priority, windowing, windowRegion, ref bgVisibleOverride);
+                        if (pixelDrawn)
                         {
-                            // If a sprite has the same priority as a bg, the sprite is drawn on top, therefore we check sprites first 
-                            foreach (var obj in priorityObjList[priority])
-                            {
-                                if (x >= obj.RightEdgeScreen)
-                                {
-                                    continue;
-                                }
-                                
-                                paletteIndex = obj.PixelValue(x, scanline);
-
-                                // Pal 0 == Transparent 
-                                if (paletteIndex == 0)
-                                {
-                                    continue;
-                                }
-
-
-                                // TODO: I *think* this will render the Obj window correctly but i cannot test it yet
-                                // This pixel belongs to a sprite in the Obj Window and Win 0 & 1 are not enclosing this pixel
-                                if (windowing &&
-                                    DisplayControlRegister.DisplayObjWin && 
-                                    obj.Attributes.Mode == ObjAttributes.ObjMode.ObjWindow &&
-                                    ((windowRegion & (int)TileHelpers.WindowRegion.WindowIn) == 0))
-                                {
-                                    bgVisibleOverride =  Windows[(int)Window.WindowName.WindowObj].DisplayBg0 |
-                                                         Windows[(int)Window.WindowName.WindowObj].DisplayBg1 |
-                                                         Windows[(int)Window.WindowName.WindowObj].DisplayBg2 |
-                                                         Windows[(int)Window.WindowName.WindowObj].DisplayBg3;
-
-                                    objWindowPixel = true;
-
-                                    break;
-                                }
-
-                                drawBuffer.SetPixel(x, scanline, Palettes.Palette1[paletteIndex]);
-                                pixelDrawn = true;
-                                break;
-                            }
-                            if (pixelDrawn || objWindowPixel)
-                            {
-                                break;
-                            }
-                        }
+                            break;
+                        }                        
                     }
-
 
                     // No Sprite occupied this pixel, move on to backgrounds
 
@@ -598,20 +662,42 @@ namespace Gba.Core
 
 
         // Mode 4 is another bitmap mode. It also has a 240×160 frame-buffer, but instead of 16bpp pixels it uses 8bpp pixels. 
-        // These 8 bits are a palette index to the background palette located at 0500:0000 (our palette 0)
+        // These 8 bits are a palette index to the background palette located at 0500:0000 (palette 0)
         private void RenderMode4Scanline()
         {
             byte[] vram = gba.Memory.VRam;
-            Color[] palette = Palettes.Palette0;
-
-            // 2nd framebuffer is at 0xA000
+            Color[] palette = Palettes.Palette0;            
 
             int y = CurrentScanline;
+            bool pixelDrawn;
+            bool windowing = false;
+            bool objVisibleOverride = true;
+            int windowRegion = 0;
+            int bgVisibleOverride = 0;
 
-            //for (int y = 0; y < Screen_Y_Resolution; y++)
+            ObjPrioritySort();
+
+            for (int x = 0; x < Screen_X_Resolution; x++)
             {
-                for (int x = 0; x < Screen_X_Resolution; x++)
+                pixelDrawn = false;
+
+                for (int priority = 0; priority < 4; priority++)
                 {
+                    // Sprite rendering
+                    if (DisplayControlRegister.DisplayObj &&
+                        (!windowing || (windowing && objVisibleOverride)))
+                    {
+                        pixelDrawn = RenderSpritePixel(x, y, priority, windowing, windowRegion, ref bgVisibleOverride);
+                        if (pixelDrawn)
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                if (pixelDrawn == false)
+                {
+                    // 2nd framebuffer is at 0xA000
                     int index = vram[((y * Screen_X_Resolution) + x)];
                     drawBuffer.SetPixel(x, y, palette[index]);
                 }

@@ -227,7 +227,7 @@ namespace Gba.Core
             {
                 Gba.LcdController.Step();
                 //Gba.Joypad.Step();
-                //Gba.Timers.Update();
+                Gba.Timers.Update();
 
                 if (Gba.Dma[0].DmaCnt.ChannelEnabled) Gba.Dma[0].Step();
                 if (Gba.Dma[1].DmaCnt.ChannelEnabled) Gba.Dma[1].Step();
@@ -246,7 +246,7 @@ namespace Gba.Core
 
             Gba.LcdController.Step();
             //Gba.Joypad.Step();
-            //Gba.Timers.Update();
+            Gba.Timers.Update();
 
             if (Gba.Dma[0].DmaCnt.ChannelEnabled) Gba.Dma[0].Step();
             if (Gba.Dma[1].DmaCnt.ChannelEnabled) Gba.Dma[1].Step();

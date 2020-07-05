@@ -10,32 +10,101 @@ namespace Gba.Core
     {
         public ObjAttributes Attributes { get; private set; }
 
-        GameboyAdvance gba;
+        int vramBaseOffset;
 
-        Color[] palette;
+        GameboyAdvance gba;
 
         // Set during rendering so that the renderer can discard it after the scanline passes the sprites right edge
         public int RightEdgeScreen { get; set; }
+
+        public BoundingBox BoundingBoxScreenSpace { get; private set; }
 
         public Obj(GameboyAdvance gba, ObjAttributes attributes)
         {
             this.gba = gba;
             Attributes = attributes;
 
-            palette = gba.LcdController.Palettes.Palette1;
+            BoundingBoxScreenSpace = new BoundingBox();
+
+            // OBJ Tiles are stored in a separate area in VRAM: 06010000-06017FFF (32 KBytes) in BG Mode 0-2, or 06014000-06017FFF (16 KBytes) in BG Mode 3-5.
+            vramBaseOffset = 0x00010000;
         }
 
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int PixelValue(int screenX, int screenY)
+        // What is the pixel value within the sprite. passing 0,0 returns the pixel value of the top left of this sprite  
+        public int PixelValue(int spriteX, int spriteY)
         {
-            // OBJ Tiles are stored in a separate area in VRAM: 06010000-06017FFF (32 KBytes) in BG Mode 0-2, or 06014000-06017FFF (16 KBytes) in BG Mode 3-5.
-            int vramBaseOffset = 0x00010000;
+            Size spriteDimensions = Attributes.Dimensions;
 
+            if (spriteX < 0 || spriteX >= spriteDimensions.Width ||
+                spriteY < 0 || spriteY >= spriteDimensions.Height)
+            {
+                return 0;
+            }          
+
+            // This should be all be cached (per scanline?)
             bool TileMapping2D = (gba.LcdController.DisplayControlRegister.ObjectCharacterVramMapping == 0);
-
             byte[] vram = gba.Memory.VRam;
+            int spriteWidthInTiles = spriteDimensions.Width / 8;
+            int spriteHeightInTiles = spriteDimensions.Height / 8;
+            bool eightBitColour = Attributes.PaletteMode == ObjAttributes.PaletteDepth.Bpp8;
+            int tileSize = (eightBitColour ? LcdController.Tile_Size_8bit : LcdController.Tile_Size_4bit);
+            int spriteRowSizeInBytes = tileSize * spriteWidthInTiles;
+            int paletteOffset = 0;
+            if (eightBitColour == false)
+            {
+                paletteOffset = Attributes.PaletteNumber * 16;
+            }
+            bool hFlip = false;
+            bool vFlip = false;
+            if (Attributes.RotationAndScaling == false)
+            {
+                hFlip = Attributes.HorizontalFlip;
+                vFlip = Attributes.VerticalFlip;
+            }
 
+            int currentSpriteColumnInTiles = spriteX / 8;
+            int currentSpriteRowInTiles    = spriteY / 8;
+
+            int currentColumnWithinTile    = spriteX % 8;
+            int currentRowWithinTile       = spriteY % 8;
+
+            if (hFlip) currentSpriteColumnInTiles = (spriteWidthInTiles - 1) - currentSpriteColumnInTiles;
+            if (vFlip) currentSpriteRowInTiles = (spriteHeightInTiles - 1) - currentSpriteRowInTiles;
+
+            // This offset will be set to point to the start of the 8x8 that spriteX,spriteY is within
+            int vramTileOffset;
+
+            // Addressing mode (1d / 2d)
+            if (TileMapping2D)
+            {
+                // 2D addressing, vram is thought of as a 32x32 matrix of tiles. A sprites tiles are arranged as you would view them on a screen
+                int full32TileRowSizeInBytes = tileSize * 32;
+                vramTileOffset = vramBaseOffset + (Attributes.TileNumber * tileSize) + (currentSpriteRowInTiles * full32TileRowSizeInBytes) + (currentSpriteColumnInTiles * tileSize);
+            }
+            else
+            {
+                // 1D addressing, all the sprites tiles are contiguous in vram
+                vramTileOffset = vramBaseOffset + (Attributes.TileNumber * tileSize) + (currentSpriteRowInTiles * spriteRowSizeInBytes) + (currentSpriteColumnInTiles * tileSize);
+            }
+
+            // Lookup the actual pixel value (which is a palette index) in the tile data 
+            int paletteIndex = TileHelpers.GetTilePixel(currentColumnWithinTile, currentRowWithinTile, eightBitColour, vram, vramTileOffset, hFlip, vFlip);
+
+            // Pal 0 == Transparent 
+            if (paletteIndex == 0)
+            {
+                return 0;
+            }
+
+            return paletteOffset + paletteIndex;
+        }
+        
+
+        // What colour would this sprite like to set the passed screen coordinates?
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int PixelScreenValue(int screenX, int screenY)
+        {
             Size spriteDimensions = Attributes.Dimensions;
 
             // X value is 9 bit and Y is 8 bit! Clamp the values and wrap when they exceed them
@@ -44,37 +113,34 @@ namespace Gba.Core
             int sprY = Attributes.YPosition;
             if (sprY > LcdController.Screen_Y_Resolution) sprY -= 255;
 
-
-            if (//Attributes.Visible == false ||
-                //screenY < sprY ||
-                //screenY >= (sprY + spriteDimensions.Height) ||
-                screenX < sprX ||
+            if (screenX < sprX ||
                 screenX >= (sprX + spriteDimensions.Width))
             {
                 return 0;
             }
 
-            // What x pixel within the sprite are we rendering??
-            int spriteX = screenX - sprX;
-
+            // This should be all be cached (per scanline?)
+            bool TileMapping2D = (gba.LcdController.DisplayControlRegister.ObjectCharacterVramMapping == 0);
+            byte[] vram = gba.Memory.VRam;
             int spriteWidthInTiles = spriteDimensions.Width / 8;
             int spriteHeightInTiles = spriteDimensions.Height / 8;
-
             bool eightBitColour = Attributes.PaletteMode == ObjAttributes.PaletteDepth.Bpp8;
             int tileSize = (eightBitColour ? LcdController.Tile_Size_8bit : LcdController.Tile_Size_4bit);
             int spriteRowSizeInBytes = tileSize * spriteWidthInTiles;
+            int paletteOffset = 0;
+            if (eightBitColour == false)
+            {
+                paletteOffset = Attributes.PaletteNumber * 16;
+            }
+
+            // What x pixel within the sprite are we rendering??
+            int spriteX = screenX - sprX;       
 
             // Which row of tiles are we rendering? EG: A 64x64 sprinte will have 8 rows of tiles 
             int currentSpriteRowInTiles = (screenY - sprY) / 8;
             if (Attributes.VerticalFlip) currentSpriteRowInTiles = (spriteHeightInTiles - 1) - currentSpriteRowInTiles;
 
-            int currentRowWithinTile = (screenY - sprY) % 8;
-
-            int paletteOffset = 0;
-            if (eightBitColour == false)
-            {
-                paletteOffset = Attributes.PaletteNumber * 16;
-            }            
+            int currentRowWithinTile = (screenY - sprY) % 8;        
 
             int currentSpriteColumnInTiles = spriteX / 8;
             if (Attributes.HorizontalFlip) currentSpriteColumnInTiles = (spriteWidthInTiles - 1) - currentSpriteColumnInTiles;
@@ -204,16 +270,33 @@ namespace Gba.Core
                     continue;
                 }
 
-                drawBuffer.SetPixel(screenX, scanline, palette[paletteOffset + paletteIndex]);
+                drawBuffer.SetPixel(screenX, scanline, gba.LcdController.Palettes.Palette1[paletteOffset + paletteIndex]);
             }
         }
 
 
+        // TODO: Just make this a screen bounding box
         public void SetRightEdgeScreen()
         {
-            int sprX = Attributes.XPosition;
-            if (sprX >= LcdController.Screen_X_Resolution) sprX -= 512;
-            RightEdgeScreen = sprX + Attributes.Dimensions.Width;
+            // DOUBLE SIZE!!!!
+            RightEdgeScreen = Attributes.XPositionAdjusted() + Attributes.Dimensions.Width;
+        }
+
+
+        public void CalcBoundingBox()
+        {
+            BoundingBoxScreenSpace.X = Attributes.XPositionAdjusted();
+            BoundingBoxScreenSpace.Y = Attributes.YPositionAdjusted();
+            if(Attributes.RotationAndScaling && Attributes.DoubleSize)
+            {
+                BoundingBoxScreenSpace.Width = Attributes.Dimensions.Width * 2;
+                BoundingBoxScreenSpace.Height = Attributes.Dimensions.Height * 2;
+            }
+            else
+            {
+                BoundingBoxScreenSpace.Width = Attributes.Dimensions.Width;
+                BoundingBoxScreenSpace.Height = Attributes.Dimensions.Height;
+            }
         }
     }
 }

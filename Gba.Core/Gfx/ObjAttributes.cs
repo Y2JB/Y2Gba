@@ -7,11 +7,13 @@ namespace Gba.Core
 {
     public class ObjAttributes
     {
+        GameboyAdvance gba;
         int oamRamOffset;
         byte[] oamRam;
 
-        public ObjAttributes(int oamRamOffset, byte[] oamRam)
+        public ObjAttributes(GameboyAdvance gba, int oamRamOffset, byte[] oamRam)
         {
+            this.gba = gba;
             this.oamRamOffset = oamRamOffset;
             this.oamRam = oamRam;
         }
@@ -59,11 +61,6 @@ namespace Gba.Core
         //  14-15 OBJ Shape              (0=Square,1=Horizontal,2=Vertical,3=Prohibited)
         public byte ObjAttrib0L { get { return oamRam[oamRamOffset]; } }
         public byte ObjAttrib0H { get { return oamRam[oamRamOffset + 1]; } }
-        //public ushort ObjAttr0
-        //{
-        //    get { return (ushort)((ObjAttrib0H << 8) | ObjAttrib0L); }
-        //    set { ObjAttrib0L = (byte)(value & 0x00FF); ObjAttrib0H = (byte)((value & 0xFF00) >> 8); }
-        //}
 
 
         // Bit   Expl.
@@ -78,13 +75,6 @@ namespace Gba.Core
         // 14-15 OBJ Size               (0..3, depends on OBJ Shape, see Attr 0)
         public byte ObjAttrib1L { get { return oamRam[oamRamOffset + 2]; } }
         public byte ObjAttrib1H { get { return oamRam[oamRamOffset + 3]; } }
-        //public ushort ObjAttr1
-        //{
-        //   get { return (ushort)((ObjAttrib1H << 8) | ObjAttrib1L); }
-        //    set { ObjAttrib1L = (byte)(value & 0x00FF); ObjAttrib1H = (byte)((value & 0xFF00) >> 8); }
-        //}
-
-
 
 
         //  Bit   Expl.
@@ -93,11 +83,6 @@ namespace Gba.Core
         //  12-15 Palette Number   (0-15) (Not used in 256 color/1 palette mode)
         public byte ObjAttrib2L { get { return oamRam[oamRamOffset + 4]; } }
         public byte ObjAttrib2H { get { return oamRam[oamRamOffset + 5]; } }
-        //public ushort ObjAttr2
-        //{
-        //    get { return (ushort)((ObjAttrib2H << 8) | ObjAttrib2L); }
-        //    set { ObjAttrib2L = (byte)(value & 0x00FF); ObjAttrib2H = (byte)((value & 0xFF00) >> 8); }
-        //}
 
 
         public int YPosition { get { return ObjAttrib0L; } }
@@ -107,6 +92,7 @@ namespace Gba.Core
         public bool RotationAndScaling { get { return ((ObjAttrib0H & 0x01) != 0); } }
 
         //  When Rotation/Scaling used
+        // Doubles the size of the sprites bounding box. Used to avoid clipping when doing a scale / rotate / sheer 
         public bool DoubleSize { get { return ((ObjAttrib0H & 0x02) != 0); } }
         //  When Rotation/Scaling NOT used
         public bool Visible { get { return ((ObjAttrib0H & 0x02) == 0); } }
@@ -135,10 +121,38 @@ namespace Gba.Core
 
         public Size Dimensions { get { return ObjSizes[(Shape * 4) + Size];  } }
       
+        public OamAffineMatrix AffineMatrix()
+        {
+            if(RotationAndScaling == false)
+            {
+                throw new ArgumentException("No Matrix unless rot / scaling");
+            }
+            
+            int matixindex = ((ObjAttrib1H & 0x3E)>>1);
+            return gba.LcdController.OamAffineMatrices[matixindex];
+        }
+
         // How many 8x8 tiles does this sprite use?
         public int TileCount()
         {
             return (Dimensions.Width / 8) * (Dimensions.Height / 8);
+        }
+
+
+        public int XPositionAdjusted()
+        {
+            // X value is 9 bit and Y is 8 bit! Clamp the values and wrap when they exceed them
+            int sprX = XPosition;
+            if (sprX >= LcdController.Screen_X_Resolution) sprX -= 512;
+            return sprX;
+        }
+
+        public int YPositionAdjusted()
+        {
+            // X value is 9 bit and Y is 8 bit! Clamp the values and wrap when they exceed them
+            int sprY = YPosition;
+            if (sprY > LcdController.Screen_Y_Resolution) sprY -= 255;
+            return sprY;
         }
     }
 }

@@ -28,17 +28,23 @@ namespace Gba.Core
       0E0h    4     JOYBUS Entry Pt. (32bit ARM branch opcode, eg. "B joy_start")
   */
     public class Rom : IRom
-    {
+    {        
         private byte[] romData;
         private UInt32[] rom32BitCached;
         private ushort[] rom16BitCached;
+
+        public int RomSize { get { return romData.Length; } }
+
+        const int Max_SRam_Size = 1024 * 64;
+        private byte[] sRam;
+        public byte[] SRam { get { return sRam; } }
 
         //private readonly int Header_Size = 0xC0;
         private readonly int RomNameOffset = 0x0A0;
 
 
         public string RomName { get; private set; }
-
+        
 
         public string RomFileName { get; private set; }
 
@@ -54,6 +60,8 @@ namespace Gba.Core
             // Cache the entire ROM along 32 bit boundaries. This lets us do fast access when advancing and refilling the CPU pipeline.
             Cache32BitRomValues();
             Cache16BitRomValues();
+
+            sRam = new byte[Max_SRam_Size];
 
             RomName = Encoding.UTF8.GetString(romData, RomNameOffset, 12).TrimEnd((Char)0);
             RomName = RomName.Replace("/", String.Empty);
@@ -117,6 +125,36 @@ namespace Gba.Core
         {
             // NB: Little Endian
             return (UInt32)((ReadByte((UInt32)(address + 3)) << 24) | (ReadByte((UInt32)(address + 2)) << 16) | (ReadByte((UInt32)(address + 1)) << 8) | ReadByte(address));
+        }
+
+
+        public void LoadBatteryBackData()
+        {
+            try
+            {
+                using (FileStream fs = File.Open(Path.ChangeExtension(RomFileName, "sav"), FileMode.Open))
+                {
+                    using (BinaryReader bw = new BinaryReader(fs))
+                    {
+                        bw.Read(sRam, 0, Max_SRam_Size);
+                    }
+                }
+            }
+            catch (FileNotFoundException)
+            {
+            }
+        }
+
+
+        public void SaveBatteryBackData()
+        {
+            using (FileStream fs = File.Open(Path.ChangeExtension(RomFileName, "sav"), FileMode.Create))
+            {
+                using (BinaryWriter bw = new BinaryWriter(fs))
+                {
+                    bw.Write(sRam, 0, Max_SRam_Size);
+                }
+            }
         }
     }
 }
