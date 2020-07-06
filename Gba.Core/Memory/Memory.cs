@@ -394,7 +394,7 @@ namespace Gba.Core
 				{
 					gba.LcdController.DispStatRegister.VCountSetting = value;
 				}
-				else if (address >= 0x04000008 && address <= 0x0400001F)
+				else if (address >= 0x04000008 && address <= 0x0400003F)
 				{
 					// BG Control Registers
 					if (address == 0x04000008) gba.LcdController.BgControlRegisters[0].Register0 = value;
@@ -426,6 +426,46 @@ namespace Gba.Core
 					else if (address == 0x400001D) gba.LcdController.Bg[3].ScrollX = (int)((gba.LcdController.Bg[3].ScrollX & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
 					else if (address == 0x400001E) gba.LcdController.Bg[3].ScrollY = (int)((gba.LcdController.Bg[3].ScrollY & 0xFFFFFF00) | value);
 					else if (address == 0x400001F) gba.LcdController.Bg[3].ScrollY = (int)((gba.LcdController.Bg[3].ScrollY & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
+
+					// Affine Scrolling registers
+					else if (address == 0x4000028) gba.LcdController.Bg[2].AffineScrollX = gba.LcdController.Bg[2].affineX0 = value;
+					else if (address == 0x4000029) gba.LcdController.Bg[2].AffineScrollX = gba.LcdController.Bg[2].affineX1 = value;
+					else if (address == 0x400002A) gba.LcdController.Bg[2].AffineScrollX = gba.LcdController.Bg[2].affineX2 = value;
+					else if (address == 0x400002B) gba.LcdController.Bg[2].AffineScrollX = gba.LcdController.Bg[2].affineX3 = value;
+
+					else if (address == 0x400002C) gba.LcdController.Bg[2].AffineScrollY = gba.LcdController.Bg[2].affineY0 = value;
+					else if (address == 0x400002D) gba.LcdController.Bg[2].AffineScrollY = gba.LcdController.Bg[2].affineY1 = value;
+					else if (address == 0x400002E) gba.LcdController.Bg[2].AffineScrollY = gba.LcdController.Bg[2].affineY2 = value;
+					else if (address == 0x400002F) gba.LcdController.Bg[2].AffineScrollY = gba.LcdController.Bg[2].affineY3 = value;
+
+					else if (address == 0x4000038) gba.LcdController.Bg[3].AffineScrollX = gba.LcdController.Bg[2].affineX0 = value;
+					else if (address == 0x4000039) gba.LcdController.Bg[3].AffineScrollX = gba.LcdController.Bg[2].affineX1 = value;
+					else if (address == 0x400003A) gba.LcdController.Bg[3].AffineScrollX = gba.LcdController.Bg[2].affineX2 = value;
+					else if (address == 0x400003B) gba.LcdController.Bg[3].AffineScrollX = gba.LcdController.Bg[2].affineX3 = value;
+
+					else if (address == 0x400003C) gba.LcdController.Bg[3].AffineScrollY = gba.LcdController.Bg[2].affineY0 = value;
+					else if (address == 0x400003D) gba.LcdController.Bg[3].AffineScrollY = gba.LcdController.Bg[2].affineY1 = value;
+					else if (address == 0x400003E) gba.LcdController.Bg[3].AffineScrollY = gba.LcdController.Bg[2].affineY2 = value;
+					else if (address == 0x400003F) gba.LcdController.Bg[3].AffineScrollY = gba.LcdController.Bg[2].affineY3 = value;
+
+					// Affine Matrices 
+					else if (address == 0x4000020) gba.LcdController.Bg[2].AffineMatrix.PaL = value;
+					else if (address == 0x4000021) gba.LcdController.Bg[2].AffineMatrix.PaH = value;
+					else if (address == 0x4000022) gba.LcdController.Bg[2].AffineMatrix.PbL = value;
+					else if (address == 0x4000023) gba.LcdController.Bg[2].AffineMatrix.PbH = value;
+					else if (address == 0x4000024) gba.LcdController.Bg[2].AffineMatrix.PcL = value;
+					else if (address == 0x4000025) gba.LcdController.Bg[2].AffineMatrix.PcH = value;
+					else if (address == 0x4000026) gba.LcdController.Bg[2].AffineMatrix.PdL = value;
+					else if (address == 0x4000027) gba.LcdController.Bg[2].AffineMatrix.PdH = value;
+
+					else if (address == 0x4000030) gba.LcdController.Bg[3].AffineMatrix.PaL = value;
+					else if (address == 0x4000031) gba.LcdController.Bg[3].AffineMatrix.PaH = value;
+					else if (address == 0x4000032) gba.LcdController.Bg[3].AffineMatrix.PbL = value;
+					else if (address == 0x4000033) gba.LcdController.Bg[3].AffineMatrix.PbH = value;
+					else if (address == 0x4000034) gba.LcdController.Bg[3].AffineMatrix.PcL = value;
+					else if (address == 0x4000035) gba.LcdController.Bg[3].AffineMatrix.PcH = value;
+					else if (address == 0x4000036) gba.LcdController.Bg[3].AffineMatrix.PdL = value;
+					else if (address == 0x4000037) gba.LcdController.Bg[3].AffineMatrix.PdH = value;
 
 					else throw new ArgumentException("Bad BG write");
 
@@ -577,11 +617,7 @@ namespace Gba.Core
 			}
 			// OAM Ram
 			else if (address >= 0x07000000 && address <= 0x07FFFFFF)
-			{
-				if(address >= 0x07000080 && address <= 0x07000088)
-                {
-					int x = 10;
-                }
+			{				
 				address &= 0x3FF;
 				OamRam[address] = value;
 			}

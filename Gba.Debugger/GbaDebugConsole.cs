@@ -46,6 +46,7 @@ namespace GbaDebugger
             set,                            // set (register) n/nn
             ticks,
 
+            bg,
             //lcd,
             win,
 
@@ -183,6 +184,9 @@ namespace GbaDebugger
 
                 case ConsoleCommand.win:
                     return WinCommand();
+
+                case ConsoleCommand.bg:
+                    return BgCommand();
 
                 case ConsoleCommand.help:
                     return HelpCommand();
@@ -473,6 +477,19 @@ namespace GbaDebugger
                     ConsoleAddString(bp.ToString());
                 }
             }
+            return true;
+        }
+
+
+        bool BgCommand()
+        {
+            ConsoleAddString(String.Format("Bg Mode: {0}", gba.LcdController.DisplayControlRegister.BgMode));
+
+            for (int i = 0; i < 4; i++)
+            {
+                ConsoleAddString(String.Format("Bg{0} : {1}x{2} - {3}", i, gba.LcdController.Bg[i].WidthInPixels(), gba.LcdController.Bg[i].HeightInPixels(), gba.LcdController.Bg[i].AffineMode ? "Affine Mode" : "Text Mode"));
+            }
+
             return true;
         }
 

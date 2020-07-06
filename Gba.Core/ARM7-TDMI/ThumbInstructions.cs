@@ -1,4 +1,4 @@
-﻿//#define USE_LUT_THUMB
+﻿#define USE_LUT_THUMB
 
 // Full disclosure - I got a huge amount of help and code from Gbe-Plus when writing the CPU emulation
 

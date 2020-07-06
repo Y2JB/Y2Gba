@@ -17,11 +17,38 @@ namespace Gba.Core
         public int ScrollX { get; set; }
         public int ScrollY { get; set; }
 
+        public bool AffineMode { get; set; }
+
+        // 32 but fixed point numbers. Will only ever be set for BG's 2 & 3. Used instead of the scroll registers above
+        public byte affineX0 { get; set; }
+        public byte affineX1 { get; set; }
+        public byte affineX2 { get; set; }
+        public byte affineX3 { get; set; }
+        public UInt32 AffineScrollX
+        {
+            get { return (UInt32)((affineX3 << 24) | (affineX2 << 16) | (affineX1 << 8) | affineX0); }
+            set { affineX0 = (byte)(value & 0xFF); affineX1 = (byte)((value & 0xFF00) >> 8); affineX2 = (byte)((value & 0xFF0000) >> 16); affineX3 = (byte)((value & 0xFF000000) >> 24); }
+        }
+
+        public byte affineY0 { get; set; }
+        public byte affineY1 { get; set; }
+        public byte affineY2 { get; set; }
+        public byte affineY3 { get; set; }
+        public UInt32 AffineScrollY
+        {
+            get { return (UInt32)((affineY3 << 24) | (affineY2 << 16) | (affineY1 << 8) | affineY0); }
+            set { affineY0 = (byte)(value & 0xFF); affineY1 = (byte)((value & 0xFF00) >> 8); affineY2 = (byte)((value & 0xFF0000) >> 16); affineY3 = (byte)((value & 0xFF000000) >> 24); }
+        }
+
+        public BgAffineMatrix AffineMatrix { get; private set; }
+
         UInt32 tileDataVramOffset;
 
         // Cached data for rendering
         int bgWidthInPixel;
         int bgHeightInPixel;
+        int bgWidthInTiles;
+        int bgHeightInTiles;
         bool eightBitColour;
         int tileSize;
 
@@ -35,21 +62,29 @@ namespace Gba.Core
             this.gba = gba;
             this.BgNumber = bgNumber;
             CntRegister = cntRegister;
-
+            AffineMode = false;
             TileMap = new TileMap(gba.Memory.VRam, cntRegister, bgNumber);
+
+            AffineMatrix = new BgAffineMatrix();
         }
 
 
         public void CacheRenderData()
-        {          
+        {
+            AffineMode = false;
+            if (gba.LcdController.DisplayControlRegister.BgMode == 1 && BgNumber == 2) AffineMode = true;
+            else if (gba.LcdController.DisplayControlRegister.BgMode == 2 && (BgNumber == 2 || BgNumber == 3)) AffineMode = true;
+
             // TODO: Just make this a LUT
             // 0-3, in units of 16 KBytes
             tileDataVramOffset = (CntRegister.TileBlockBaseAddress * 16384);
 
             bgWidthInPixel = WidthInPixels();
             bgHeightInPixel = HeightInPixels();
+            bgWidthInTiles = bgWidthInPixel / 8;
+            bgHeightInTiles = bgHeightInPixel / 8;
 
-            eightBitColour = CntRegister.PaletteMode == BgPaletteMode.PaletteMode256x1;
+            eightBitColour = (CntRegister.PaletteMode == BgPaletteMode.PaletteMode256x1 || AffineMode);
             tileSize = (eightBitColour ? LcdController.Tile_Size_8bit : LcdController.Tile_Size_4bit);
         }
 
@@ -95,6 +130,41 @@ namespace Gba.Core
             return paletteOffset + paletteIndex;          
         }
 
+
+        public int PixelValueAffine(int screenX, int screenY)
+        {
+            int paletteOffset = 0;
+
+            // Scrolling values set the origin so that BG 0,0 == Screen 0,0
+            int scrollX = 0;
+            int scrollY = 0;
+
+            // Coordinates within the current BG
+            int wrappedBgX = scrollX + screenX;
+            int wrappedBgY = scrollY + screenY;
+            //if (wrappedBgX >= bgWidthInPixel) wrappedBgX -= bgWidthInPixel;
+            //if (wrappedBgY >= bgHeightInPixel) wrappedBgY -= bgHeightInPixel;
+
+            int bgRow = wrappedBgX / 8;
+            int bgCol = wrappedBgY / 8;
+
+            // Which row / column within the current tile are we rendering?
+            int tileRow = wrappedBgY % 8;                
+            int tileColumn = wrappedBgX % 8;
+
+            // Affine BG's have one byte screen data (the tile index). Also all tiles are 8bpp
+            int tileInfoOffset = (bgRow * bgWidthInTiles) + bgCol;
+                
+            int tileNumber = gba.Memory.VRam[(CntRegister.ScreenBlockBaseAddress * 2048) + tileInfoOffset];
+
+            int tileVramOffset = (int)(tileDataVramOffset + (tileNumber * tileSize));
+
+            int paletteIndex = TileHelpers.GetTilePixel(tileColumn, tileRow, eightBitColour, gba.Memory.VRam, tileVramOffset, false, false);
+
+            if (paletteIndex == 0) return 0;
+
+            return paletteOffset + paletteIndex;
+        }
 
 
         // Used for debug rendering BG's. Renders the source BG, does not scroll etc 

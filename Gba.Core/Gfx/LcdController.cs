@@ -1,4 +1,4 @@
-﻿#define ParallelizeScanline
+﻿//#define ParallelizeScanline
 //#define THREADED_SCANLINE
 
 using System;
@@ -43,6 +43,7 @@ namespace Gba.Core
 
         public Obj[] Obj { get; private set; }
         public OamAffineMatrix[] OamAffineMatrices { get; private set; }
+
         // Every frame, put the objs in a bucket based on it's priority
         List<Obj>[] priorityObjList = new List<Obj>[4];
 
@@ -416,10 +417,7 @@ namespace Gba.Core
                     continue;
                 }
 
-                // This needs to go
-                obj.SetRightEdgeScreen();
-
-                obj.CalcBoundingBox();
+                obj.CacheRenderData();                
 
                 priorityObjList[obj.Attributes.Priority].Add(obj);
             }
@@ -487,8 +485,7 @@ namespace Gba.Core
                 }
                 else
                 {
-                    if (screenX < obj.Attributes.XPositionAdjusted() ||
-                        screenX >= obj.RightEdgeScreen)
+                    if (obj.BoundingBoxScreenSpace.ContainsPoint(screenX, screenY) == false)
                     {
                         continue;
                     }
@@ -528,12 +525,6 @@ namespace Gba.Core
 
         private void RenderScanlineMode0()
         {
-            // TODO: This only needs to happen when the BG registers are updated 
-            Bg[0].CacheRenderData();
-            Bg[1].CacheRenderData();
-            Bg[2].CacheRenderData();
-            Bg[3].CacheRenderData();
-
             ObjPrioritySort();
 
             int scanline = CurrentScanline;
@@ -629,7 +620,14 @@ namespace Gba.Core
                             continue;
                         }
 
-                        paletteIndex = Bg[bgSelect].PixelValue(x, scanline);
+                        if (Bg[bgSelect].AffineMode)
+                        {
+                            paletteIndex = Bg[bgSelect].PixelValueAffine(x, scanline);
+                        }
+                        else
+                        {
+                            paletteIndex = Bg[bgSelect].PixelValue(x, scanline);
+                        }
 
                         // Pal 0 == Transparent 
                         if (paletteIndex == 0)
@@ -705,13 +703,6 @@ namespace Gba.Core
         }
 
 
-        private void RenderObjsScanline()
-        {          
-            for (int i = 0; i < Max_Sprites; i++)
-            {
-                Obj[i].RenderObjScanline(drawBuffer, CurrentScanline);                          
-            }
-        }
 
     }
 }

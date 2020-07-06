@@ -35,7 +35,16 @@ namespace Gba.Core
             }
             set
             {
+                UInt32 oldBgMode = BgMode;
                 reg0 = value;
+
+                if(oldBgMode != BgMode)
+                {
+                    lcd.Bg[0].CacheRenderData();
+                    lcd.Bg[1].CacheRenderData();
+                    lcd.Bg[2].CacheRenderData();
+                    lcd.Bg[3].CacheRenderData();
+                }
             }
         }
 
@@ -45,8 +54,7 @@ namespace Gba.Core
         public byte Register1
         {
             get
-            {
-
+            {            
                 return reg1;
             }
             set

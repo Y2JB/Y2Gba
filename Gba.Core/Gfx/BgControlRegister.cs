@@ -33,6 +33,7 @@ namespace Gba.Core
             set
             {
                 reg0 = value;
+                lcd.Bg[bgNumber].CacheRenderData();
             }
         }
 
@@ -55,6 +56,7 @@ namespace Gba.Core
                 {
                     lcd.Bg[bgNumber].TileMap.Reset();
                 }
+                lcd.Bg[bgNumber].CacheRenderData();
             }
         }
       
