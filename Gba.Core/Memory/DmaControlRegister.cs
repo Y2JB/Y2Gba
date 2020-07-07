@@ -70,7 +70,7 @@ namespace Gba.Core
             U16,
             U32
         };
-        public DmaTransferType TransferType { get { return (DmaTransferType)((dmaCntRegister1 & 0x40)>>6); } }
+        public DmaTransferType TransferType { get { return (DmaTransferType)((dmaCntRegister1 & 0x4)>>2); } }
 
 
         public enum DmaStartTiming
