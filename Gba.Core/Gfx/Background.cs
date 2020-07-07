@@ -24,9 +24,9 @@ namespace Gba.Core
         public byte affineX1 { get; set; }
         public byte affineX2 { get; set; }
         public byte affineX3 { get; set; }
-        public UInt32 AffineScrollX
+        public int AffineScrollX
         {
-            get { return (UInt32)((affineX3 << 24) | (affineX2 << 16) | (affineX1 << 8) | affineX0); }
+            get { return (int)((affineX3 << 24) | (affineX2 << 16) | (affineX1 << 8) | affineX0); }
             set { affineX0 = (byte)(value & 0xFF); affineX1 = (byte)((value & 0xFF00) >> 8); affineX2 = (byte)((value & 0xFF0000) >> 16); affineX3 = (byte)((value & 0xFF000000) >> 24); }
         }
 
@@ -34,9 +34,9 @@ namespace Gba.Core
         public byte affineY1 { get; set; }
         public byte affineY2 { get; set; }
         public byte affineY3 { get; set; }
-        public UInt32 AffineScrollY
+        public int AffineScrollY
         {
-            get { return (UInt32)((affineY3 << 24) | (affineY2 << 16) | (affineY1 << 8) | affineY0); }
+            get { return (int)((affineY3 << 24) | (affineY2 << 16) | (affineY1 << 8) | affineY0); }
             set { affineY0 = (byte)(value & 0xFF); affineY1 = (byte)((value & 0xFF00) >> 8); affineY2 = (byte)((value & 0xFF0000) >> 16); affineY3 = (byte)((value & 0xFF000000) >> 24); }
         }
 
@@ -133,37 +133,52 @@ namespace Gba.Core
 
         public int PixelValueAffine(int screenX, int screenY)
         {
-            int paletteOffset = 0;
-
             // Scrolling values set the origin so that BG 0,0 == Screen 0,0
-            int scrollX = 0;
-            int scrollY = 0;
+            // Affine scroll are 24.8 fixed point numbers but as long as you shift away the fraction part at the end, you can just do integer math on them and they work
+            int scrollX = AffineScrollX >> 8;
+            int scrollY = AffineScrollY >> 8;
 
-            // Coordinates within the current BG
-            int wrappedBgX = scrollX + screenX;
-            int wrappedBgY = scrollY + screenY;
-            //if (wrappedBgX >= bgWidthInPixel) wrappedBgX -= bgWidthInPixel;
-            //if (wrappedBgY >= bgHeightInPixel) wrappedBgY -= bgHeightInPixel;
+            // The game will have set up the matrix to be the inverse texture mapping matrix. I.E it maps from screen space to texture space. Just what we need!                    
+            int textureSpaceX, textureSpaceY;
+            AffineMatrix.Multiply(screenX, screenY, out textureSpaceX, out textureSpaceY);
 
-            int bgRow = wrappedBgX / 8;
-            int bgCol = wrappedBgY / 8;
+            // Apply displacement vector (affine scroll) 
+            textureSpaceX += scrollX;
+            textureSpaceY += scrollY;
 
-            // Which row / column within the current tile are we rendering?
-            int tileRow = wrappedBgY % 8;                
-            int tileColumn = wrappedBgX % 8;
+            // BG Wrap?
+            if (CntRegister.DisplayAreaOverflow)
+            {
+                if (textureSpaceX >= bgWidthInPixel) textureSpaceX -= bgWidthInPixel;
+                if (textureSpaceY >= bgHeightInPixel) textureSpaceY -= bgHeightInPixel;
+                if (textureSpaceX < 0) textureSpaceX += bgWidthInPixel;
+                if (textureSpaceY < 0) textureSpaceY += bgHeightInPixel;
+            }
+            else
+            {
+                if (textureSpaceX < 0 || textureSpaceX > WidthInPixels()) return 0;
+                if (textureSpaceY < 0 || textureSpaceY > HeightInPixels()) return 0;
+            }
+
+            // Coords (measured in tiles) of the tile we want to render 
+            int bgRow = textureSpaceY / 8;
+            int bgColumn = textureSpaceX / 8;
+
+            // Which row / column within the tile we are rendering?
+            int tileRow = textureSpaceY % 8;                
+            int tileColumn = textureSpaceX % 8;
 
             // Affine BG's have one byte screen data (the tile index). Also all tiles are 8bpp
-            int tileInfoOffset = (bgRow * bgWidthInTiles) + bgCol;
+            // Affine BG's are also all square (they have their own size table which is different to regular tiled bg's)
+            int tileInfoOffset = (bgRow * bgWidthInTiles) + bgColumn;
                 
             int tileNumber = gba.Memory.VRam[(CntRegister.ScreenBlockBaseAddress * 2048) + tileInfoOffset];
 
             int tileVramOffset = (int)(tileDataVramOffset + (tileNumber * tileSize));
 
-            int paletteIndex = TileHelpers.GetTilePixel(tileColumn, tileRow, eightBitColour, gba.Memory.VRam, tileVramOffset, false, false);
+            int paletteIndex = TileHelpers.GetTilePixel(tileColumn, tileRow, true, gba.Memory.VRam, tileVramOffset, false, false);
 
-            if (paletteIndex == 0) return 0;
-
-            return paletteOffset + paletteIndex;
+            return paletteIndex;
         }
 
 
@@ -221,15 +236,37 @@ namespace Gba.Core
 
         public int WidthInPixels()
         {
-            if (Size == BgSize.Bg256x256 || Size == BgSize.Bg256x512) return 256;
-            return 512;
+            if (AffineMode)
+            {
+                if (Size == BgSize.AffineBg128x128) return 128;
+                else if (Size == BgSize.AffineBg256x256) return 256;
+                else if (Size == BgSize.AffineBg512x512) return 512;
+                else if (Size == BgSize.AffineBg1024x1024) return 1024;
+                throw new ArgumentException("Bad bg size");
+            }
+            else
+            {
+                if (Size == BgSize.Bg256x256 || Size == BgSize.Bg256x512) return 256;
+                return 512;
+            }
         }
 
 
         public int HeightInPixels()
         {
-            if (Size == BgSize.Bg256x256 || Size == BgSize.Bg512x256) return 256;
-            return 512;
+            if (AffineMode)
+            {
+                if (Size == BgSize.AffineBg128x128) return 128;
+                else if (Size == BgSize.AffineBg256x256) return 256;
+                else if (Size == BgSize.AffineBg512x512) return 512;
+                else if (Size == BgSize.AffineBg1024x1024) return 1024;
+                throw new ArgumentException("Bad bg size");
+            }
+            else
+            {
+                if (Size == BgSize.Bg256x256 || Size == BgSize.Bg512x256) return 256;
+                return 512;
+            }
         }
 
 

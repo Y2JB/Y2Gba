@@ -360,6 +360,8 @@ namespace Gba.Core
             switch(DisplayControlRegister.BgMode)
             {
                 case 0x0:
+                case 0x1:
+                case 0x2:
 #if THREADED_SCANLINE
                     if(scanlineThread.IsAlive == false)
                     {
@@ -371,14 +373,9 @@ namespace Gba.Core
                     }
                     drawScanline = true;
 #else
-                    RenderScanlineMode0();
+                    RenderScanlineTextMode();
 #endif
-                    break;
-
-                case 0x1:
-                case 0x2:
-                    RenderScanlineMode0();
-                    break;
+                    break;               
 
                 case 0x4:
                     // TODO: What about sprites here?
@@ -523,7 +520,7 @@ namespace Gba.Core
             return false;
         }
 
-        private void RenderScanlineMode0()
+        private void RenderScanlineTextMode()
         {
             ObjPrioritySort();
 

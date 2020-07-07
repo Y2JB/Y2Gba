@@ -77,7 +77,21 @@ namespace Gba.Core
 
         public BgPaletteMode PaletteMode { get { return (BgPaletteMode)((Register0 & 0x80) >> 7); } }
 
-        public BgSize Size { get { return (BgSize)((Register1 & 0xC0) >> 6); } }
+        // Does affine BG wrap?
+        public bool DisplayAreaOverflow { get { return (Register1 & 0x20) != 0;  } }
+
+        public BgSize Size 
+        { 
+            get 
+            {
+                int regValue = (Register1 & 0xC0) >> 6;
+                if (lcd.Bg[bgNumber].AffineMode)
+                {
+                    regValue += 4;
+                }
+                return (BgSize)(regValue); 
+            } 
+        }
         
     }
 
@@ -88,7 +102,14 @@ namespace Gba.Core
         Bg512x256,
         Bg256x512,
         Bg512x512,
+
+        AffineBg128x128,
+        AffineBg256x256,
+        AffineBg512x512,
+        AffineBg1024x1024,
     }
+
+
 
     public enum BgPaletteMode
     {

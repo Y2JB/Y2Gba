@@ -428,25 +428,25 @@ namespace Gba.Core
 					else if (address == 0x400001F) gba.LcdController.Bg[3].ScrollY = (int)((gba.LcdController.Bg[3].ScrollY & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
 
 					// Affine Scrolling registers
-					else if (address == 0x4000028) gba.LcdController.Bg[2].AffineScrollX = gba.LcdController.Bg[2].affineX0 = value;
-					else if (address == 0x4000029) gba.LcdController.Bg[2].AffineScrollX = gba.LcdController.Bg[2].affineX1 = value;
-					else if (address == 0x400002A) gba.LcdController.Bg[2].AffineScrollX = gba.LcdController.Bg[2].affineX2 = value;
-					else if (address == 0x400002B) gba.LcdController.Bg[2].AffineScrollX = gba.LcdController.Bg[2].affineX3 = value;
+					else if (address == 0x4000028) gba.LcdController.Bg[2].affineX0 = value;
+					else if (address == 0x4000029) gba.LcdController.Bg[2].affineX1 = value;
+					else if (address == 0x400002A) gba.LcdController.Bg[2].affineX2 = value;
+					else if (address == 0x400002B) gba.LcdController.Bg[2].affineX3 = value;
 
-					else if (address == 0x400002C) gba.LcdController.Bg[2].AffineScrollY = gba.LcdController.Bg[2].affineY0 = value;
-					else if (address == 0x400002D) gba.LcdController.Bg[2].AffineScrollY = gba.LcdController.Bg[2].affineY1 = value;
-					else if (address == 0x400002E) gba.LcdController.Bg[2].AffineScrollY = gba.LcdController.Bg[2].affineY2 = value;
-					else if (address == 0x400002F) gba.LcdController.Bg[2].AffineScrollY = gba.LcdController.Bg[2].affineY3 = value;
+					else if (address == 0x400002C) gba.LcdController.Bg[2].affineY0 = value;
+					else if (address == 0x400002D) gba.LcdController.Bg[2].affineY1 = value;
+					else if (address == 0x400002E) gba.LcdController.Bg[2].affineY2 = value;
+					else if (address == 0x400002F) gba.LcdController.Bg[2].affineY3 = value;
 
-					else if (address == 0x4000038) gba.LcdController.Bg[3].AffineScrollX = gba.LcdController.Bg[2].affineX0 = value;
-					else if (address == 0x4000039) gba.LcdController.Bg[3].AffineScrollX = gba.LcdController.Bg[2].affineX1 = value;
-					else if (address == 0x400003A) gba.LcdController.Bg[3].AffineScrollX = gba.LcdController.Bg[2].affineX2 = value;
-					else if (address == 0x400003B) gba.LcdController.Bg[3].AffineScrollX = gba.LcdController.Bg[2].affineX3 = value;
+					else if (address == 0x4000038) gba.LcdController.Bg[3].affineX0 = value;
+					else if (address == 0x4000039) gba.LcdController.Bg[3].affineX1 = value;
+					else if (address == 0x400003A) gba.LcdController.Bg[3].affineX2 = value;
+					else if (address == 0x400003B) gba.LcdController.Bg[3].affineX3 = value;
 
-					else if (address == 0x400003C) gba.LcdController.Bg[3].AffineScrollY = gba.LcdController.Bg[2].affineY0 = value;
-					else if (address == 0x400003D) gba.LcdController.Bg[3].AffineScrollY = gba.LcdController.Bg[2].affineY1 = value;
-					else if (address == 0x400003E) gba.LcdController.Bg[3].AffineScrollY = gba.LcdController.Bg[2].affineY2 = value;
-					else if (address == 0x400003F) gba.LcdController.Bg[3].AffineScrollY = gba.LcdController.Bg[2].affineY3 = value;
+					else if (address == 0x400003C) gba.LcdController.Bg[3].affineY0 = value;
+					else if (address == 0x400003D) gba.LcdController.Bg[3].affineY1 = value;
+					else if (address == 0x400003E) gba.LcdController.Bg[3].affineY2 = value;
+					else if (address == 0x400003F) gba.LcdController.Bg[3].affineY3 = value;
 
 					// Affine Matrices 
 					else if (address == 0x4000020) gba.LcdController.Bg[2].AffineMatrix.PaL = value;
