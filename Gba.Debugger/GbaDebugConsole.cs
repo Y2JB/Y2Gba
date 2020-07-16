@@ -84,7 +84,7 @@ namespace GbaDebugger
             //breakpoints.Add(new Breakpoint(0x08000EFE));
 
 
-            //breakpoints.Add(new Breakpoint(0x08000ef0));
+            //breakpoints.Add(new Breakpoint(0x0801b7ac));
             //breakpoints.Add(new Breakpoint(0x08000efe));
             //breakpoints.Add(new Breakpoint(0x08000f00));
 
@@ -230,7 +230,11 @@ namespace GbaDebugger
                 {
                     if (parameters.Length == 1)
                     {
-                        string memStr = String.Format("{0:X8} - {1:X2} {2:X2} {3:X2} {4:X2} {5:X2} {6:X2} {7:X2} {8:X2}", p1, gba.Memory.ReadByte(p1), gba.Memory.ReadByte(p1 + 1), gba.Memory.ReadByte(p1 + 2), gba.Memory.ReadByte(p1 + 3), gba.Memory.ReadByte(p1 + 4), gba.Memory.ReadByte(p1 + 5), gba.Memory.ReadByte(p1 + 6), gba.Memory.ReadByte(p1 + 7));
+                        string memStr = String.Format("{0:X8} - {1:X2} {2:X2} {3:X2} {4:X2} {5:X2} {6:X2} {7:X2} {8:X2} {9:X2} {10:X2} {11:X2} {12:X2} {13:X2} {14:X2} {15:X2} {16:X2}", p1, 
+                            gba.Memory.ReadByte(p1), gba.Memory.ReadByte(p1 + 1), gba.Memory.ReadByte(p1 + 2), gba.Memory.ReadByte(p1 + 3), 
+                            gba.Memory.ReadByte(p1 + 4), gba.Memory.ReadByte(p1 + 5), gba.Memory.ReadByte(p1 + 6), gba.Memory.ReadByte(p1 + 7),
+                            gba.Memory.ReadByte(p1 + 8), gba.Memory.ReadByte(p1 + 9), gba.Memory.ReadByte(p1 + 10), gba.Memory.ReadByte(p1 + 11),
+                            gba.Memory.ReadByte(p1 + 12), gba.Memory.ReadByte(p1 + 13), gba.Memory.ReadByte(p1 + 14), gba.Memory.ReadByte(p1 + 15));
                         ConsoleAddString(memStr);
                         return true;
                     }
@@ -487,7 +491,18 @@ namespace GbaDebugger
 
             for (int i = 0; i < 4; i++)
             {
-                ConsoleAddString(String.Format("Bg{0} : {1}x{2} - {3}", i, gba.LcdController.Bg[i].WidthInPixels(), gba.LcdController.Bg[i].HeightInPixels(), gba.LcdController.Bg[i].AffineMode ? "Affine Mode" : "Text Mode"));
+                int scrollX = gba.LcdController.Bg[i].AffineMode ? gba.LcdController.Bg[i].AffineScrollX >> 8 : gba.LcdController.Bg[i].ScrollX;
+                int scrollY = gba.LcdController.Bg[i].AffineMode ? gba.LcdController.Bg[i].AffineScrollY >> 8 : gba.LcdController.Bg[i].ScrollY;
+                
+                string visible = gba.LcdController.DisplayControlRegister.BgVisible(i) ? "Visible" : "Hidden "; 
+                if(gba.LcdController.Bg[i].AffineMode) visible = "Visible";
+
+                ConsoleAddString(String.Format("Bg{0} : {1} {2}x{3} {4} SX: {5} SY: {6}", i, 
+                    visible, 
+                    gba.LcdController.Bg[i].WidthInPixels(), gba.LcdController.Bg[i].HeightInPixels(), 
+                    gba.LcdController.Bg[i].AffineMode ? "Mode: Affine" : "Mode: Text  ",
+                    scrollX, scrollY
+                    ));
             }
 
             return true;
@@ -496,6 +511,8 @@ namespace GbaDebugger
 
         bool WinCommand()
         {
+            bool windowing = (gba.LcdController.DisplayControlRegister.DisplayWin0 || gba.LcdController.DisplayControlRegister.DisplayWin1 || gba.LcdController.DisplayControlRegister.DisplayObjWin);
+
             ConsoleAddString(String.Format("Window 0: {0}", gba.LcdController.DisplayControlRegister.DisplayWin0 ? "On" : "Off"));
             if(gba.LcdController.DisplayControlRegister.DisplayWin0)
             {
@@ -516,16 +533,20 @@ namespace GbaDebugger
                 ConsoleAddString(Environment.NewLine);
             }
 
-            ConsoleAddString("Outside Window");
-            ConsoleAddString(String.Format("Bgs Visible: {0} {1} {2} {3}", gba.LcdController.Windows[2].DisplayBgInWindow(0) ? "0" : "x", gba.LcdController.Windows[2].DisplayBgInWindow(1) ? "1" : "x", gba.LcdController.Windows[2].DisplayBgInWindow(2) ? "2" : "x", gba.LcdController.Windows[2].DisplayBgInWindow(3) ? "3" : "x"));
-            ConsoleAddString(String.Format("Display Objs: {0}", gba.LcdController.Windows[2].DisplayObjs.ToString()));
-            //ConsoleAddString(Environment.NewLine);
-
             ConsoleAddString(String.Format("Obj Window: {0}", gba.LcdController.DisplayControlRegister.DisplayObjWin ? "On" : "Off"));
             if (gba.LcdController.DisplayControlRegister.DisplayObjWin)
             {
                 ConsoleAddString(String.Format("Bgs Visible: {0} {1} {2} {3}", gba.LcdController.Windows[3].DisplayBgInWindow(0) ? "0" : "x", gba.LcdController.Windows[3].DisplayBgInWindow(1) ? "1" : "x", gba.LcdController.Windows[3].DisplayBgInWindow(2) ? "2" : "x", gba.LcdController.Windows[3].DisplayBgInWindow(3) ? "3" : "x"));
-                ConsoleAddString(String.Format("Display Objs: {0}", gba.LcdController.Windows[3].DisplayObjs.ToString()));                
+                ConsoleAddString(String.Format("Display Objs: {0}", gba.LcdController.Windows[3].DisplayObjs.ToString()));
+                ConsoleAddString(Environment.NewLine);
+            }
+
+            if (windowing)
+            {
+                ConsoleAddString("Outside Window");
+                ConsoleAddString(String.Format("Bgs Visible: {0} {1} {2} {3}", gba.LcdController.Windows[2].DisplayBgInWindow(0) ? "0" : "x", gba.LcdController.Windows[2].DisplayBgInWindow(1) ? "1" : "x", gba.LcdController.Windows[2].DisplayBgInWindow(2) ? "2" : "x", gba.LcdController.Windows[2].DisplayBgInWindow(3) ? "3" : "x"));
+                ConsoleAddString(String.Format("Display Objs: {0}", gba.LcdController.Windows[2].DisplayObjs.ToString()));
+                ConsoleAddString(Environment.NewLine);
             }
             return true;
         }

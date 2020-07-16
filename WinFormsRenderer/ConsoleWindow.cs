@@ -64,6 +64,7 @@ namespace WinFormRender
             console.Height = 600;
             console.Enabled = true;
             console.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
+            console.ScrollBars = RichTextBoxScrollBars.Both;
             this.Controls.Add(console);
 
             commandInput.Location = new System.Drawing.Point(10, console.Location.Y + console.Height + 10);

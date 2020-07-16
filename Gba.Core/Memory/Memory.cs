@@ -32,14 +32,13 @@ namespace Gba.Core
         }
 
 
-		// Most memory regions are mirrored and repeat. For example IWram is 0x8000 bytes long and lives at 0x03000000.
-		// 0x03008000 will be byte 0 again
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public byte ReadByte(UInt32 address)
         {			
 			// ROM
-			if (address >= 0x08000000 && address <= 0x0DFFFFFF)
-			{
+			//if (address >= 0x08000000 && address <= 0x0DFFFFFF)
+			if (address >= 0x08000000 && address <= 0x9FFFEFF)
+		    {
 				address &= 0x1FFFFFF;
 				if (address < gba.Rom.RomSize)
 				{
@@ -47,6 +46,7 @@ namespace Gba.Core
 				}
 				else
 				{
+					//throw new NotImplementedException();
 					return 0;
 					//return open_bus(cpu->pc);
 				}				
@@ -183,6 +183,8 @@ namespace Gba.Core
 					else if (address == 0x40000DE) return gba.Dma[3].DmaCnt.dmaCntRegister0;
 					else if (address == 0x40000DF) return gba.Dma[3].DmaCnt.dmaCntRegister1;
 
+					// TODO: These are all write only!
+					// Should: reads open bus if the whole 32-bit word is unused and zero otherwise.
 					else if (address == 0x40000B0) return gba.Dma[0].sAddr0;
 					else if (address == 0x40000B1) return gba.Dma[0].sAddr1;
 					else if (address == 0x40000B2) return gba.Dma[0].sAddr2;
@@ -268,32 +270,39 @@ namespace Gba.Core
 				address &= 0x3FF;
 				return OamRam[address];
 			}
-			else if (address >= 0x0A000000 && address <= 0x0BFFFFFF)
+
+			else if ((address >= 0xD000000) && (address <= 0xDFFFFFF))
             {
-				// TODO : WAIT STATE 
-				// ROM access covers first 0x2000000 bytes
-				//return gba.Rom.ReadByte(address - 0x0A000000);
-				throw new NotImplementedException();
-			}
+				if(address == 0xDFFFF00)
+                {
+					return 1;
+                }
+				return 0xFF;
+            }
 
-			// EEPROM, can be access via DMA 3
-			//else if (address >= 0x0C000000 && address <= 0x0DFFFFFF) throw new NotImplementedException();
-
+			// Flash & SRAM
 			else if (address >= 0x0E000000 && address <= 0x0E00FFFF)
 			{
-				// Specifically to get Pokemon Emerald to run without flash ram support ....
-				// In your memory bus, simply return the following values on 8 - bit reads to the specified addresses.
-				// 8 - bit read address  Value Meaning
-				// 0x0E000000  0x62    Sanyo manufacturer ID
-				// 0x0E000001  0x13    Sanyo device ID
-				if (address == 0x0E000000) return 0x62;
-				else if (address == 0x0E000001) return 0x13;
-
-				return 0;
-				// SRAM, EEPROM, FLASH...
-
 				// SRAM
-				return gba.Rom.SRam[address - 0xE000000];
+				if (gba.Rom.SaveGameBackupType == Rom.BackupType.SRAM)
+				{
+					return gba.Rom.SRam[address - 0xE000000];
+				}
+				// Flash
+				else
+				{
+
+					// Specifically to get Pokemon Emerald to run without flash ram support ....
+					// In your memory bus, simply return the following values on 8 - bit reads to the specified addresses.
+					// 8 - bit read address  Value Meaning
+					// 0x0E000000  0x62    Sanyo manufacturer ID
+					// 0x0E000001  0x13    Sanyo device ID
+					if (address == 0x0E000000) return 0x62;
+					else if (address == 0x0E000001) return 0x13;
+
+					// If a game does not support SRAM, it should return 0xFF if an access is attempted. Some games try this as a form of copy protection!
+					return 0xFF;				
+				}				
 			}
 
 			else

@@ -63,12 +63,12 @@ namespace Gba.Core
 
         public void Step()
         {
-            /* You cannot support this until you are cycle accurate otherwise dma's mess up
+            // You cannot support this until you are cycle accurate otherwise dma's mess up
             if (DelayTransfer > 0)
             {
                 DelayTransfer--;
                 return;
-            }*/
+            }
 
             if(DmaCnt.ChannelEnabled == false)
             {
@@ -127,6 +127,9 @@ namespace Gba.Core
                 else unitsToTransfer = 0x4000;
             }
 
+            bool eepromDma = false;
+            bool eepromRead = false; 
+
             if (channelNumber == 3)
             {
                 if (DmaCnt.GamePakDrq != 0)
@@ -134,9 +137,26 @@ namespace Gba.Core
                     throw new NotImplementedException("DMA: GamePakDrq");
                 }
 
-                if ((DestAddress >= 0xD000000) && (DestAddress <= 0xDFFFFFF))
+
+
+                // Read data from EEPROM and write to GBA memory
+                if ((SourceAddress >= 0xD000000) && (SourceAddress <= 0xDFFFFFF))
                 {
-                    throw new NotImplementedException("DMA: EEPROM DMA");
+                    eepromDma = true;
+                    eepromRead = true;
+                }                   
+                else if ((DestAddress >= 0xD000000) && (DestAddress <= 0xDFFFFFF))
+                {
+                    eepromDma = true;
+                    eepromRead = false;
+
+                    // This is a 'trick' to guess the eeprom size. It may not be 100% reliable. The alternative is to use a game database.
+                    // Determine EEPROM size based on bitstream length. Default is 512B, here it is set to 8KB if necessary
+                    if ((!gba.Rom.Eeprom.SizeLocked) && ((unitsToTransfer == 0x11) || (unitsToTransfer == 0x51)))
+                    {
+                        gba.Rom.Eeprom.Size = Eeprom.Max_Eeprom_Size;                       
+                        gba.Rom.Eeprom.SizeLocked = true;
+                    }                   
                 }
             }
 
@@ -173,9 +193,26 @@ namespace Gba.Core
             {
                 // Copy 1 unit
                 if (transferType == DmaControlRegister.DmaTransferType.U16)
-                {
-                    ushort value = gba.Memory.ReadHalfWord(sourceAddress);
-                    gba.Memory.WriteHalfWord(destinationAddress, value);
+                {                               
+                    // Eeprom will always be 16bit units
+                    if (eepromDma)
+                    {
+                        if(eepromRead)
+                        {
+                            byte value = gba.Rom.Eeprom.ReadData();
+                            gba.Memory.WriteByte(destinationAddress, value);
+                        }
+                        else
+                        {
+                            ushort value = gba.Memory.ReadHalfWord(sourceAddress);
+                            gba.Rom.Eeprom.WriteData(value);
+                        }
+                    }
+                    else
+                    {
+                        ushort value = gba.Memory.ReadHalfWord(sourceAddress);
+                        gba.Memory.WriteHalfWord(destinationAddress, value);
+                    }
                 }
                 else
                 {
@@ -194,6 +231,10 @@ namespace Gba.Core
                 else if (DmaCnt.DestinationAddressControl == DmaControlRegister.AddressControl.IncrementAndReload) destinationAddress += unitSize;               
 
                 unitsToTransfer--;
+
+                // TODO: Run LCD, timers etc 
+
+                // TODO: Check for DMA being interrupted by a higher priority DMA (probably make this recursive)
             }
 
             

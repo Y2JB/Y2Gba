@@ -15,7 +15,8 @@ namespace Gba.Core
 
 
         // Cache data for rendering 
-        bool TileMapping2D;       
+        bool TileMapping2D;
+        int offsetToFirstTile;
         int spriteWidthInTiles;
         int spriteHeightInTiles;
         bool eightBitColour;
@@ -45,6 +46,7 @@ namespace Gba.Core
         {
             // This should be all be cached (per scanline?)
             TileMapping2D = (gba.LcdController.DisplayControlRegister.ObjectCharacterVramMapping == 0);
+            offsetToFirstTile = (Attributes.TileNumber * 32);
             Size spriteDimensions = Attributes.Dimensions;
             spriteWidthInTiles = spriteDimensions.Width / 8;
             spriteHeightInTiles = spriteDimensions.Height / 8;
@@ -52,6 +54,8 @@ namespace Gba.Core
             tileSize = (eightBitColour ? LcdController.Tile_Size_8bit : LcdController.Tile_Size_4bit);
             spriteRowSizeInBytes = tileSize * spriteWidthInTiles;
             paletteOffset = 0;
+           
+            // TODO: Affine sprites are always 8bpp?
             if (eightBitColour == false)
             {
                 paletteOffset = Attributes.PaletteNumber * 16;
@@ -63,7 +67,7 @@ namespace Gba.Core
                 hFlip = Attributes.HorizontalFlip;
                 vFlip = Attributes.VerticalFlip;
             }
-
+ 
             CalcBoundingBox();
         }
 
@@ -90,17 +94,19 @@ namespace Gba.Core
             // This offset will be set to point to the start of the 8x8 that spriteX,spriteY is within
             int vramTileOffset;
 
+            // We count tile sizes in 4bpp when measuring tile rows / tile grid position
+
             // Addressing mode (1d / 2d)
             if (TileMapping2D)
             {
                 // 2D addressing, vram is thought of as a 32x32 matrix of tiles. A sprites tiles are arranged as you would view them on a screen
-                int full32TileRowSizeInBytes = tileSize * 32;
-                vramTileOffset = vramBaseOffset + (Attributes.TileNumber * tileSize) + (currentSpriteRowInTiles * full32TileRowSizeInBytes) + (currentSpriteColumnInTiles * tileSize);
+                int full32TileRowSizeInBytes = LcdController.Tile_Size_4bit * 32;
+                vramTileOffset = vramBaseOffset + offsetToFirstTile + (currentSpriteRowInTiles * full32TileRowSizeInBytes) + (currentSpriteColumnInTiles * tileSize);
             }
             else
             {
                 // 1D addressing, all the sprites tiles are contiguous in vram
-                vramTileOffset = vramBaseOffset + (Attributes.TileNumber * tileSize) + (currentSpriteRowInTiles * spriteRowSizeInBytes) + (currentSpriteColumnInTiles * tileSize);
+                vramTileOffset = vramBaseOffset + offsetToFirstTile + (currentSpriteRowInTiles * spriteRowSizeInBytes) + (currentSpriteColumnInTiles * tileSize);
             }
 
             // Lookup the actual pixel value (which is a palette index) in the tile data 

@@ -77,7 +77,7 @@ namespace WinFormsRenderer
         }
 
 
-        public void RenderPalettes()
+        public void RenderTab()
         {
             if(gfxBuffer == null)
             {

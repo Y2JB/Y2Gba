@@ -2,6 +2,7 @@
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Gba.Core
 {
@@ -35,21 +36,31 @@ namespace Gba.Core
 
         public int RomSize { get { return romData.Length; } }
 
+        public enum BackupType
+        {
+            BackupNone,
+            EEPROM,
+            SRAM,
+            FLASH,
+            FLASH512,
+            FLASH1M
+        }
+        public BackupType SaveGameBackupType { get; private set; }
+
         const int Max_SRam_Size = 1024 * 64;
         private byte[] sRam;
         public byte[] SRam { get { return sRam; } }
 
+        public Eeprom Eeprom { get; private set; }
+
         //private readonly int Header_Size = 0xC0;
         private readonly int RomNameOffset = 0x0A0;
 
-
         public string RomName { get; private set; }
         
-
         public string RomFileName { get; private set; }
 
         public UInt32 EntryPoint { get; private set; }
-
 
         public Rom(string fn)
         {
@@ -61,12 +72,26 @@ namespace Gba.Core
             Cache32BitRomValues();
             Cache16BitRomValues();
 
+            DetectSaveType(fn);
+
             sRam = new byte[Max_SRam_Size];
+            this.Eeprom = new Eeprom(this);
 
             RomName = Encoding.UTF8.GetString(romData, RomNameOffset, 12).TrimEnd((Char)0);
             RomName = RomName.Replace("/", String.Empty);
 
             EntryPoint = ReadWord(0);
+
+            switch(SaveGameBackupType)
+            {
+                case BackupType.SRAM:
+                    LoadSramData();
+                    break;
+
+                case BackupType.EEPROM:
+                    Eeprom.Load();
+                    break;
+            }
         }
 
 
@@ -86,6 +111,30 @@ namespace Gba.Core
             for(UInt32 i=0; i < romData.Length; i+= 4)
             {
                 rom32BitCached[i >> 2] = ReadWord(i);
+            }
+        }
+
+
+        void DetectSaveType(string fn)
+        {
+            // Bit hacky but there is no eary way to detect the save type. We search the entire ROM for some known strings. Works for 99% of games
+            // https://dillonbeliveau.com/2020/06/05/GBA-FLASH.html
+            using (StreamReader file = new StreamReader(fn))
+            {
+                string line;
+                while ((line = file.ReadLine()) != null)
+                {
+                    foreach (BackupType BackupType in Enum.GetValues(typeof(BackupType)))
+                    {
+                        if (Regex.Match(line, $"{BackupType}_V\\d\\d\\d").Success)
+                        {
+                            SaveGameBackupType = BackupType;
+                            return;
+                        }
+                    }
+                }
+
+                SaveGameBackupType = BackupType.BackupNone;
             }
         }
 
@@ -119,7 +168,6 @@ namespace Gba.Core
         }
 
 
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public UInt32 ReadWord(UInt32 address)
         {
@@ -128,7 +176,22 @@ namespace Gba.Core
         }
 
 
-        public void LoadBatteryBackData()
+        public void PersistSaveData()
+        {
+            switch (SaveGameBackupType)
+            {
+                case BackupType.SRAM:
+                    SaveSramData();
+                    break;
+
+                case BackupType.EEPROM:
+                    Eeprom.Save();
+                    break;
+            }
+        }
+
+
+        public void LoadSramData()
         {
             try
             {
@@ -146,7 +209,7 @@ namespace Gba.Core
         }
 
 
-        public void SaveBatteryBackData()
+        public void SaveSramData()
         {
             using (FileStream fs = File.Open(Path.ChangeExtension(RomFileName, "sav"), FileMode.Create))
             {
@@ -154,7 +217,7 @@ namespace Gba.Core
                 {
                     bw.Write(sRam, 0, Max_SRam_Size);
                 }
-            }
+            }            
         }
     }
 }

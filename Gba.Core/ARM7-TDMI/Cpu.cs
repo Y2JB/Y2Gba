@@ -190,6 +190,12 @@ namespace Gba.Core
         // Determines how many cycles should elapse when emulating Wait States and access timing
         void CycleWithAccessTiming(UInt32 accessAddr, bool firstAccess)
         {
+            // TODO: keep this commented out unless testing it
+            if(isPeeking)
+            {
+                throw new ArgumentException("Bad Peek");
+            }
+
             // JB: TODO: These can change depending on wait state 
             const UInt32 nonSequentialAccessTime = 4;
             const UInt32 sequentialAccessTime = 2;
@@ -259,7 +265,7 @@ namespace Gba.Core
         public void Step()
         {
             //executionHistory.Enqueue(PC_Adjusted);
-            //if (executionHistory.Count > 32) executionHistory.Dequeue();
+            //if (executionHistory.Count > 128) executionHistory.Dequeue();
 
             if (State == CpuState.Thumb)
             {

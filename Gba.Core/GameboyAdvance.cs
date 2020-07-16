@@ -60,7 +60,8 @@ namespace Gba.Core
             //this.Rom = new Rom("../../../../roms/TestRoms/tmr_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/brin_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/obj_demo.gba");
-            this.Rom = new Rom("../../../../roms/TestRoms/obj_aff.gba");
+            //this.Rom = new Rom("../../../../roms/TestRoms/obj_aff.gba");
+            //this.Rom = new Rom("../../../../roms/TestRoms/sbb_aff.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/win_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/dma_demo.gba");
             //this.Rom = new Rom("../../../../roms/TestRoms/m3_demo.gba");
@@ -72,11 +73,27 @@ namespace Gba.Core
             //this.Rom = new Rom("../../../../roms/Super Mario Advance 2 - Super Mario World (U) [!].gba");
             //this.Rom = new Rom("../../../../roms/Legend of Zelda, The - The Minish Cap (U).gba");
             //this.Rom = new Rom("../../../../roms/Legend of Zelda, The - A Link To The Past Four Swords.gba");
-
             //this.Rom = new Rom("../../../../roms/Pokemon Mystery Dungeon - Red Rescue Team (U).gba");
             //this.Rom = new Rom("../../../../roms/Teenage Mutant Ninja Turtles.gba");
             //this.Rom = new Rom("../../../../roms/Barbie Horse Adventures.gba");
             //this.Rom = new Rom("../../../../roms/Pokemon Pinball.gba");
+            //this.Rom = new Rom("../../../../roms/Contra Advance - The Alien Wars Ex.gba");
+            //this.Rom = new Rom("../../../../roms/Castlevania - Aria of Sorrow.GBA");
+            //this.Rom = new Rom("../../../../roms/Castlevania - Harmony Of Dissonance.GBA");           
+            //this.Rom = new Rom("../../../../roms/Baseball Advance.GBA");
+            //this.Rom = new Rom("../../../../roms/Donkey Kong Country 3.gba");
+            //this.Rom = new Rom("../../../../roms/Final Fantasy - Tactics Advanced.GBA");
+            //this.Rom = new Rom("../../../../roms/Mario Golf - Advance Tour.gba");
+            //this.Rom = new Rom("../../../../roms/Yoshi's Island - Super Mario Advance 3.gba");
+            //this.Rom = new Rom("../../../../roms/Fire Emblem.gba");
+            //this.Rom = new Rom("../../../../roms/Darius R.GBA");
+            //this.Rom = new Rom("../../../../roms/Mario Kart Super Circuit (U).gba");
+            //this.Rom = new Rom("../../../../roms/F-Zero - Maximum Velocity.gba");
+            this.Rom = new Rom("../../../../roms/Konami Krazy Racers.gba");
+            //this.Rom = new Rom("../../../../roms/Sega Rally Championship.gba");
+
+
+            //this.Rom = new Rom("../../../../roms/");
 
             // Intro uses OBJ Win...
             //this.Rom = new Rom("../../../../roms/Pokemon - Emerald Version (U).gba");
@@ -95,7 +112,7 @@ namespace Gba.Core
             {
                 Dma[i] = new DmaChannel(this, i);
             }
-            
+
             EmulatorTimer.Reset();
             EmulatorTimer.Start();
 
@@ -119,7 +136,7 @@ namespace Gba.Core
 
 
         // TODO: The Conditinal Attribute should use a dedicated logging preprocessor directive 
-        //[Conditional("DEBUG")]
+        [Conditional("DEBUG")]
         //[Conditional("DEBUG_LOGGING")]
         public void LogMessage(string msg)
         {

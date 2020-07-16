@@ -33,6 +33,9 @@ namespace Gba.Core
 
         public static void DrawViewportBox(Bitmap image, int viewPortX, int viewPortY, int bgWidthInPixels, int bgHeightInPixels)
         {
+            if (viewPortX >= bgWidthInPixels) viewPortX -= bgWidthInPixels;
+            if (viewPortY >= bgHeightInPixels) viewPortY -= bgHeightInPixels;
+
             Pen pen = new Pen(Color.RoyalBlue, 1.0f);
             using (var graphics = Graphics.FromImage(image))
             {

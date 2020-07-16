@@ -29,16 +29,18 @@ namespace Gba.Core
 #endif
 		}
 
-
+		bool isPeeking = false;
 		public string PeekThumbInstruction(ushort rawInstruction)
         {
 			peekString = "*UNKNOWN_INSTRUCTION*";
+			isPeeking = true;
 
 #if USE_LUT_THUMB
-			ThumbInstructionLut[rawInstruction >> 8](rawInstruction, false);
+			ThumbInstructionLut[rawInstruction >> 8](rawInstruction, true);
 #else
 			DecodeThumbInstruction(rawInstruction, true);
 #endif
+			isPeeking = false;
 			return peekString;
         }
 
@@ -1420,14 +1422,15 @@ namespace Gba.Core
 					// 1N
 					value = GetRegisterValue(srcDestReg);
 					offset <<= 2;
-					opAddr += offset;
-					CycleWithAccessTiming(R15, true);
+					opAddr += offset;					
 
 					if (peek)
 					{
 						peekString = String.Format("STR {0}, [{1} + ${2}]", GetRegisterName(srcDestReg), GetRegisterName(baseReg), offset);
 						return;
 					}
+
+					CycleWithAccessTiming(R15, true);
 
 					// 1N
 					//mem_check_32(op_addr, value, false);
@@ -1440,14 +1443,15 @@ namespace Gba.Core
 				case 0x1:
 					// 1N
 					offset <<= 2;
-					opAddr += offset;
-					CycleWithAccessTiming(R15, true);
+					opAddr += offset;				
 
 					if (peek)
 					{
 						peekString = String.Format("LDR {0}, [{1} + ${2}]", GetRegisterName(srcDestReg), GetRegisterName(baseReg), offset);
 						return;
 					}
+
+					CycleWithAccessTiming(R15, true);
 
 					//mem_check_32(op_addr, value, true);
 					Memory.ReadWriteWord_Checked(opAddr, ref value, true);
@@ -1465,14 +1469,15 @@ namespace Gba.Core
 				case 0x2:
 					// 1N
 					value = GetRegisterValue(srcDestReg);
-					opAddr += offset;
-					CycleWithAccessTiming(R15, true);
+					opAddr += offset;				
 
 					if (peek)
 					{
 						peekString = String.Format("STR {0}, [{1} + ${2}]", GetRegisterName(srcDestReg), GetRegisterName(baseReg), offset);
 						return;
 					}
+
+					CycleWithAccessTiming(R15, true);
 
 					// 1N
 					//mem_check_8(op_addr, value, false);
@@ -1486,13 +1491,14 @@ namespace Gba.Core
 				case 0x3:
 					// 1N
 					opAddr += offset;
-					CycleWithAccessTiming(R15, true);
-
+					
 					if (peek)
 					{
 						peekString = String.Format("LDR {0}, [{1} + ${2}]", GetRegisterName(srcDestReg), GetRegisterName(baseReg), offset);
 						return;
 					}
+
+					CycleWithAccessTiming(R15, true);
 
 					//mem_check_8(op_addr, value, true);
 					Memory.ReadWriteByte_Checked(opAddr, ref value, true);

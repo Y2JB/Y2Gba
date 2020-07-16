@@ -91,7 +91,7 @@ namespace Gba.Core
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int PixelValue(int screenX, int screenY)
-        {
+        {            
             int paletteOffset = 0;
 
             int scrollX = ScrollX;
@@ -147,12 +147,12 @@ namespace Gba.Core
             textureSpaceY += scrollY;
 
             // BG Wrap?
-            if (CntRegister.DisplayAreaOverflow)
+            if (CntRegister.DisplayAreaOverflow)                
             {
-                if (textureSpaceX >= bgWidthInPixel) textureSpaceX -= bgWidthInPixel;
-                if (textureSpaceY >= bgHeightInPixel) textureSpaceY -= bgHeightInPixel;
-                if (textureSpaceX < 0) textureSpaceX += bgWidthInPixel;
-                if (textureSpaceY < 0) textureSpaceY += bgHeightInPixel;
+                while (textureSpaceX >= bgWidthInPixel) textureSpaceX -= bgWidthInPixel;
+                while (textureSpaceY >= bgHeightInPixel) textureSpaceY -= bgHeightInPixel;
+                while (textureSpaceX < 0) textureSpaceX += bgWidthInPixel;
+                while (textureSpaceY < 0) textureSpaceY += bgHeightInPixel;
             }
             else
             {
@@ -183,17 +183,58 @@ namespace Gba.Core
 
 
         // Used for debug rendering BG's. Renders the source BG, does not scroll etc 
-        public void RenderMode0Scanline(int scanline, int scanlineWidth, DirectBitmap drawBuffer)
-        {
+        public void RenderScanline(int scanline, int scanlineWidth, DirectBitmap drawBuffer)
+        {            
             Color[] palette = gba.LcdController.Palettes.Palette0;
-            int paletteOffset = 0;
-
             bool eightBitColour = CntRegister.PaletteMode == BgPaletteMode.PaletteMode256x1;
 
             // Which line within the current tile are we rendering?
             int tileRow = scanline % 8;
 
             for (int x = 0; x < scanlineWidth; x ++)
+            {
+                // Coords (measured in tiles) of the tile we want to render 
+                int bgRow = scanline / 8;
+                int bgColumn = x / 8;
+
+                // Which row / column within the tile we are rendering?
+                int tileColumn = x % 8;
+
+                // Affine BG's have one byte screen data (the tile index). Also all tiles are 8bpp
+                // Affine BG's are also all square (they have their own size table which is different to regular tiled bg's)
+                int tileInfoOffset = (bgRow * bgWidthInTiles) + bgColumn;
+
+                int tileNumber = gba.Memory.VRam[(CntRegister.ScreenBlockBaseAddress * 2048) + tileInfoOffset];
+
+                int tileVramOffset = (int)(tileDataVramOffset + (tileNumber * tileSize));
+
+                int paletteIndex = TileHelpers.GetTilePixel(tileColumn, tileRow, true, gba.Memory.VRam, tileVramOffset, false, false);
+
+                // Pal 0 == Transparent 
+                if (paletteIndex == 0)
+                {
+                    continue;
+                }
+
+                drawBuffer.SetPixel(x, scanline, palette[paletteIndex]);
+            }
+        }
+
+
+
+        // Used for debug rendering BG's. Renders the source BG, does not scroll etc 
+        public void RenderScanlineAffine(int scanline, int scanlineWidth, DirectBitmap drawBuffer)
+        {
+  
+            Color[] palette = gba.LcdController.Palettes.Palette0;
+            int paletteOffset = 0;
+
+            bool eightBitColour = true;
+
+            // Which line within the current tile are we rendering?
+            int tileRow = scanline % 8;
+
+            for (int x = 0; x < scanlineWidth; x++)
             {
                 // Which column within the current tile are we rendering?
                 int tileColumn = x % 8;
@@ -212,7 +253,7 @@ namespace Gba.Core
                 int tileVramOffset = (int)(tileDataVramOffset + ((tileMetaData.TileNumber) * tileSize));
 
                 int paletteIndex = TileHelpers.GetTilePixel(tileColumn, tileRow, eightBitColour, gba.Memory.VRam, tileVramOffset, tileMetaData.FlipHorizontal, tileMetaData.FlipVertical);
-                
+
                 // Pal 0 == Transparent 
                 if (paletteIndex == 0)
                 {
@@ -229,7 +270,14 @@ namespace Gba.Core
         {
             for(int y = 0; y < HeightInPixels(); y++)
             {
-                RenderMode0Scanline(y, WidthInPixels(), drawBuffer);
+                if (AffineMode)
+                {
+                    RenderScanlineAffine(y, WidthInPixels(), drawBuffer);
+                }
+                else
+                {
+                    RenderScanline(y, WidthInPixels(), drawBuffer);
+                }
             }
         }
 

@@ -31,6 +31,7 @@ namespace WinFormRender
 
         Stopwatch timer = new Stopwatch();
         long elapsedMs;
+        int seconds;
         //long elapsedMsBgWin;
         int framesDrawn;
         int fps;
@@ -315,6 +316,12 @@ namespace WinFormRender
 
                 fps = framesDrawn;
                 framesDrawn = 0;
+                seconds++;
+
+                if(seconds % 120 == 0)
+                {
+                    gba.Rom.SaveSramData();
+                }
             }
 
             // If the Bg viewer is open, then update it at a lower fps
@@ -322,7 +329,7 @@ namespace WinFormRender
                 //timer.ElapsedMilliseconds - elapsedMsBgWin >= (200))
             {
                 //elapsedMsBgWin = timer.ElapsedMilliseconds;
-                gfxInspectorWindow.RenderPalettes();
+                gfxInspectorWindow.RenderTab();
             }
 
             // Wait for previous frame to finish drawing while also locking to 60fps
@@ -348,6 +355,11 @@ namespace WinFormRender
 
         private void OnApplicationExit(object sender, EventArgs e)
         {
+            if (gba.PoweredOn)
+            {
+                gba.Rom.PersistSaveData();
+            }
+
             gba.Dispose();
             exitThread = true;
             Thread.Sleep(250);

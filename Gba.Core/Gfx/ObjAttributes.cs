@@ -43,7 +43,7 @@ namespace Gba.Core
             Bpp8
         }
 
-        // Shape and Size attributes used to lookup into this tab;e 
+        // Shape and Size attributes used to lookup into this table 
         readonly Size[] ObjSizes = {    new Size(8, 8), new Size(16, 16), new Size(32, 32), new Size(64, 64),
                                         new Size(16, 8), new Size(32, 8), new Size(32, 16), new Size(64, 32),
                                         new Size(8, 16), new Size(8, 32), new Size(16, 32), new Size(32, 64) };
@@ -91,17 +91,17 @@ namespace Gba.Core
 
         public bool RotationAndScaling { get { return ((ObjAttrib0H & 0x01) != 0); } }
 
-        //  When Rotation/Scaling used
+        // When Rotation/Scaling used
         // Doubles the size of the sprites bounding box. Used to avoid clipping when doing a scale / rotate / sheer 
         public bool DoubleSize { get { return ((ObjAttrib0H & 0x02) != 0); } }
-        //  When Rotation/Scaling NOT used
+        // When Rotation/Scaling NOT used
         public bool Visible { get { return ((ObjAttrib0H & 0x02) == 0); } }
 
         public ObjMode Mode { get { return (ObjMode)((ObjAttrib0H & 0x0C) >> 2); } }
 
         public bool Mosaic { get { return ((ObjAttrib0H & 0x10) != 0); } }
 
-        public PaletteDepth PaletteMode { get { return (PaletteDepth)((ObjAttrib0H & 0x20) >> 4); } }
+        public PaletteDepth PaletteMode { get { return (PaletteDepth)((ObjAttrib0H & 0x20) >> 5); } }
 
         int Shape { get { return (int)((ObjAttrib0H & 0xC0) >> 6); } }
 
