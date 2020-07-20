@@ -16,10 +16,10 @@ namespace WinFormRender
 {
     public partial class ConsoleWindow : Form
     {
-        RichTextBox console = new RichTextBox();
-        RichTextBox codeWnd = new RichTextBox();
-        TextBox commandInput = new TextBox();
-        TextBox emuSnapshot = new TextBox();
+        //RichTextBox console = new RichTextBox();
+        //RichTextBox codeWnd = new RichTextBox();
+        //TextBox commandInput = new TextBox();
+        //TextBox emuSnapshot = new TextBox();
         Button okButton = new Button();
 
         GameboyAdvance Gba;
@@ -38,49 +38,58 @@ namespace WinFormRender
             InitializeComponent();
 
             this.ClientSize = new System.Drawing.Size(1600, 1000);
-            this.Text = "Y2Gba Console";
+            this.Text = "Y2Gba Debug Console";
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            //this.FormBorderStyle = FormBorderStyle.FixedDialog;
 
             // This is the only way i found to stop the annoying bong sound effect when pressing enter on a text box!
             this.Controls.Add(okButton);
             okButton.Visible = false;
             this.AcceptButton = okButton;
 
-            codeWnd.Location = new System.Drawing.Point(10, 10);
-            codeWnd.Multiline = true;
-            codeWnd.ReadOnly = true;
-            codeWnd.Width = 900;
-            codeWnd.Height = 300;
-            codeWnd.Enabled = true;
             codeWnd.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
-            this.Controls.Add(codeWnd);
-
-            console.Location = new System.Drawing.Point(10, codeWnd.Location.Y + codeWnd.Height + 20);
-            console.Multiline = true;
-            console.ReadOnly = true;
-            console.Width = 900;
-            console.Height = 600;
-            console.Enabled = true;
             console.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
-            console.ScrollBars = RichTextBoxScrollBars.Both;
-            this.Controls.Add(console);
-
-            commandInput.Location = new System.Drawing.Point(10, console.Location.Y + console.Height + 10);
-            commandInput.Width = ClientSize.Width - 20;
-            commandInput.KeyUp += CommandInput_KeyUp;
-            this.Controls.Add(commandInput);
-            commandInput.Focus();
-
-            emuSnapshot.Location = new System.Drawing.Point(console.Location.X + console.Width + 10, 10);
-            emuSnapshot.Multiline = true;
-            emuSnapshot.Width = 700;
-            emuSnapshot.Height = 900;
             emuSnapshot.Enabled = false;
             emuSnapshot.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
-            this.Controls.Add(emuSnapshot);
 
+            commandInput.KeyUp += CommandInput_KeyUp;
+            commandInput.Focus();
+
+            /*
+                        codeWnd.Location = new System.Drawing.Point(10, 10);
+                        codeWnd.Multiline = true;
+                        codeWnd.ReadOnly = true;
+                        codeWnd.Width = 900;
+                        codeWnd.Height = 300;
+                        codeWnd.Enabled = true;
+                        codeWnd.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
+                        this.Controls.Add(codeWnd);
+
+                        console.Location = new System.Drawing.Point(10, codeWnd.Location.Y + codeWnd.Height + 20);
+                        console.Multiline = true;
+                        console.ReadOnly = true;
+                        console.Width = 900;
+                        console.Height = 600;
+                        console.Enabled = true;
+                        console.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
+                        console.ScrollBars = RichTextBoxScrollBars.Both;
+                        this.Controls.Add(console);
+
+                        commandInput.Location = new System.Drawing.Point(10, console.Location.Y + console.Height + 10);
+                        commandInput.Width = ClientSize.Width - 20;
+                        commandInput.KeyUp += CommandInput_KeyUp;
+                        this.Controls.Add(commandInput);
+                        commandInput.Focus();
+
+                        emuSnapshot.Location = new System.Drawing.Point(console.Location.X + console.Width + 10, 10);
+                        emuSnapshot.Multiline = true;
+                        emuSnapshot.Width = 700;
+                        emuSnapshot.Height = 900;
+                        emuSnapshot.Enabled = false;
+                        emuSnapshot.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
+                        this.Controls.Add(emuSnapshot);
+            */
             RefreshEmuSnapshot();
         }
         
