@@ -20,25 +20,68 @@ namespace Gba.Core
         public bool AffineMode { get; set; }
 
         // 32 but fixed point numbers. Will only ever be set for BG's 2 & 3. Used instead of the scroll registers above
+        byte affinex3;
+        public byte affineX3
+        { 
+            get 
+            {
+                // Negative
+                if ((affinex3 & (byte)0x08) > 0)
+                {
+                    return (byte) ((affinex3 & (byte)0x07) | 0xF8); 
+                }
+                else
+                {
+                    return (byte) (affinex3 & (byte)0x07);
+                }
+            } 
+            set
+            {
+                affinex3 = value;
+            }
+        }
         public byte affineX0 { get; set; }
         public byte affineX1 { get; set; }
         public byte affineX2 { get; set; }
-        public byte affineX3 { get; set; }
+       //public byte affineX3 { get; set; }
         public int AffineScrollX
         {
             get { return (int)((affineX3 << 24) | (affineX2 << 16) | (affineX1 << 8) | affineX0); }
             set { affineX0 = (byte)(value & 0xFF); affineX1 = (byte)((value & 0xFF00) >> 8); affineX2 = (byte)((value & 0xFF0000) >> 16); affineX3 = (byte)((value & 0xFF000000) >> 24); }
         }
 
+        byte affiney3;
+        public byte affineY3
+        {
+            get
+            {
+                // Negative
+                if ((affiney3 & (byte)0x08) > 0)
+                {
+                    return (byte)((affiney3 & (byte)0x07) | 0xF8);
+                }
+                else
+                {
+                    return (byte)(affiney3 & (byte)0x07);
+                }
+            }
+            set
+            {
+                affiney3 = value;
+            }
+        }
         public byte affineY0 { get; set; }
         public byte affineY1 { get; set; }
         public byte affineY2 { get; set; }
-        public byte affineY3 { get; set; }
+        //public byte affineY3 { get; set; }
         public int AffineScrollY
         {
             get { return (int)((affineY3 << 24) | (affineY2 << 16) | (affineY1 << 8) | affineY0); }
             set { affineY0 = (byte)(value & 0xFF); affineY1 = (byte)((value & 0xFF00) >> 8); affineY2 = (byte)((value & 0xFF0000) >> 16); affineY3 = (byte)((value & 0xFF000000) >> 24); }
         }
+
+        public int AffineScrollXCached { get; set; }
+        public int AffineScrollYCached { get; set; }
 
         public BgAffineMatrix AffineMatrix { get; private set; }
 
@@ -135,24 +178,32 @@ namespace Gba.Core
         {
             // Scrolling values set the origin so that BG 0,0 == Screen 0,0
             // Affine scroll are 24.8 fixed point numbers but as long as you shift away the fraction part at the end, you can just do integer math on them and they work
-            int scrollX = AffineScrollX >> 8;
-            int scrollY = AffineScrollY >> 8;
+            int scrollX = AffineScrollXCached;// >> 8;
+            int scrollY = AffineScrollYCached;// >> 8;
 
             // The game will have set up the matrix to be the inverse texture mapping matrix. I.E it maps from screen space to texture space. Just what we need!                    
             int textureSpaceX, textureSpaceY;
-            AffineMatrix.Multiply(screenX, screenY, out textureSpaceX, out textureSpaceY);
+
+            textureSpaceX = ((scrollX + (AffineMatrix.Pa * screenX)) >> 8);  
+            textureSpaceY = ((scrollY + (AffineMatrix.Pc * screenX)) >> 8);
+
+            //AffineMatrix.Multiply(screenX, screenY, out textureSpaceX, out textureSpaceY);
 
             // Apply displacement vector (affine scroll) 
-            textureSpaceX += scrollX;
-            textureSpaceY += scrollY;
+           // textureSpaceX += scrollX;
+           // textureSpaceY += scrollY;
 
             // BG Wrap?
             if (CntRegister.DisplayAreaOverflow)                
             {
+                /*
                 while (textureSpaceX >= bgWidthInPixel) textureSpaceX -= bgWidthInPixel;
                 while (textureSpaceY >= bgHeightInPixel) textureSpaceY -= bgHeightInPixel;
                 while (textureSpaceX < 0) textureSpaceX += bgWidthInPixel;
                 while (textureSpaceY < 0) textureSpaceY += bgHeightInPixel;
+                */
+                textureSpaceX &= (bgWidthInPixel - 1);
+                textureSpaceY &= (bgHeightInPixel - 1);
             }
             else
             {
@@ -170,9 +221,9 @@ namespace Gba.Core
 
             // Affine BG's have one byte screen data (the tile index). Also all tiles are 8bpp
             // Affine BG's are also all square (they have their own size table which is different to regular tiled bg's)
-            int tileInfoOffset = (bgRow * bgWidthInTiles) + bgColumn;
-                
-            int tileNumber = gba.Memory.VRam[(CntRegister.ScreenBlockBaseAddress * 2048) + tileInfoOffset];
+            //int tileInfoOffset = (bgRow * bgWidthInTiles) + bgColumn;
+            uint tileInfoOffset = ((CntRegister.ScreenBlockBaseAddress * 2048u) | (uint)((textureSpaceY >> 3) * ((uint)bgWidthInPixel >> 3)) | (uint)(textureSpaceX >> 3));
+            int tileNumber = gba.Memory.VRam[tileInfoOffset];
 
             int tileVramOffset = (int)(tileDataVramOffset + (tileNumber * tileSize));
 

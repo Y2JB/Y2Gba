@@ -184,7 +184,6 @@ namespace Gba.Core
                         LcdCycles -= HDraw_Length;
                         Mode = LcdMode.HBlank;
 
-
                         if (DispStatRegister.HBlankIrqEnabled)
                         {
                             gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.HBlank);
@@ -210,6 +209,19 @@ namespace Gba.Core
 
                         CurrentScanline++;
 
+                        if (Bg[2].AffineMode)
+                        {
+                            Bg[2].AffineScrollXCached += Bg[2].AffineMatrix.Pb;
+                            Bg[2].AffineScrollYCached += Bg[2].AffineMatrix.Pd;
+                        }
+
+                        if (Bg[3].AffineMode)
+                        {
+                            Bg[3].AffineScrollXCached += Bg[3].AffineMatrix.Pb;
+                            Bg[3].AffineScrollYCached += Bg[3].AffineMatrix.Pd;
+                        }
+
+
                         if (DispStatRegister.VCounterIrqEnabled && 
                             CurrentScanline == gba.LcdController.DispStatRegister.VCountSetting)
                         {                           
@@ -221,6 +233,18 @@ namespace Gba.Core
                         {
                             Mode = LcdMode.VBlank;
                             VblankScanlineCycles = 0;
+
+                            if (Bg[2].AffineMode)
+                            {
+                                Bg[2].AffineScrollXCached = Bg[2].AffineScrollX;
+                                Bg[2].AffineScrollYCached = Bg[2].AffineScrollY;
+                            }
+
+                            if (Bg[3].AffineMode)
+                            {
+                                Bg[3].AffineScrollXCached = Bg[3].AffineScrollX;
+                                Bg[3].AffineScrollYCached = Bg[3].AffineScrollY;
+                            }
 
                             if (DispStatRegister.VBlankIrqEnabled)
                             {
@@ -523,7 +547,6 @@ namespace Gba.Core
         private void RenderScanlineTextMode()
         {
             ObjPrioritySort();
-
             int scanline = CurrentScanline;
             bool windowing = (DisplayControlRegister.DisplayWin0 || DisplayControlRegister.DisplayWin1 || DisplayControlRegister.DisplayWin1 || DisplayControlRegister.DisplayObjWin);
 
