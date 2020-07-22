@@ -32,10 +32,11 @@ namespace WinFormRender
         private void InitializeComponent()
         {
             this.BottomPanel = new System.Windows.Forms.Panel();
-            this.button4 = new System.Windows.Forms.Button();
-            this.button3 = new System.Windows.Forms.Button();
-            this.button2 = new System.Windows.Forms.Button();
-            this.button1 = new System.Windows.Forms.Button();
+            this.run1FrameButton = new System.Windows.Forms.Button();
+            this.continueOrBreakButton = new System.Windows.Forms.Button();
+            this.runToVBlankButton = new System.Windows.Forms.Button();
+            this.runToHBlankButton = new System.Windows.Forms.Button();
+            this.stepButton = new System.Windows.Forms.Button();
             this.commandInput = new System.Windows.Forms.TextBox();
             this.leftPanel = new System.Windows.Forms.Panel();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
@@ -45,6 +46,7 @@ namespace WinFormRender
             this.rightPanel = new System.Windows.Forms.Panel();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.emuSnapshot = new System.Windows.Forms.RichTextBox();
+            this.stepOverButton = new System.Windows.Forms.Button();
             this.BottomPanel.SuspendLayout();
             this.leftPanel.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -55,10 +57,12 @@ namespace WinFormRender
             // BottomPanel
             // 
             this.BottomPanel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.BottomPanel.Controls.Add(this.button4);
-            this.BottomPanel.Controls.Add(this.button3);
-            this.BottomPanel.Controls.Add(this.button2);
-            this.BottomPanel.Controls.Add(this.button1);
+            this.BottomPanel.Controls.Add(this.stepOverButton);
+            this.BottomPanel.Controls.Add(this.run1FrameButton);
+            this.BottomPanel.Controls.Add(this.continueOrBreakButton);
+            this.BottomPanel.Controls.Add(this.runToVBlankButton);
+            this.BottomPanel.Controls.Add(this.runToHBlankButton);
+            this.BottomPanel.Controls.Add(this.stepButton);
             this.BottomPanel.Controls.Add(this.commandInput);
             this.BottomPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.BottomPanel.Location = new System.Drawing.Point(0, 796);
@@ -66,42 +70,56 @@ namespace WinFormRender
             this.BottomPanel.Size = new System.Drawing.Size(1339, 96);
             this.BottomPanel.TabIndex = 0;
             // 
-            // button4
+            // run1FrameButton
             // 
-            this.button4.Dock = System.Windows.Forms.DockStyle.Right;
-            this.button4.Location = new System.Drawing.Point(1189, 0);
-            this.button4.Name = "button4";
-            this.button4.Size = new System.Drawing.Size(150, 57);
-            this.button4.TabIndex = 1;
-            this.button4.Text = "Continue";
-            this.button4.UseVisualStyleBackColor = true;
+            this.run1FrameButton.Location = new System.Drawing.Point(748, 4);
+            this.run1FrameButton.Name = "run1FrameButton";
+            this.run1FrameButton.Size = new System.Drawing.Size(187, 46);
+            this.run1FrameButton.TabIndex = 2;
+            this.run1FrameButton.Text = "Run 1 Frame";
+            this.run1FrameButton.UseVisualStyleBackColor = true;
+            this.run1FrameButton.Click += new System.EventHandler(this.run1FrameButton_Click);
             // 
-            // button3
+            // continueOrBreakButton
             // 
-            this.button3.Location = new System.Drawing.Point(378, 4);
-            this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(187, 46);
-            this.button3.TabIndex = 2;
-            this.button3.Text = "Run to VBlank";
-            this.button3.UseVisualStyleBackColor = true;
+            this.continueOrBreakButton.Dock = System.Windows.Forms.DockStyle.Right;
+            this.continueOrBreakButton.Location = new System.Drawing.Point(1189, 0);
+            this.continueOrBreakButton.Name = "continueOrBreakButton";
+            this.continueOrBreakButton.Size = new System.Drawing.Size(150, 57);
+            this.continueOrBreakButton.TabIndex = 1;
+            this.continueOrBreakButton.Text = "Continue";
+            this.continueOrBreakButton.UseVisualStyleBackColor = true;
+            this.continueOrBreakButton.Click += new System.EventHandler(this.continueOrBreakButton_Click);
             // 
-            // button2
+            // runToVBlankButton
             // 
-            this.button2.Location = new System.Drawing.Point(172, 4);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(187, 46);
-            this.button2.TabIndex = 2;
-            this.button2.Text = "Run to HBlank";
-            this.button2.UseVisualStyleBackColor = true;
+            this.runToVBlankButton.Location = new System.Drawing.Point(544, 4);
+            this.runToVBlankButton.Name = "runToVBlankButton";
+            this.runToVBlankButton.Size = new System.Drawing.Size(187, 46);
+            this.runToVBlankButton.TabIndex = 2;
+            this.runToVBlankButton.Text = "Run to VBlank";
+            this.runToVBlankButton.UseVisualStyleBackColor = true;
+            this.runToVBlankButton.Click += new System.EventHandler(this.runToVBlankButton_Click);
             // 
-            // button1
+            // runToHBlankButton
             // 
-            this.button1.Location = new System.Drawing.Point(3, 4);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(150, 46);
-            this.button1.TabIndex = 1;
-            this.button1.Text = "Step";
-            this.button1.UseVisualStyleBackColor = true;
+            this.runToHBlankButton.Location = new System.Drawing.Point(338, 4);
+            this.runToHBlankButton.Name = "runToHBlankButton";
+            this.runToHBlankButton.Size = new System.Drawing.Size(187, 46);
+            this.runToHBlankButton.TabIndex = 2;
+            this.runToHBlankButton.Text = "Run to HBlank";
+            this.runToHBlankButton.UseVisualStyleBackColor = true;
+            this.runToHBlankButton.Click += new System.EventHandler(this.runToHBlankButton_Click);
+            // 
+            // stepButton
+            // 
+            this.stepButton.Location = new System.Drawing.Point(3, 4);
+            this.stepButton.Name = "stepButton";
+            this.stepButton.Size = new System.Drawing.Size(150, 46);
+            this.stepButton.TabIndex = 1;
+            this.stepButton.Text = "Step";
+            this.stepButton.UseVisualStyleBackColor = true;
+            this.stepButton.Click += new System.EventHandler(this.stepButton_Click);
             // 
             // commandInput
             // 
@@ -199,6 +217,16 @@ namespace WinFormRender
             this.emuSnapshot.TabIndex = 0;
             this.emuSnapshot.Text = "";
             // 
+            // stepOverButton
+            // 
+            this.stepOverButton.Location = new System.Drawing.Point(171, 5);
+            this.stepOverButton.Name = "stepOverButton";
+            this.stepOverButton.Size = new System.Drawing.Size(150, 46);
+            this.stepOverButton.TabIndex = 1;
+            this.stepOverButton.Text = "Step Over";
+            this.stepOverButton.UseVisualStyleBackColor = true;
+            this.stepOverButton.Click += new System.EventHandler(this.stepOverButton_Click);
+            // 
             // ConsoleWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(13F, 32F);
@@ -225,7 +253,7 @@ namespace WinFormRender
         private Panel BottomPanel;
         private Panel leftPanel;
         private Panel rightPanel;
-        private Button button1;
+        private Button stepButton;
         private TextBox commandInput;
         private GroupBox groupBox2;
         private RichTextBox console;
@@ -233,8 +261,10 @@ namespace WinFormRender
         private RichTextBox codeWnd;
         private GroupBox groupBox3;
         private RichTextBox emuSnapshot;
-        private Button button4;
-        private Button button3;
-        private Button button2;
+        private Button continueOrBreakButton;
+        private Button runToVBlankButton;
+        private Button runToHBlankButton;
+        private Button run1FrameButton;
+        private Button stepOverButton;
     }
 }

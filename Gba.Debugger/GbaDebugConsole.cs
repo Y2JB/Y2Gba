@@ -147,10 +147,7 @@ namespace GbaDebugger
                     return NextCommand();
 
                 case ConsoleCommand.@continue:
-                    EmulatorMode = Mode.Running;
-
-                    executionHistory.Clear();
-                    return true;
+                    return ContinueCommand();
 
                 case ConsoleCommand.mem:
                     return MemCommand(parameters);
@@ -162,10 +159,7 @@ namespace GbaDebugger
                 //    return SetCommand(parameters);
 
                 case ConsoleCommand.brk:
-                    EmulatorMode = Mode.BreakPoint;
-                    PeekSequentialInstructions();
-                    UpdateCodeSnapshot();
-                    return true;
+                    return BreakCommand();
 
                 case ConsoleCommand.breakpoint:
                     return BreakpointCommand(parameters);
@@ -201,7 +195,7 @@ namespace GbaDebugger
 
 
         // This is 'step over'
-        bool NextCommand()
+        public bool NextCommand()
         {
             UInt32 instrSize = (UInt32)(gba.Cpu.State == Cpu.CpuState.Arm ? 4 : 2);
             oneTimeBreakpoints.Add(new Breakpoint(gba.Cpu.PC_Adjusted + instrSize));
@@ -209,6 +203,21 @@ namespace GbaDebugger
             return true;
         }
 
+        public bool ContinueCommand()
+        {
+            EmulatorMode = Mode.Running;
+            executionHistory.Clear();
+            return true;
+        }
+
+
+        public bool BreakCommand()
+        {
+            EmulatorMode = Mode.BreakPoint;
+            PeekSequentialInstructions();
+            UpdateCodeSnapshot();
+            return true;
+        }
 
         bool MemCommand(string[] parameters)
         {
@@ -268,6 +277,30 @@ namespace GbaDebugger
                 ConsoleAddString(cmd.ToString());
             }
             return true;
+        }
+
+
+        public void RunToHBlankCommand()
+        {
+            oneTimeBreakpoints.Add(new LcdStatusBreakpoint(gba, LcdStatusBreakpoint.BreakOn.HBlank));
+            UpdateCodeSnapshot();
+            EmulatorMode = Mode.Running;
+        }
+
+
+        public void RunToVBlankCommand()
+        {
+            oneTimeBreakpoints.Add(new LcdStatusBreakpoint(gba, LcdStatusBreakpoint.BreakOn.VBlank));
+            UpdateCodeSnapshot();
+            EmulatorMode = Mode.Running;
+        }
+
+
+        public void Run1FrameCommand()
+        {
+            oneTimeBreakpoints.Add(new LcdStatusBreakpoint(gba, LcdStatusBreakpoint.BreakOn.Frame));
+            UpdateCodeSnapshot();
+            EmulatorMode = Mode.Running;
         }
 
 
@@ -497,8 +530,9 @@ namespace GbaDebugger
                 string visible = gba.LcdController.DisplayControlRegister.BgVisible(i) ? "Visible" : "Hidden "; 
                 if(gba.LcdController.Bg[i].AffineMode) visible = "Visible";
 
-                ConsoleAddString(String.Format("Bg{0} : {1} {2}x{3} {4} SX: {5} SY: {6}", i, 
-                    visible, 
+                ConsoleAddString(String.Format("Bg{0} : {1} Priority: {2} {3}x{4} {5} SX: {6} SY: {7}", i, 
+                    visible,
+                    gba.LcdController.Bg[i].CntRegister.Priority,
                     gba.LcdController.Bg[i].WidthInPixels(), gba.LcdController.Bg[i].HeightInPixels(), 
                     gba.LcdController.Bg[i].AffineMode ? "Mode: Affine" : "Mode: Text  ",
                     scrollX, scrollY
@@ -707,24 +741,6 @@ namespace GbaDebugger
             instructionText = gba.Cpu.State == Cpu.CpuState.Arm ? gba.Cpu.PeekArmInstruction(rawInstr) : gba.Cpu.PeekThumbInstruction((ushort)rawInstr);
             newInstruction = new StoredInstruction(rawInstr, instructionText, (UInt32)(gba.Cpu.PC_Adjusted + adjust));
             NextInstructions.Add(newInstruction);
-            /*
-            UInt32 lookAheadBytes = 0;
-            for (int i = 0; i < Cpu.Pipeline_Size; i++)
-            {
-                UInt32 pc = (UInt32)(gba.Cpu.PC_Adjusted + lookAheadBytes);
-                UInt32 rawInstr = gba.Memory.ReadWord(pc);
-                lookAheadBytes+= 4;
-
-                string instructionText;
-                try
-                {
-                    instructionText = gba.Cpu.PeekArmInstruction(rawInstr);
-                    var newInstruction = new StoredInstruction(instructionText, pc);
-                    NextInstructions.Add(newInstruction);
-                }
-                catch (ArgumentException) { }
-            }
-            */
         }
     }
 

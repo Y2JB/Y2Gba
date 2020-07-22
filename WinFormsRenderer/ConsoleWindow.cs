@@ -55,41 +55,7 @@ namespace WinFormRender
 
             commandInput.KeyUp += CommandInput_KeyUp;
             commandInput.Focus();
-
-            /*
-                        codeWnd.Location = new System.Drawing.Point(10, 10);
-                        codeWnd.Multiline = true;
-                        codeWnd.ReadOnly = true;
-                        codeWnd.Width = 900;
-                        codeWnd.Height = 300;
-                        codeWnd.Enabled = true;
-                        codeWnd.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
-                        this.Controls.Add(codeWnd);
-
-                        console.Location = new System.Drawing.Point(10, codeWnd.Location.Y + codeWnd.Height + 20);
-                        console.Multiline = true;
-                        console.ReadOnly = true;
-                        console.Width = 900;
-                        console.Height = 600;
-                        console.Enabled = true;
-                        console.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
-                        console.ScrollBars = RichTextBoxScrollBars.Both;
-                        this.Controls.Add(console);
-
-                        commandInput.Location = new System.Drawing.Point(10, console.Location.Y + console.Height + 10);
-                        commandInput.Width = ClientSize.Width - 20;
-                        commandInput.KeyUp += CommandInput_KeyUp;
-                        this.Controls.Add(commandInput);
-                        commandInput.Focus();
-
-                        emuSnapshot.Location = new System.Drawing.Point(console.Location.X + console.Width + 10, 10);
-                        emuSnapshot.Multiline = true;
-                        emuSnapshot.Width = 700;
-                        emuSnapshot.Height = 900;
-                        emuSnapshot.Enabled = false;
-                        emuSnapshot.Font = new Font(FontFamily.GenericMonospace, console.Font.Size);
-                        this.Controls.Add(emuSnapshot);
-            */
+            
             RefreshEmuSnapshot();
         }
         
@@ -115,6 +81,10 @@ namespace WinFormRender
             string lcdState = String.Format("LCD: {0} ({1} / {2})", Gba.LcdController.Mode.ToString(),  Gba.LcdController.LcdCycles, Gba.LcdController.TotalTicksForState());
             emuSnapshot.AppendText(Environment.NewLine);
             emuSnapshot.AppendText(lcdState);
+            emuSnapshot.AppendText(Environment.NewLine);
+            emuSnapshot.AppendText(String.Format("Scanline: {0}  (0x{1:X})", Gba.LcdController.CurrentScanline, Gba.LcdController.CurrentScanline));
+            emuSnapshot.AppendText(Environment.NewLine);
+            emuSnapshot.AppendText(String.Format("VCount: {0}  (0x{1:X})", Gba.LcdController.DispStatRegister.VCountSetting, Gba.LcdController.DispStatRegister.VCountSetting));
 
             RefreshConsoleText();
         }
@@ -198,6 +168,43 @@ namespace WinFormRender
             }
         }
 
+        private void runToHBlankButton_Click(object sender, EventArgs e)
+        {
+            dbgConsole.RunToHBlankCommand();
+        }
 
+        private void runToVBlankButton_Click(object sender, EventArgs e)
+        {
+            dbgConsole.RunToVBlankCommand();
+        }
+
+        private void run1FrameButton_Click(object sender, EventArgs e)
+        {
+            dbgConsole.Run1FrameCommand();
+        }
+
+        private void continueOrBreakButton_Click(object sender, EventArgs e)
+        {
+            if(dbgConsole.EmulatorMode == GbaDebugConsole.Mode.Running)
+            {
+                dbgConsole.BreakCommand();
+                continueOrBreakButton.Text = "Continue";
+            }
+            else            
+            {
+                dbgConsole.ContinueCommand();
+                continueOrBreakButton.Text = "Break";
+            }
+        }
+
+        private void stepButton_Click(object sender, EventArgs e)
+        {
+            dbgConsole.BreakpointStepAvailable = true;
+        }
+
+        private void stepOverButton_Click(object sender, EventArgs e)
+        {
+            dbgConsole.NextCommand();
+        }
     }
 }

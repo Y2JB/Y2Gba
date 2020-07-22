@@ -38,6 +38,10 @@ namespace Gba.Core
         public DisplayControlRegister DisplayControlRegister { get; private set; }
         public DisplayStatusRegister DispStatRegister { get; private set; }
         public BgControlRegister[] BgControlRegisters { get; private set; }
+        public BlendControlRegister BlendControlRegister { get; private set; }
+        public PixelCoefficientRegister BlendingCoefficientRegister { get; private set; }
+        public PixelCoefficientRegister BrightnessCoefficientRegister { get; private set; }
+
 
         public Background[] Bg { get; private set; }
 
@@ -63,7 +67,7 @@ namespace Gba.Core
         public UInt32 LcdCycles { get; private set; }
         public UInt32 VblankScanlineCycles { get; private set; }
         public UInt32 FrameCycles { get; private set; }
-        public bool HblankInVblank { get { return VblankScanlineCycles > HDraw_Length; } }
+        public bool HblankInVblank { get { return VblankScanlineCycles >= HDraw_Length; } }
 
         public Palettes Palettes { get; private set; }
 
@@ -127,6 +131,10 @@ namespace Gba.Core
             {
                 Windows[i] = new Window(gba);
             }
+
+            this.BlendControlRegister = new BlendControlRegister(this);
+            BlendingCoefficientRegister = new PixelCoefficientRegister(this);
+            BrightnessCoefficientRegister = new PixelCoefficientRegister(this);
 
 #if THREADED_SCANLINE
             drawScanline = false;
@@ -209,6 +217,13 @@ namespace Gba.Core
 
                         CurrentScanline++;
 
+                        if (DispStatRegister.VCounterIrqEnabled &&
+                            CurrentScanline == gba.LcdController.DispStatRegister.VCountSetting)
+                        {
+                            gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VCounterMatch);
+                        }
+
+
                         if (Bg[2].AffineMode)
                         {
                             Bg[2].AffineScrollXCached += Bg[2].AffineMatrix.Pb;
@@ -220,19 +235,17 @@ namespace Gba.Core
                             Bg[3].AffineScrollXCached += Bg[3].AffineMatrix.Pb;
                             Bg[3].AffineScrollYCached += Bg[3].AffineMatrix.Pd;
                         }
-
-
-                        if (DispStatRegister.VCounterIrqEnabled && 
-                            CurrentScanline == gba.LcdController.DispStatRegister.VCountSetting)
-                        {                           
-                            gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VCounterMatch);
-                        }
-                        
+                                          
 
                         if (CurrentScanline == 160)
                         {
                             Mode = LcdMode.VBlank;
                             VblankScanlineCycles = 0;
+
+                            if (DispStatRegister.VBlankIrqEnabled)
+                            {
+                                gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VBlank);
+                            }
 
                             if (Bg[2].AffineMode)
                             {
@@ -245,12 +258,7 @@ namespace Gba.Core
                                 Bg[3].AffineScrollXCached = Bg[3].AffineScrollX;
                                 Bg[3].AffineScrollYCached = Bg[3].AffineScrollY;
                             }
-
-                            if (DispStatRegister.VBlankIrqEnabled)
-                            {
-                                gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.VBlank);
-                            }
-                            
+                                                       
 
                             // We can set the renderer drawing the frame as soon as we enter vblank
                             lock (FrameBuffer)
@@ -614,6 +622,7 @@ namespace Gba.Core
                 }
 
                 // Start at the top priority, if something draws to the pixel, we can early out and stop processing this pixel 
+                // Highest priority (0) is drawn at the front. Lower priorities can be obscured 
                 for (int priority = 0; priority < 4; priority++)
                 {
                     // Sprite rendering
@@ -630,12 +639,20 @@ namespace Gba.Core
                     // No Sprite occupied this pixel, move on to backgrounds
 
                     // Bg Rendering
-                    // Find the background with this priority                        
+                    // Find the backgrounds with this priority                        
+                    // In case of same priority, BG0 has highest (drawn at front)
                     for (int bgSelect = 0; bgSelect < 4; bgSelect++)
                     {
+                        
+
                         if (Bg[bgSelect].CntRegister.Priority != priority ||
                             DisplayControlRegister.BgVisible(Bg[bgSelect].BgNumber) == false ||
                             (windowing && ((bgVisibleOverride & (1 << bgSelect)) == 0)))
+                        {
+                            continue;
+                        }
+
+                        if(Bg[2].AffineMode && bgSelect == 1)
                         {
                             continue;
                         }
