@@ -21,7 +21,7 @@ namespace WinFormsRenderer
         DirectBitmap tiles1Bmp;
 
         DirectBitmap bgBmp;
-        Rectangle bgRenderRect = new Rectangle(0, 0, 512, 512);
+        Rectangle bgRenderRect = new Rectangle(0, 0, 1024, 1024);
 
         GameboyAdvance gba;
 
@@ -37,7 +37,7 @@ namespace WinFormsRenderer
             tiles0Bmp = new DirectBitmap(256, 256);
             tiles1Bmp = new DirectBitmap(256, 256);
 
-            bgBmp = new DirectBitmap(512, 512);
+            bgBmp = new DirectBitmap(1024, 1024);
         }
 
 
@@ -102,7 +102,7 @@ namespace WinFormsRenderer
 
                     // You have to supply the code to get the tiles palette
                     Func<int, int> get4BitPaletteNumber = (int tileNumber) => {
-                        Obj obj = TileHelpers.FindFirstSpriteThatUsesTile(tileNumber, gba.LcdController.Obj);
+                        Obj obj = TileHelpers.FindFirstSpriteThatUsesTile(tileNumber, gba.LcdController.ObjController.Obj);
                         return (obj == null ? 0 : obj.Attributes.PaletteNumber * 16);
                     };
                     
@@ -125,25 +125,25 @@ namespace WinFormsRenderer
                     break;
 
                 case 2:                    
-                    gba.LcdController.Bg[0].RenderFull(bgBmp);
+                    gba.LcdController.Bg[0].DebugRenderFull(bgBmp);
                     GfxHelpers.DrawViewportBox(bgBmp.Bitmap, gba.LcdController.Bg[0].ScrollX, gba.LcdController.Bg[0].ScrollY, gba.LcdController.Bg[0].WidthInPixels(), gba.LcdController.Bg[0].HeightInPixels());
                     gfxBuffer.Graphics.DrawImage(bgBmp.Bitmap, bgRenderRect,  0, 0, gba.LcdController.Bg[0].WidthInPixels(), gba.LcdController.Bg[0].HeightInPixels(), GraphicsUnit.Pixel);
                     break;
 
                 case 3:
-                    gba.LcdController.Bg[1].RenderFull(bgBmp);
+                    gba.LcdController.Bg[1].DebugRenderFull(bgBmp);
                     GfxHelpers.DrawViewportBox(bgBmp.Bitmap, gba.LcdController.Bg[1].ScrollX, gba.LcdController.Bg[1].ScrollY, gba.LcdController.Bg[1].WidthInPixels(), gba.LcdController.Bg[1].HeightInPixels());
                     gfxBuffer.Graphics.DrawImage(bgBmp.Bitmap, bgRenderRect, 0, 0, gba.LcdController.Bg[1].WidthInPixels(), gba.LcdController.Bg[1].HeightInPixels(), GraphicsUnit.Pixel);
                     break;
 
                 case 4:
-                    gba.LcdController.Bg[2].RenderFull(bgBmp);
+                    gba.LcdController.Bg[2].DebugRenderFull(bgBmp);
                     GfxHelpers.DrawViewportBox(bgBmp.Bitmap, gba.LcdController.Bg[2].ScrollX, gba.LcdController.Bg[2].ScrollY, gba.LcdController.Bg[2].WidthInPixels(), gba.LcdController.Bg[2].HeightInPixels());
                     gfxBuffer.Graphics.DrawImage(bgBmp.Bitmap, bgRenderRect, 0, 0, gba.LcdController.Bg[2].WidthInPixels(), gba.LcdController.Bg[2].HeightInPixels(), GraphicsUnit.Pixel);
                     break;
 
                 case 5:
-                    gba.LcdController.Bg[3].RenderFull(bgBmp);
+                    gba.LcdController.Bg[3].DebugRenderFull(bgBmp);
                     GfxHelpers.DrawViewportBox(bgBmp.Bitmap, gba.LcdController.Bg[3].ScrollX, gba.LcdController.Bg[3].ScrollY, gba.LcdController.Bg[3].WidthInPixels(), gba.LcdController.Bg[3].HeightInPixels());
                     gfxBuffer.Graphics.DrawImage(bgBmp.Bitmap, bgRenderRect, 0, 0, gba.LcdController.Bg[3].WidthInPixels(), gba.LcdController.Bg[3].HeightInPixels(), GraphicsUnit.Pixel);
                     break;

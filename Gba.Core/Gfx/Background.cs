@@ -1,13 +1,16 @@
-﻿using System;
+﻿//#define THREADED_SCANLINE
+
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Gba.Core
 {
-    public class Background
+    public class Background : IDisposable
     {
         public BgControlRegister CntRegister { get; }
 
@@ -20,36 +23,39 @@ namespace Gba.Core
         public bool AffineMode { get; set; }
 
         // 32 but fixed point numbers. Will only ever be set for BG's 2 & 3. Used instead of the scroll registers above
+        public byte affineX0 { get; set; }
+        public byte affineX1 { get; set; }
+        public byte affineX2 { get; set; }
         byte affinex3;
         public byte affineX3
-        { 
-            get 
+        {
+            get
             {
                 // Negative
                 if ((affinex3 & (byte)0x08) > 0)
                 {
-                    return (byte) ((affinex3 & (byte)0x07) | 0xF8); 
+                    return (byte)((affinex3 & (byte)0x07) | 0xF8);
                 }
                 else
                 {
-                    return (byte) (affinex3 & (byte)0x07);
+                    return (byte)(affinex3 & (byte)0x07);
                 }
-            } 
+            }
             set
             {
                 affinex3 = value;
             }
         }
-        public byte affineX0 { get; set; }
-        public byte affineX1 { get; set; }
-        public byte affineX2 { get; set; }
-       //public byte affineX3 { get; set; }
         public int AffineScrollX
         {
             get { return (int)((affineX3 << 24) | (affineX2 << 16) | (affineX1 << 8) | affineX0); }
             set { affineX0 = (byte)(value & 0xFF); affineX1 = (byte)((value & 0xFF00) >> 8); affineX2 = (byte)((value & 0xFF0000) >> 16); affineX3 = (byte)((value & 0xFF000000) >> 24); }
         }
 
+        
+        public byte affineY0 { get; set; }
+        public byte affineY1 { get; set; }
+        public byte affineY2 { get; set; }
         byte affiney3;
         public byte affineY3
         {
@@ -70,10 +76,6 @@ namespace Gba.Core
                 affiney3 = value;
             }
         }
-        public byte affineY0 { get; set; }
-        public byte affineY1 { get; set; }
-        public byte affineY2 { get; set; }
-        //public byte affineY3 { get; set; }
         public int AffineScrollY
         {
             get { return (int)((affineY3 << 24) | (affineY2 << 16) | (affineY1 << 8) | affineY0); }
@@ -95,6 +97,13 @@ namespace Gba.Core
         bool eightBitColour;
         int tileSize;
 
+        public int[] ScanlineData { get; private set; }
+#if THREADED_SCANLINE
+        int cacheScanline;
+        bool exitThread;
+        System.Threading.Thread scanlineThread;
+#endif
+
         public int BgNumber { get; private set; }
 
         GameboyAdvance gba;
@@ -109,6 +118,25 @@ namespace Gba.Core
             TileMap = new TileMap(gba.Memory.VRam, cntRegister, bgNumber);
 
             AffineMatrix = new BgAffineMatrix();
+
+            ScanlineData = new int[LcdController.Screen_X_Resolution];
+
+
+#if THREADED_SCANLINE
+            Interlocked.Exchange(ref cacheScanline, 0);
+            exitThread = false;
+            scanlineThread = new Thread(new ThreadStart(ScanlineThread));
+            scanlineThread.Start();
+#endif
+        }
+
+
+        public void Dispose()
+        {
+#if THREADED_SCANLINE
+            exitThread = true;
+            Thread.Sleep(200);
+#endif 
         }
 
 
@@ -134,7 +162,7 @@ namespace Gba.Core
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int PixelValue(int screenX, int screenY)
-        {            
+        {      
             int paletteOffset = 0;
 
             int scrollX = ScrollX;
@@ -166,6 +194,12 @@ namespace Gba.Core
 
             int tileVramOffset = (int)(tileDataVramOffset + ((tileMetaData.TileNumber) * tileSize));
 
+            // Sometimes Bg's can be set up with invalid data which won't be drawn
+            if(tileVramOffset >= gba.Memory.VRam.Length)
+            {
+                return 0;
+            }
+
             int paletteIndex = TileHelpers.GetTilePixel(tileColumn, tileRow, eightBitColour, gba.Memory.VRam, tileVramOffset, tileMetaData.FlipHorizontal, tileMetaData.FlipVertical);
 
             if (paletteIndex == 0) return 0;
@@ -190,13 +224,13 @@ namespace Gba.Core
             //AffineMatrix.Multiply(screenX, screenY, out textureSpaceX, out textureSpaceY);
 
             // Apply displacement vector (affine scroll) 
-           // textureSpaceX += scrollX;
-           // textureSpaceY += scrollY;
+            // textureSpaceX += scrollX;
+            // textureSpaceY += scrollY;
 
             // BG Wrap?
             if (CntRegister.DisplayAreaOverflow)                
             {
-                /*
+               /* 
                 while (textureSpaceX >= bgWidthInPixel) textureSpaceX -= bgWidthInPixel;
                 while (textureSpaceY >= bgHeightInPixel) textureSpaceY -= bgHeightInPixel;
                 while (textureSpaceX < 0) textureSpaceX += bgWidthInPixel;
@@ -207,13 +241,14 @@ namespace Gba.Core
             }
             else
             {
-                if (textureSpaceX < 0 || textureSpaceX > WidthInPixels()) return 0;
-                if (textureSpaceY < 0 || textureSpaceY > HeightInPixels()) return 0;
+                if (textureSpaceX < 0 || textureSpaceX >= bgWidthInPixel) return 0;
+                if (textureSpaceY < 0 || textureSpaceY >= bgHeightInPixel) return 0;
             }
+   
 
             // Coords (measured in tiles) of the tile we want to render 
-            int bgRow = textureSpaceY / 8;
-            int bgColumn = textureSpaceX / 8;
+            //int bgRow = textureSpaceY / 8;
+            //int bgColumn = textureSpaceX / 8;
 
             // Which row / column within the tile we are rendering?
             int tileRow = textureSpaceY % 8;                
@@ -227,14 +262,78 @@ namespace Gba.Core
 
             int tileVramOffset = (int)(tileDataVramOffset + (tileNumber * tileSize));
 
-            int paletteIndex = TileHelpers.GetTilePixel(tileColumn, tileRow, true, gba.Memory.VRam, tileVramOffset, false, false);
+            // Sometimes Bg's can be set up with invalid data which won't be drawn
+            if (tileVramOffset >= gba.Memory.VRam.Length)
+            {
+                return 0;
+            }
 
+            int paletteIndex = TileHelpers.GetTilePixel(tileColumn, tileRow, true, gba.Memory.VRam, tileVramOffset, false, false);
             return paletteIndex;
         }
 
 
-        // Used for debug rendering BG's. Renders the source BG, does not scroll etc 
-        public void RenderScanline(int scanline, int scanlineWidth, DirectBitmap drawBuffer)
+        void CacheScanlineData()
+        {
+            int scanline = gba.LcdController.CurrentScanline;
+
+            for (int x = 0; x < LcdController.Screen_X_Resolution; x++)
+            {
+                if (AffineMode)
+                {
+                    ScanlineData[x] = PixelValueAffine(x, scanline);
+                }
+                else
+                {
+                    ScanlineData[x] = PixelValue(x, scanline);
+                }
+            }
+        }
+
+
+#if THREADED_SCANLINE
+        void ScanlineThread()
+        {
+            while (exitThread == false)
+            {
+                if (Thread.VolatileRead(ref cacheScanline) == 1)
+                {
+                    lock (ScanlineData)
+                    {
+                        CacheScanlineData();
+                        Interlocked.Exchange(ref cacheScanline, 0);
+                    }
+                }
+            }
+        }
+
+
+        public void WaitForScanline()
+        {
+            while (Thread.VolatileRead(ref cacheScanline) == 1)
+            {
+            }
+        }
+
+
+        public void CacheScanline()
+        {            
+            Interlocked.Exchange(ref cacheScanline, 1);
+        }
+#else
+        public void CacheScanline()
+        {            
+            CacheScanlineData();
+        }
+
+        public void WaitForScanline()
+        {
+        }
+#endif
+
+
+            // Used for debug rendering BG's. Renders the source BG, does not scroll etc         
+            public void DebugRenderScanlineAffine(int scanline, int scanlineWidth, DirectBitmap drawBuffer)
         {            
             Color[] palette = gba.LcdController.Palettes.Palette0;
             bool eightBitColour = CntRegister.PaletteMode == BgPaletteMode.PaletteMode256x1;
@@ -259,6 +358,12 @@ namespace Gba.Core
 
                 int tileVramOffset = (int)(tileDataVramOffset + (tileNumber * tileSize));
 
+                // Sometimes Bg's can be set up with invalid data which won't be drawn
+                if (tileVramOffset >= gba.Memory.VRam.Length)
+                {
+                    continue;
+                }
+
                 int paletteIndex = TileHelpers.GetTilePixel(tileColumn, tileRow, true, gba.Memory.VRam, tileVramOffset, false, false);
 
                 // Pal 0 == Transparent 
@@ -274,13 +379,13 @@ namespace Gba.Core
 
 
         // Used for debug rendering BG's. Renders the source BG, does not scroll etc 
-        public void RenderScanlineAffine(int scanline, int scanlineWidth, DirectBitmap drawBuffer)
+        public void DebugRenderScanline(int scanline, int scanlineWidth, DirectBitmap drawBuffer)
         {
   
             Color[] palette = gba.LcdController.Palettes.Palette0;
             int paletteOffset = 0;
 
-            bool eightBitColour = true;
+            bool eightBitColour = (CntRegister.PaletteMode == BgPaletteMode.PaletteMode256x1);
 
             // Which line within the current tile are we rendering?
             int tileRow = scanline % 8;
@@ -302,6 +407,12 @@ namespace Gba.Core
 
                 // 4 bytes represent one row of pixel data for a single tile
                 int tileVramOffset = (int)(tileDataVramOffset + ((tileMetaData.TileNumber) * tileSize));
+               
+                // Sometimes Bg's can be set up with invalid data which won't be drawn
+                if (tileVramOffset >= gba.Memory.VRam.Length)
+                {
+                    continue;
+                }
 
                 int paletteIndex = TileHelpers.GetTilePixel(tileColumn, tileRow, eightBitColour, gba.Memory.VRam, tileVramOffset, tileMetaData.FlipHorizontal, tileMetaData.FlipVertical);
 
@@ -317,17 +428,17 @@ namespace Gba.Core
 
 
         // Used for dumping BG's or drawing to debug windows. The game does not render this way
-        public void RenderFull(DirectBitmap drawBuffer)
+        public void DebugRenderFull(DirectBitmap drawBuffer)
         {
             for(int y = 0; y < HeightInPixels(); y++)
-            {
+            {                
                 if (AffineMode)
                 {
-                    RenderScanlineAffine(y, WidthInPixels(), drawBuffer);
+                    DebugRenderScanlineAffine(y, WidthInPixels(), drawBuffer);
                 }
                 else
                 {
-                    RenderScanline(y, WidthInPixels(), drawBuffer);
+                    DebugRenderScanline(y, WidthInPixels(), drawBuffer);
                 }
             }
         }
@@ -372,7 +483,7 @@ namespace Gba.Core
         public void Dump(bool renderViewPortBox)
         {
             var image = new DirectBitmap(WidthInPixels(), HeightInPixels());
-            RenderFull(image);
+            DebugRenderFull(image);
             if (renderViewPortBox)
             {
                 GfxHelpers.DrawViewportBox(image.Bitmap, ScrollX, ScrollY, WidthInPixels(), HeightInPixels());

@@ -32,6 +32,7 @@ namespace WinFormRender
         private void InitializeComponent()
         {
             this.BottomPanel = new System.Windows.Forms.Panel();
+            this.stepOverButton = new System.Windows.Forms.Button();
             this.run1FrameButton = new System.Windows.Forms.Button();
             this.continueOrBreakButton = new System.Windows.Forms.Button();
             this.runToVBlankButton = new System.Windows.Forms.Button();
@@ -46,7 +47,6 @@ namespace WinFormRender
             this.rightPanel = new System.Windows.Forms.Panel();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.emuSnapshot = new System.Windows.Forms.RichTextBox();
-            this.stepOverButton = new System.Windows.Forms.Button();
             this.BottomPanel.SuspendLayout();
             this.leftPanel.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -69,6 +69,16 @@ namespace WinFormRender
             this.BottomPanel.Name = "BottomPanel";
             this.BottomPanel.Size = new System.Drawing.Size(1339, 96);
             this.BottomPanel.TabIndex = 0;
+            // 
+            // stepOverButton
+            // 
+            this.stepOverButton.Location = new System.Drawing.Point(171, 5);
+            this.stepOverButton.Name = "stepOverButton";
+            this.stepOverButton.Size = new System.Drawing.Size(150, 46);
+            this.stepOverButton.TabIndex = 1;
+            this.stepOverButton.Text = "Step Over";
+            this.stepOverButton.UseVisualStyleBackColor = true;
+            this.stepOverButton.Click += new System.EventHandler(this.stepOverButton_Click);
             // 
             // run1FrameButton
             // 
@@ -216,16 +226,6 @@ namespace WinFormRender
             this.emuSnapshot.Size = new System.Drawing.Size(501, 761);
             this.emuSnapshot.TabIndex = 0;
             this.emuSnapshot.Text = "";
-            // 
-            // stepOverButton
-            // 
-            this.stepOverButton.Location = new System.Drawing.Point(171, 5);
-            this.stepOverButton.Name = "stepOverButton";
-            this.stepOverButton.Size = new System.Drawing.Size(150, 46);
-            this.stepOverButton.TabIndex = 1;
-            this.stepOverButton.Text = "Step Over";
-            this.stepOverButton.UseVisualStyleBackColor = true;
-            this.stepOverButton.Click += new System.EventHandler(this.stepOverButton_Click);
             // 
             // ConsoleWindow
             // 

@@ -43,7 +43,7 @@ namespace WinFormRender
         MenuStrip menu;
 
 #if THREADED_RENDERER
-        bool drawFrame = false;
+        volatile bool drawFrame = false;
         bool exitThread = false;
         Thread renderThread;
 #endif 

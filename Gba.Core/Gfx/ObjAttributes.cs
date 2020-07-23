@@ -129,7 +129,7 @@ namespace Gba.Core
             }
             
             int matixindex = ((ObjAttrib1H & 0x3E)>>1);
-            return gba.LcdController.OamAffineMatrices[matixindex];
+            return gba.LcdController.ObjController.OamAffineMatrices[matixindex];
         }
 
         // How many 8x8 tiles does this sprite use?

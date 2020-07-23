@@ -41,6 +41,7 @@ namespace Gba.Core
 
         public void Dispose()
         {
+            PoweredOn = false;
             LcdController.Dispose();
         }
 
@@ -87,19 +88,20 @@ namespace Gba.Core
             //this.Rom = new Rom("../../../../roms/Yoshi's Island - Super Mario Advance 3.gba");
             //this.Rom = new Rom("../../../../roms/Fire Emblem.gba");
             //this.Rom = new Rom("../../../../roms/Darius R.GBA");
-            //this.Rom = new Rom("../../../../roms/Mario Kart Super Circuit (U).gba");
+            this.Rom = new Rom("../../../../roms/Mario Kart Super Circuit (U).gba");
             //this.Rom = new Rom("../../../../roms/F-Zero - Maximum Velocity.gba");
-            this.Rom = new Rom("../../../../roms/Konami Krazy Racers.gba");
+            //this.Rom = new Rom("../../../../roms/Konami Krazy Racers.gba");
             //this.Rom = new Rom("../../../../roms/Sega Rally Championship.gba");
-
-
-            //this.Rom = new Rom("../../../../roms/");
 
             // Intro uses OBJ Win...
             //this.Rom = new Rom("../../../../roms/Pokemon - Emerald Version (U).gba");
 
             //this.Rom = new Rom("../../../../roms/Advance Wars.gba");
             //this.Rom = new Rom("../../../../roms/Advanced Wars 2 - Black Hole Rising.gba");
+
+
+            //this.Rom = new Rom("../../../../roms/");
+
 
             this.Memory = new Memory(this);
             this.Cpu = new Cpu(this);
@@ -158,7 +160,7 @@ namespace Gba.Core
 
             // You have to supply the code to get the tiles palette
             Func<int, int> get4BitPaletteNumber = (int tileNumber) =>   { 
-                                                                            Obj obj = TileHelpers.FindFirstSpriteThatUsesTile(tileNumber, LcdController.Obj);
+                                                                            Obj obj = TileHelpers.FindFirstSpriteThatUsesTile(tileNumber, LcdController.ObjController.Obj);
                                                                             return (obj == null ? 0 : obj.Attributes.PaletteNumber * 16);
                                                                          };
 
