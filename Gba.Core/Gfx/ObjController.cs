@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Runtime.CompilerServices;
+using System.IO;
 
 namespace Gba.Core
 {
@@ -165,6 +166,63 @@ namespace Gba.Core
                    
             }                        
             return false;
+        }
+
+
+        public void DumpOam()
+        {
+            string fn = String.Format("oam.txt");
+            using (FileStream fs = File.Open("../../../../dump/" + fn, FileMode.Create))
+            {
+                using (StreamWriter sw = new StreamWriter(fs))
+                {
+                    for (int i = 0; i < Max_Sprites; i++)
+                    {
+                        Obj obj = Obj[i];
+
+                        string modeStr = obj.Attributes.RotationAndScaling ? "Affine" : "Normal";
+
+                        string strObj = String.Format("Obj-{0} {1} {2}x{3} X: {4} Y: {5} ", i, modeStr, obj.Attributes.Dimensions.Width, obj.Attributes.Dimensions.Height, obj.Attributes.XPosition, obj.Attributes.YPosition);
+                        sw.WriteLine(strObj);
+                    }
+                    sw.Write(Environment.NewLine);          
+                }
+            }
+        }
+
+
+        public void DumpObj()
+        {
+            var image = new DirectBitmap(1200, 600);
+
+            int objIndex = 0;
+            int originX = 32, originY = 32;
+            // Render 8 sprites per row
+            // 16 x 8 sprites
+            for (int sy = 0; sy < 8; sy++)
+            {              
+                for (int sx = 0; sx < 16; sx++)
+                {
+                    Obj obj = Obj[objIndex++];
+
+                    for (int y = 0; y < obj.Attributes.Dimensions.Height; y++)
+                    {
+                        for (int x = 0; x < obj.Attributes.Dimensions.Width; x++)
+                        {
+                            int paletteIndex = obj.PixelValue(x, y);
+                            if(paletteIndex == 0)
+                            {
+                                continue;
+                            }
+                            image.SetPixel(originX + (sx * 64) + x, originY + (sy * 64) + y, gba.LcdController.Palettes.Palette1[paletteIndex]);
+                        }
+                    }
+                }
+            }
+
+            GfxHelpers.DrawGrid(image.Bitmap, 32, 32, 16, 8, 64, 64);
+
+            image.Bitmap.Save(string.Format("../../../../dump/Objs.png"));
         }
 
 

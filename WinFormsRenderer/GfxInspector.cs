@@ -112,7 +112,7 @@ namespace WinFormsRenderer
                         graphics.Clear(Color.Transparent);
                     }
 
-                    gba.DrawTiles(tiles0Bmp, gba.Memory.VRam, vramBaseOffset, palette, false, get4BitPaletteNumber);
+                    gba.DebugDrawTiles(tiles0Bmp, gba.Memory.VRam, vramBaseOffset, palette, false, get4BitPaletteNumber);
 
                     gfxBuffer.Graphics.DrawImage(tiles0Bmp.Bitmap, 0, 0, tiles0Bmp.Width * 2, tiles0Bmp.Height * 2);
                     break;

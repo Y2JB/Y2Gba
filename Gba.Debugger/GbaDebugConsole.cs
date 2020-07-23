@@ -339,6 +339,13 @@ namespace GbaDebugger
                         ConsoleAddString("Backgrounds dumped.");
                         return true;
 
+                    case "oam":
+                        gba.LcdController.ObjController.DumpOam();
+                        return true;
+
+                    case "obj":
+                        gba.LcdController.ObjController.DumpObj();
+                        return true;
                 }
             }
 

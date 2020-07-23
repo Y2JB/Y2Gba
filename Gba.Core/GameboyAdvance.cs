@@ -164,10 +164,10 @@ namespace Gba.Core
                                                                             return (obj == null ? 0 : obj.Attributes.PaletteNumber * 16);
                                                                          };
 
-            DrawTiles(image, Memory.VRam, vramBaseOffset, palette, true, get4BitPaletteNumber);
+            DebugDrawTiles(image, Memory.VRam, vramBaseOffset, palette, true, get4BitPaletteNumber);
             image.Bitmap.Save(string.Format("../../../../dump/{0}Tiles{1}_{2}.png", "Obj", "8bpp", Rom.RomName));
 
-            DrawTiles(image, Memory.VRam, vramBaseOffset, palette, false, get4BitPaletteNumber);
+            DebugDrawTiles(image, Memory.VRam, vramBaseOffset, palette, false, get4BitPaletteNumber);
             image.Bitmap.Save(string.Format("../../../../dump/{0}Tiles{1}_{2}.png", "Obj", "4bpp", Rom.RomName));
         }
 
@@ -193,22 +193,22 @@ namespace Gba.Core
                                                                             return 0;
                                                                         };
 
-            DrawTiles(image, Memory.VRam, vramBaseOffset0, palette, false, get4BitPaletteNumber);
+            DebugDrawTiles(image, Memory.VRam, vramBaseOffset0, palette, false, get4BitPaletteNumber);
             image.Bitmap.Save(string.Format("../../../../dump/{0}Tiles{1}_{2}.png", "BGV0", "4bpp", Rom.RomName));
 
-            DrawTiles(image, Memory.VRam, vramBaseOffset1, palette, false, get4BitPaletteNumber);
+            DebugDrawTiles(image, Memory.VRam, vramBaseOffset1, palette, false, get4BitPaletteNumber);
             image.Bitmap.Save(string.Format("../../../../dump/{0}Tiles{1}_{2}.png", "BGV1", "4bpp", Rom.RomName));
 
-            DrawTiles(image, Memory.VRam, vramBaseOffset0, palette, true, get4BitPaletteNumber);
+            DebugDrawTiles(image, Memory.VRam, vramBaseOffset0, palette, true, get4BitPaletteNumber);
             image.Bitmap.Save(string.Format("../../../../dump/{0}Tiles{1}_{2}.png", "BGV0", "8bpp", Rom.RomName));
 
-            DrawTiles(image, Memory.VRam, vramBaseOffset1, palette, true, get4BitPaletteNumber);
+            DebugDrawTiles(image, Memory.VRam, vramBaseOffset1, palette, true, get4BitPaletteNumber);
             image.Bitmap.Save(string.Format("../../../../dump/{0}Tiles{1}_{2}.png", "BGV1", "8bpp", Rom.RomName));
         }
 
 
         // Code to dump both BG and Obj tiles. Quite a complex list of parameters in order to make it work for both
-        public void DrawTiles(DirectBitmap image, byte[] vram, int vramBaseOffset, Color[] palette, bool eightBitColour, Func<int, int> getTile4BitPaletteNumber)
+        public void DebugDrawTiles(DirectBitmap image, byte[] vram, int vramBaseOffset, Color[] palette, bool eightBitColour, Func<int, int> getTile4BitPaletteNumber)
         {
             int tileCountX = 32;
             int tileCountY = 32;
@@ -256,7 +256,7 @@ namespace Gba.Core
             bool drawGrid = true;
             if (drawGrid)
             {
-                GfxHelpers.DrawTileGrid(image.Bitmap, tileCountX, tileCountY);
+                GfxHelpers.DrawGrid(image.Bitmap, 0, 0, tileCountX, tileCountY, 8, 8);
             }
         }
 
