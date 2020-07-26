@@ -17,8 +17,12 @@ namespace Gba.Core
         public TileMap TileMap { get; private set; }
         public BgSize Size { get { return CntRegister.Size; } }
 
-        public int ScrollX { get; set; }
-        public int ScrollY { get; set; }
+        // Bg Horizontal / Vertical Offset
+        MemoryRegister16 BGXHOFS;
+        MemoryRegister16 BGXVOFS;
+
+        public int ScrollX { get { return BGXHOFS.Value; } }
+        public int ScrollY { get { return BGXVOFS.Value; } }
 
         public bool AffineMode { get; set; }
 
@@ -109,13 +113,16 @@ namespace Gba.Core
         GameboyAdvance gba;
 
 
-        public Background(GameboyAdvance gba, int bgNumber, BgControlRegister cntRegister)
+        public Background(GameboyAdvance gba, int bgNumber, BgControlRegister cntRegister, UInt32 scrollXRegAddr, UInt32 scrollYRegAddr)
         {
             this.gba = gba;
             this.BgNumber = bgNumber;
             CntRegister = cntRegister;
             AffineMode = false;
             TileMap = new TileMap(gba.Memory.VRam, cntRegister, bgNumber);
+
+            BGXHOFS = new MemoryRegister16(gba.Memory, scrollXRegAddr, false, true, 0x01);
+            BGXVOFS = new MemoryRegister16(gba.Memory, scrollYRegAddr, false, true, 0x01);
 
             AffineMatrix = new BgAffineMatrix();
 

@@ -26,6 +26,7 @@ namespace Gba.Core
         // 0x4000000
         // 0x4000001 
 
+        /*
         byte reg0;
         public byte Register0
         {
@@ -62,32 +63,51 @@ namespace Gba.Core
                 reg1 = value;
             }
         }
+        */
+        MemoryRegister16 register;
         
         LcdController lcd;
      
-        public DisplayControlRegister(LcdController lcd)
+        public DisplayControlRegister(GameboyAdvance gba, LcdController lcd)
         {
             this.lcd = lcd;
+
+            MemoryRegister8WithSetHook r0 = new MemoryRegister8WithSetHook(gba.Memory, 0x4000000, true, true);
+            MemoryRegister8 r1 = new MemoryRegister8(gba.Memory, 0x4000001, true, true);
+            register = new MemoryRegister16(gba.Memory, 0x4000000, true, true, r0, r1);
+                    
+            r0.OnSet = (oldValue, newValue) =>
+            {
+                // BgMode changed?
+                if( (oldValue & 0x07) != (newValue & 0x07) )
+                {
+                    lcd.Bg[0].CacheRenderData();
+                    lcd.Bg[1].CacheRenderData();
+                    lcd.Bg[2].CacheRenderData();
+                    lcd.Bg[3].CacheRenderData();
+                }
+            };
+
         }
 
-        public UInt32 BgMode { get { return (UInt32)(Register0 & 0x07); } }
-        public UInt32 DisplayFrameSelect { get { return (UInt32)((Register0 & 0x10) >> 4); } }
-        public bool HBlankIntervalFree { get { return ((Register0 & 0x20)!= 0); } }
-        public UInt32 ObjectCharacterVramMapping { get { return (UInt32)((Register0 & 0x40) >> 6); } }
-        public bool ForcedBlank { get { return ((Register0 & 0x80) != 0); } }
+        public UInt32 BgMode { get { return (UInt32)(register.LowByte.Value & 0x07); } }
+        public UInt32 DisplayFrameSelect { get { return (UInt32)((register.LowByte.Value & 0x10) >> 4); } }
+        public bool HBlankIntervalFree { get { return ((register.LowByte.Value & 0x20)!= 0); } }
+        public UInt32 ObjectCharacterVramMapping { get { return (UInt32)((register.LowByte.Value & 0x40) >> 6); } }
+        public bool ForcedBlank { get { return ((register.LowByte.Value & 0x80) != 0); } }
 
-        public bool DisplayBg0 { get { return ((Register1 & 0x01) != 0); } }
-        public bool DisplayBg1 { get { return ((Register1 & 0x02) != 0); } }
-        public bool DisplayBg2 { get { return ((Register1 & 0x04) != 0); } }
-        public bool DisplayBg3 { get { return ((Register1 & 0x08) != 0); } }
-        public bool DisplayObj { get { return ((Register1 & 0x10) != 0); } }
-        public bool DisplayWin0 { get { return ((Register1 & 0x20) != 0); } }
-        public bool DisplayWin1 { get { return ((Register1 & 0x40) != 0); } }
-        public bool DisplayObjWin { get { return ((Register1 & 0x80) != 0); } }
+        public bool DisplayBg0 { get { return ((register.HighByte.Value & 0x01) != 0); } }
+        public bool DisplayBg1 { get { return ((register.HighByte.Value & 0x02) != 0); } }
+        public bool DisplayBg2 { get { return ((register.HighByte.Value & 0x04) != 0); } }
+        public bool DisplayBg3 { get { return ((register.HighByte.Value & 0x08) != 0); } }
+        public bool DisplayObj { get { return ((register.HighByte.Value & 0x10) != 0); } }
+        public bool DisplayWin0 { get { return ((register.HighByte.Value & 0x20) != 0); } }
+        public bool DisplayWin1 { get { return ((register.HighByte.Value & 0x40) != 0); } }
+        public bool DisplayObjWin { get { return ((register.HighByte.Value & 0x80) != 0); } }
 
         public bool BgVisible(int i)
         {
-            return ((Register1 & (1 << i)) != 0);
+            return ((register.HighByte.Value & (1 << i)) != 0);
         }
     }
 

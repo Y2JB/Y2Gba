@@ -79,7 +79,7 @@ namespace Gba.Core
             //this.Rom = new Rom("../../../../roms/Barbie Horse Adventures.gba");
             //this.Rom = new Rom("../../../../roms/Pokemon Pinball.gba");
             //this.Rom = new Rom("../../../../roms/Contra Advance - The Alien Wars Ex.gba");
-            //this.Rom = new Rom("../../../../roms/Castlevania - Aria of Sorrow.GBA");
+            this.Rom = new Rom("../../../../roms/Castlevania - Aria of Sorrow.GBA");
             //this.Rom = new Rom("../../../../roms/Castlevania - Harmony Of Dissonance.GBA");           
             //this.Rom = new Rom("../../../../roms/Baseball Advance.GBA");
             //this.Rom = new Rom("../../../../roms/Donkey Kong Country 3.gba");
@@ -88,7 +88,8 @@ namespace Gba.Core
             //this.Rom = new Rom("../../../../roms/Yoshi's Island - Super Mario Advance 3.gba");
             //this.Rom = new Rom("../../../../roms/Fire Emblem.gba");
             //this.Rom = new Rom("../../../../roms/Darius R.GBA");
-            this.Rom = new Rom("../../../../roms/Mario Kart Super Circuit (U).gba");
+            //this.Rom = new Rom("../../../../roms/Max Payne Advance.gba");
+           // this.Rom = new Rom("../../../../roms/Mario Kart Super Circuit (U).gba");
             //this.Rom = new Rom("../../../../roms/F-Zero - Maximum Velocity.gba");
             //this.Rom = new Rom("../../../../roms/Konami Krazy Racers.gba");
             //this.Rom = new Rom("../../../../roms/Sega Rally Championship.gba");
@@ -256,7 +257,7 @@ namespace Gba.Core
             bool drawGrid = true;
             if (drawGrid)
             {
-                GfxHelpers.DrawGrid(image.Bitmap, 0, 0, tileCountX, tileCountY, 8, 8);
+                GfxHelpers.DrawGrid(image.Bitmap, Color.FromArgb(64, 0, 0, 0), 0, 0, tileCountX, tileCountY, 8, 8);
             }
         }
 

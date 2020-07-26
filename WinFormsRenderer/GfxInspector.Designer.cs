@@ -35,6 +35,7 @@
             this.Bg1Tab = new System.Windows.Forms.TabPage();
             this.Bg2Tab = new System.Windows.Forms.TabPage();
             this.Bg3Tab = new System.Windows.Forms.TabPage();
+            this.ObjTab = new System.Windows.Forms.TabPage();
             this.tabControl.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -46,11 +47,12 @@
             this.tabControl.Controls.Add(this.Bg1Tab);
             this.tabControl.Controls.Add(this.Bg2Tab);
             this.tabControl.Controls.Add(this.Bg3Tab);
+            this.tabControl.Controls.Add(this.ObjTab);
             this.tabControl.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tabControl.Location = new System.Drawing.Point(0, 0);
             this.tabControl.Name = "tabControl";
-            this.tabControl.SelectedIndex = 0;
-            this.tabControl.Size = new System.Drawing.Size(662, 1221);
+            this.tabControl.SelectedIndex = 6;
+            this.tabControl.Size = new System.Drawing.Size(1047, 1221);
             this.tabControl.TabIndex = 0;
             this.tabControl.SelectedIndexChanged += new System.EventHandler(this.tabControl_SelectedIndexChanged);
             // 
@@ -106,11 +108,21 @@
             this.Bg3Tab.TabIndex = 5;
             this.Bg3Tab.Text = "BG 3";
             // 
+            // ObjTab
+            // 
+            this.ObjTab.Location = new System.Drawing.Point(8, 46);
+            this.ObjTab.Name = "ObjTab";
+            this.ObjTab.Padding = new System.Windows.Forms.Padding(3);
+            this.ObjTab.Size = new System.Drawing.Size(646, 1167);
+            this.ObjTab.TabIndex = 6;
+            this.ObjTab.Text = "Obj";
+            this.ObjTab.UseVisualStyleBackColor = true;
+            // 
             // GfxInspector
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(13F, 32F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(662, 1221);
+            this.ClientSize = new System.Drawing.Size(1047, 1221);
             this.Controls.Add(this.tabControl);
             this.Name = "GfxInspector";
             this.Text = "GfxInspector";
@@ -128,5 +140,6 @@
         private System.Windows.Forms.TabPage Bg1Tab;
         private System.Windows.Forms.TabPage Bg2Tab;
         private System.Windows.Forms.TabPage Bg3Tab;
+        private System.Windows.Forms.TabPage ObjTab;
     }
 }

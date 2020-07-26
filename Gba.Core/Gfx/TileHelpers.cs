@@ -47,16 +47,16 @@ namespace Gba.Core
             int result = 0;
 
             if ( gba.LcdController.DisplayControlRegister.DisplayWin0 &&
-                screenX >= gba.LcdController.Windows[0].Left && screenX < gba.LcdController.Windows[0].RightAdjusted() &&
-                screenY >= gba.LcdController.Windows[0].Top && screenY < gba.LcdController.Windows[0].BottomAdjusted())
+                screenX >= gba.LcdController.Windows[0].Left.Value && screenX < gba.LcdController.Windows[0].RightAdjusted() &&
+                screenY >= gba.LcdController.Windows[0].Top.Value && screenY < gba.LcdController.Windows[0].BottomAdjusted())
             {
                 result |= (int) WindowRegion.Window0;
                 result |= (int) WindowRegion.WindowIn;
             }
 
             if (gba.LcdController.DisplayControlRegister.DisplayWin1 &&
-                screenX >= gba.LcdController.Windows[1].Left && screenX < gba.LcdController.Windows[1].RightAdjusted() &&
-                screenY >= gba.LcdController.Windows[1].Top && screenY < gba.LcdController.Windows[1].BottomAdjusted())
+                screenX >= gba.LcdController.Windows[1].Left.Value && screenX < gba.LcdController.Windows[1].RightAdjusted() &&
+                screenY >= gba.LcdController.Windows[1].Top.Value && screenY < gba.LcdController.Windows[1].BottomAdjusted())
             {
                 result |= (int) WindowRegion.Window1;
                 result |= (int) WindowRegion.WindowIn;

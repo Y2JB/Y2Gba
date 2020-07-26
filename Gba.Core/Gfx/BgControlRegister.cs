@@ -23,6 +23,9 @@ namespace Gba.Core
         // 400000Ch - BG2CNT - BG2 Control(R/W) (BG Modes 0,1,2 only)
         // 400000Eh - BG3CNT - BG3 Control(R/W) (BG Modes 0,2 only)
 
+        MemoryRegister16 register;
+
+        /*
         byte reg0;
         public byte Register0
         {
@@ -59,32 +62,54 @@ namespace Gba.Core
                 lcd.Bg[bgNumber].CacheRenderData();
             }
         }
+        */
       
 
         LcdController lcd;
         int bgNumber;
 
-        public BgControlRegister(LcdController lcd, int bgNumber)
+        public BgControlRegister(GameboyAdvance gba, LcdController lcd, int bgNumber, UInt32 address)
         {
             this.lcd = lcd;
             this.bgNumber = bgNumber;
+
+            MemoryRegister8WithSetHook r0 = new MemoryRegister8WithSetHook(gba.Memory, address, true, true);
+            MemoryRegister8WithSetHook r1 = new MemoryRegister8WithSetHook(gba.Memory, address + 1, true, true);
+            register = new MemoryRegister16(gba.Memory, address, true, true, r0, r1);
+
+            r0.OnSet = (oldValue, newValue) =>
+            {                 
+                lcd.Bg[bgNumber].CacheRenderData();
+            };
+
+            r1.OnSet = (oldValue, newValue) =>
+            {
+                // This *should* be 0x1F but it breaks bg on mario kart track 1. Hopefully we can just get rid of tilemap reset and be done with this
+                //if ((oldValue & 0x1F) != (newValue & 0x1F))
+                {
+                    // THIS HAS GOT TO GO! Mario Kart canes it!
+                    lcd.Bg[bgNumber].TileMap.Reset();
+                }
+
+                lcd.Bg[bgNumber].CacheRenderData();
+            };
         }
 
-        public int Priority { get { return Register0 & 0x03; } }
+        public int Priority { get { return register.LowByte.Value & 0x03; } }
 
-        public UInt32 TileBlockBaseAddress { get { return (UInt32)((Register0 & 0x0C) >> 2); } }
-        public UInt32 ScreenBlockBaseAddress { get { return (UInt32)(Register1 & 0x1F); } }
+        public UInt32 TileBlockBaseAddress { get { return (UInt32)((register.LowByte.Value & 0x0C) >> 2); } }
+        public UInt32 ScreenBlockBaseAddress { get { return (UInt32)(register.HighByte.Value & 0x1F); } }
 
-        public BgPaletteMode PaletteMode { get { return (BgPaletteMode)((Register0 & 0x80) >> 7); } }
+        public BgPaletteMode PaletteMode { get { return (BgPaletteMode)((register.LowByte.Value & 0x80) >> 7); } }
 
         // Does affine BG wrap?
-        public bool DisplayAreaOverflow { get { return (Register1 & 0x20) != 0;  } }
+        public bool DisplayAreaOverflow { get { return (register.HighByte.Value & 0x20) != 0;  } }
 
         public BgSize Size 
         { 
             get 
             {
-                int regValue = (Register1 & 0xC0) >> 6;
+                int regValue = (register.HighByte.Value & 0xC0) >> 6;
                 if (lcd.Bg[bgNumber].AffineMode)
                 {
                     regValue += 4;

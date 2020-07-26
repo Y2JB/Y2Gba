@@ -9,22 +9,22 @@ namespace Gba.Core
     {
 
 
-        public static void DrawGrid(Bitmap image, int originX, int originY, int cellCountX, int cellCountY, int cellWidth, int cellHeight)
+        public static void DrawGrid(Bitmap image, Color color, int originX, int originY, int cellCountX, int cellCountY, int cellWidth, int cellHeight)
         {
             bool drawGrid = true;
             if (drawGrid)
             {
-                Pen blackPen = new Pen(Color.FromArgb(64, 0, 0, 0), 0.4f);
+                Pen pen = new Pen(color, 0.4f);
                 using (var graphics = Graphics.FromImage(image))
                 {
                     for (int x = 0; x < cellCountX; x++)
                     {
-                        graphics.DrawLine(blackPen, originX +  (x * cellWidth), originY, originX + (x * cellWidth), originY + (cellCountY * cellHeight));
+                        graphics.DrawLine(pen, originX +  (x * cellWidth), originY, originX + (x * cellWidth), originY + (cellCountY * cellHeight));
                     }
 
                     for (int y = 0; y < cellCountY; y++)
                     {
-                        graphics.DrawLine(blackPen, originX, originY + (y * cellHeight), originX + (cellCountX * cellWidth), originY + (y * cellHeight));
+                        graphics.DrawLine(pen, originX, originY + (y * cellHeight), originX + (cellCountX * cellWidth), originY + (y * cellHeight));
                     }
                 }
             }

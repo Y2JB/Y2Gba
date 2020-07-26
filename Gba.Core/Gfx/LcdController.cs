@@ -56,7 +56,8 @@ namespace Gba.Core
         // Win0, Win1, WinOut, WinObj
         public Window[] Windows { get; private set; }
 
-        public byte CurrentScanline { get; private set; }
+        MemoryRegister8 VCount { get; set; }
+        public byte CurrentScanline { get { return VCount.Value; } private set { VCount.Value = value; } }
 
         public enum LcdMode
         {
@@ -101,42 +102,33 @@ namespace Gba.Core
 
             this.Palettes = new Palettes();
 
-            DisplayControlRegister = new DisplayControlRegister(this);
-            DispStatRegister = new DisplayStatusRegister(this);
+            DisplayControlRegister = new DisplayControlRegister(gba, this);
+            DispStatRegister = new DisplayStatusRegister(gba, this);
+            
             BgControlRegisters = new BgControlRegister[4];
+            BgControlRegisters[0] = new BgControlRegister(gba, this, 0, 0x4000008);
+            BgControlRegisters[1] = new BgControlRegister(gba, this, 1, 0x400000A);
+            BgControlRegisters[2] = new BgControlRegister(gba, this, 2, 0x400000C);
+            BgControlRegisters[3] = new BgControlRegister(gba, this, 3, 0x400000E);
+
             Bg = new Background[4];
+            UInt32 scrollBaseAddress = 0x4000010;
             for (int i = 0; i < 4; i++)
-            {
-                BgControlRegisters[i] = new BgControlRegister(this, i);
-                Bg[i] = new Background(gba, i, BgControlRegisters[i]);
+            {                
+                Bg[i] = new Background(gba, i, BgControlRegisters[i], scrollBaseAddress, scrollBaseAddress + 2);
 
-                //priorityObjList[i] = new List<Obj>();
+                scrollBaseAddress += 4;
             }
 
+            VCount = new MemoryRegister8(gba.Memory, 0x04000006, true, false);
 
-            /*
-            Obj = new Obj[Max_Sprites];
-            for (int i = 0; i < Max_Sprites; i++)
-            {
-                Obj[i] = new Obj(gba, new ObjAttributes(gba, i * 8, gba.Memory.OamRam));
-            }
-
-            OamAffineMatrices = new OamAffineMatrix[Max_OAM_Matrices];
-            UInt32 address = 0x00000006;
-            for (int i = 0; i < 32; i++)
-            {
-                OamAffineMatrices[i] = new OamAffineMatrix(gba.Memory.OamRam, address);
-
-                address += 0x20;
-            }
-            */
             this.ObjController = new ObjController(gba);
 
             Windows = new Window[4];
-            for (int i = 0; i < 4; i++)
-            {
-                Windows[i] = new Window(gba);
-            }
+            Windows[0] = new Window(gba, 0x4000040, 0x4000048);
+            Windows[1] = new Window(gba, 0x4000042, 0x4000049);
+            Windows[2] = new Window(gba, 0, 0x400004A);
+            Windows[3] = new Window(gba, 0, 0x400004B);
 
             this.BlendControlRegister = new BlendControlRegister(this);
             BlendingCoefficientRegister = new PixelCoefficientRegister(this);

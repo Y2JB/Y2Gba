@@ -182,7 +182,7 @@ namespace Gba.Core
 
                         string modeStr = obj.Attributes.RotationAndScaling ? "Affine" : "Normal";
 
-                        string strObj = String.Format("Obj-{0} {1} {2}x{3} X: {4} Y: {5} ", i, modeStr, obj.Attributes.Dimensions.Width, obj.Attributes.Dimensions.Height, obj.Attributes.XPosition, obj.Attributes.YPosition);
+                        string strObj = String.Format("Obj-{0} {1} {2}x{3} X: {4} Y: {5} Data 0x{6:X2}{7:X2} 0x{8:X2}{9:X2} 0x{10:X2}{11:X2}", i, modeStr, obj.Attributes.Dimensions.Width, obj.Attributes.Dimensions.Height, obj.Attributes.XPosition, obj.Attributes.YPosition, obj.Attributes.ObjAttrib0H, obj.Attributes.ObjAttrib0L, obj.Attributes.ObjAttrib1H, obj.Attributes.ObjAttrib1L, obj.Attributes.ObjAttrib2H, obj.Attributes.ObjAttrib2L);
                         sw.WriteLine(strObj);
                     }
                     sw.Write(Environment.NewLine);          
@@ -190,17 +190,14 @@ namespace Gba.Core
             }
         }
 
-
-        public void DumpObj()
+        public void DebugDrawObjs(DirectBitmap image)
         {
-            var image = new DirectBitmap(1200, 600);
-
             int objIndex = 0;
             int originX = 32, originY = 32;
             // Render 8 sprites per row
             // 16 x 8 sprites
             for (int sy = 0; sy < 8; sy++)
-            {              
+            {
                 for (int sx = 0; sx < 16; sx++)
                 {
                     Obj obj = Obj[objIndex++];
@@ -210,7 +207,7 @@ namespace Gba.Core
                         for (int x = 0; x < obj.Attributes.Dimensions.Width; x++)
                         {
                             int paletteIndex = obj.PixelValue(x, y);
-                            if(paletteIndex == 0)
+                            if (paletteIndex == 0)
                             {
                                 continue;
                             }
@@ -220,8 +217,18 @@ namespace Gba.Core
                 }
             }
 
-            GfxHelpers.DrawGrid(image.Bitmap, 32, 32, 16, 8, 64, 64);
+            // Draw 64x64 pixel grid
+            GfxHelpers.DrawGrid(image.Bitmap, Color.FromArgb(64, 0, 0, 0), 32, 32, 16, 8, 64, 64);
 
+            // Draw a second 8x8 pixel grid
+            GfxHelpers.DrawGrid(image.Bitmap, Color.FromArgb(64, 200, 0, 0), 32, 32, 128, 64, 8, 8);
+        }
+
+
+        public void DumpObj()
+        {
+            var image = new DirectBitmap(1200, 600);
+            DebugDrawObjs(image);
             image.Bitmap.Save(string.Format("../../../../dump/Objs.png"));
         }
 

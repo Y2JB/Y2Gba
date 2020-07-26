@@ -21,7 +21,10 @@ namespace WinFormsRenderer
         DirectBitmap tiles1Bmp;
 
         DirectBitmap bgBmp;
-        Rectangle bgRenderRect = new Rectangle(0, 0, 1024, 1024);
+
+        DirectBitmap objBmp;
+
+        Rectangle bgRenderRect = new Rectangle(0, 0, 1200, 1024);
 
         GameboyAdvance gba;
 
@@ -38,6 +41,8 @@ namespace WinFormsRenderer
             tiles1Bmp = new DirectBitmap(256, 256);
 
             bgBmp = new DirectBitmap(1024, 1024);
+
+            objBmp = new DirectBitmap(1200, 600);
         }
 
 
@@ -146,6 +151,15 @@ namespace WinFormsRenderer
                     gba.LcdController.Bg[3].DebugRenderFull(bgBmp);
                     GfxHelpers.DrawViewportBox(bgBmp.Bitmap, gba.LcdController.Bg[3].ScrollX, gba.LcdController.Bg[3].ScrollY, gba.LcdController.Bg[3].WidthInPixels(), gba.LcdController.Bg[3].HeightInPixels());
                     gfxBuffer.Graphics.DrawImage(bgBmp.Bitmap, bgRenderRect, 0, 0, gba.LcdController.Bg[3].WidthInPixels(), gba.LcdController.Bg[3].HeightInPixels(), GraphicsUnit.Pixel);
+                    break;
+
+                case 6:
+                    using (var graphics = Graphics.FromImage(objBmp.Bitmap))
+                    {
+                        graphics.Clear(Color.Transparent);
+                    }
+                    gba.LcdController.ObjController.DebugDrawObjs(objBmp);
+                    gfxBuffer.Graphics.DrawImage(objBmp.Bitmap, bgRenderRect, 0, 0, objBmp.Width, objBmp.Height, GraphicsUnit.Pixel);
                     break;
             }
 

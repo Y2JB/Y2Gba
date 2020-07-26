@@ -15,10 +15,14 @@ namespace Gba.Core
     // 8-15  V-Count Setting(LYC)      (0..227)                             (R/W)
     public class DisplayStatusRegister
     {
+        MemoryRegister16 register;
+
         // 0x4000005
-        public byte VCountSetting { get; set; }
+        public byte VCountSetting { get { return register.HighByte.Value; } }
 
+        public byte Register { get { return register.LowByte.Value; } }
 
+/*
         // 0x4000004
         byte reg0;
         public byte Register0
@@ -45,18 +49,62 @@ namespace Gba.Core
                 reg0 = value;
             }
         }
-        
+  */
+
         LcdController lcd;
-        
-        
-        public DisplayStatusRegister(LcdController lcd)
+
+
+        class DispStatRegister : MemoryRegister8
         {
-            this.lcd = lcd;
+            LcdController lcd;
+            DisplayStatusRegister dspStat;
+
+            public DispStatRegister(LcdController lcd, DisplayStatusRegister dspStat, Memory memory, UInt32 address) :
+                base(memory, address, true, true)
+            {
+                this.lcd = lcd;
+                this.dspStat = dspStat;
+            }
+            public override byte Value
+            {
+                get
+                {
+                    // Dynamically set the first 3 flag bits 
+                    if (lcd.Mode == LcdController.LcdMode.VBlank) reg |= 0x01;
+                    else reg &= 0xFE;
+
+                    if (lcd.Mode == LcdController.LcdMode.HBlank || lcd.HblankInVblank)
+                    {
+                        reg |= 0x02;
+                    }
+                    else reg &= 0xFD;
+
+                    if (dspStat.VCountSetting == lcd.CurrentScanline) reg |= 0x04;
+                    else reg &= 0xFB;
+
+                    return reg;
+                }
+
+                set
+                {
+                    base.Value = value;
+                }
+            }
         }
 
-        public bool VBlankIrqEnabled { get { return (Register0 & 0x08) != 0; } }
-        public bool HBlankIrqEnabled { get { return (Register0 & 0x10) != 0; } }
-        public bool VCounterIrqEnabled { get { return (Register0 & 0x20) != 0; } }
+
+        public DisplayStatusRegister(GameboyAdvance gba, LcdController lcd)
+        {
+            this.lcd = lcd;
+            DispStatRegister r0 = new DispStatRegister(lcd, this, gba.Memory, 0x4000004);
+            MemoryRegister8 r1 = new MemoryRegister8(gba.Memory, 0x4000005, true, true);
+            register = new MemoryRegister16(gba.Memory, 0x4000004, true, true, r0, r1);
+        }
+
+
+        public bool VBlankIrqEnabled { get { return (Register & 0x08) != 0; } }
+        public bool HBlankIrqEnabled { get { return (Register & 0x10) != 0; } }
+        public bool VCounterIrqEnabled { get { return (Register & 0x20) != 0; } }
     }
 
 }

@@ -26,10 +26,26 @@ namespace Gba.Core
 		public byte[] OamRam {  get { return oamRam;  } }
 
 
+		public Dictionary<UInt32, IMemoryRegister8> IoRegisters8Read { get; private set; }
+		public Dictionary<UInt32, IMemoryRegister16> IoRegisters16Read { get; private set; }
+		public Dictionary<UInt32, IMemoryRegister32> IoRegisters32Read { get; private set; }
+
+		public Dictionary<UInt32, IMemoryRegister8> IoRegisters8Write { get; private set; }
+		public Dictionary<UInt32, IMemoryRegister16> IoRegisters16Write { get; private set; }
+		public Dictionary<UInt32, IMemoryRegister32> IoRegisters32Write { get; private set; }
+
 		public Memory(GameboyAdvance gba)
         {
             this.gba = gba;
-        }
+			
+			IoRegisters8Read = new Dictionary<uint, IMemoryRegister8>();
+			IoRegisters16Read = new Dictionary<uint, IMemoryRegister16>();
+			IoRegisters32Read = new Dictionary<uint, IMemoryRegister32>();
+
+			IoRegisters8Write = new Dictionary<uint, IMemoryRegister8>();
+			IoRegisters16Write = new Dictionary<uint, IMemoryRegister16>();
+			IoRegisters32Write = new Dictionary<uint, IMemoryRegister32>();
+		}
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -59,196 +75,216 @@ namespace Gba.Core
 			// IO Registers
 			else if (address >= 0x04000000 && address <= 0x040003FE)
 			{
-				if (address == 0x4000000)
+				IMemoryRegister8 register;
+				if (IoRegisters8Read.TryGetValue(address, out register))
 				{
-					return gba.LcdController.DisplayControlRegister.Register0;
-				}
-				else if (address == 0x04000001)
-				{
-					return gba.LcdController.DisplayControlRegister.Register1;
-				}
-				else if (address == 0x4000004)
-				{
-					return gba.LcdController.DispStatRegister.Register0;
-				}
-				else if (address == 0x4000005)
-				{
-					return gba.LcdController.DispStatRegister.VCountSetting;
-				}
-				// VCOUNT 
-				else if (address == 0x04000006)
-				{
-					return gba.LcdController.CurrentScanline;
-				}
-				else if (address == 0x4000130)
-				{
-					// PAD: U,D,L,R,A,B,Str,Sel
-					return gba.Joypad.Register0;
-				}
-				else if (address == 0x4000131)
-				{
-					// PAD: L&R
-					return gba.Joypad.Register1;
-				}
-
-				else if (address >= 0x04000008 && address <= 0x0400000F)
-				{
-					// BG Control Registers
-					if      (address == 0x04000008) return gba.LcdController.BgControlRegisters[0].Register0;
-					else if (address == 0x04000009) return gba.LcdController.BgControlRegisters[0].Register1;
-					else if (address == 0x0400000A) return gba.LcdController.BgControlRegisters[1].Register0;
-					else if (address == 0x0400000B) return gba.LcdController.BgControlRegisters[1].Register1;
-					else if (address == 0x0400000C) return gba.LcdController.BgControlRegisters[2].Register0;
-					else if (address == 0x0400000D) return gba.LcdController.BgControlRegisters[2].Register1;
-					else if (address == 0x0400000E) return gba.LcdController.BgControlRegisters[3].Register0;
-					else if (address == 0x0400000F) return gba.LcdController.BgControlRegisters[3].Register1;
-					else throw new ArgumentException("Bad BG read");
-				}
-				else if (address >= 0x4000040 && address <= 0x400004B)
-                {
-					// Window registers
-					if (address == 0x4000040) return gba.LcdController.Windows[0].Right;
-					else if (address == 0x4000041) return gba.LcdController.Windows[0].Left;
-					else if (address == 0x4000042) return gba.LcdController.Windows[1].Right;
-					else if (address == 0x4000043) return gba.LcdController.Windows[1].Left;
-					else if (address == 0x4000044) return gba.LcdController.Windows[0].Bottom;
-					else if (address == 0x4000045) return gba.LcdController.Windows[0].Top;
-					else if (address == 0x4000046) return gba.LcdController.Windows[1].Bottom;
-					else if (address == 0x4000047) return gba.LcdController.Windows[1].Top;
-					else if (address == 0x4000048) return gba.LcdController.Windows[0].Register;
-					else if (address == 0x4000049) return gba.LcdController.Windows[1].Register;
-					else if (address == 0x400004A) return gba.LcdController.Windows[2].Register;
-					else if (address == 0x400004B) return gba.LcdController.Windows[3].Register;
-					else throw new ArgumentException("Bad Window read");
-				}
-				else if (address >= 0x4000050 && address <= 0x4000055)
-				{
-					// Alpha Blending Registers
-					if (address == 0x4000050) return gba.LcdController.BlendControlRegister.Register0;
-					else if (address == 0x4000051) return gba.LcdController.BlendControlRegister.Register1;
-
-					// Others are write only 
-
-					// TODO OpenBus here?
-					else return 0;
-					//else throw new ArgumentException("Bad Blend Read");
-				}
-				else if (address >= 0x04000100 && address <= 0x400010F)
-				{
-					// Timers
-
-					// NB: We only update the timers when something reads them						
-
-					if (address == 0x4000100) { gba.Timers.Update(); return gba.Timers.Timer[0].TimerValue0; }
-					else if (address == 0x4000101) { gba.Timers.Update(); return gba.Timers.Timer[0].TimerValue1; }
-					else if (address == 0x4000104) { gba.Timers.Update(); return gba.Timers.Timer[1].TimerValue0; }
-					else if (address == 0x4000105) { gba.Timers.Update(); return gba.Timers.Timer[1].TimerValue1; }
-					else if (address == 0x4000108) { gba.Timers.Update(); return gba.Timers.Timer[2].TimerValue0; }
-					else if (address == 0x4000109) { gba.Timers.Update(); return gba.Timers.Timer[2].TimerValue1; }
-					else if (address == 0x400010C) { gba.Timers.Update(); return gba.Timers.Timer[3].TimerValue0; }
-					else if (address == 0x400010D) { gba.Timers.Update(); return gba.Timers.Timer[3].TimerValue1; }
-
-					else if (address == 0x4000102) return gba.Timers.Timer[0].TimerControlRegister;
-					else if (address == 0x4000103) return 0;
-					else if (address == 0x4000106) return gba.Timers.Timer[1].TimerControlRegister;
-					else if (address == 0x4000107) return 0;
-					else if (address == 0x400010A) return gba.Timers.Timer[2].TimerControlRegister;
-					else if (address == 0x400010B) return 0;
-					else if (address == 0x400010E) return gba.Timers.Timer[3].TimerControlRegister;
-					else if (address == 0x400010F) return 0;
-						
-					else throw new ArgumentException("Bad Timer read");					
-				}
-
-				// Interrupts				
-				else if (address == 0x4000200)
-				{
-					return gba.Interrupts.InterruptEnableRegister0;
-				}
-				else if (address == 0x4000201)
-				{
-					return gba.Interrupts.InterruptEnableRegister1;
-				}
-
-				else if (address == 0x4000202)
-				{
-					return gba.Interrupts.InterruptRequestFlags0;
-				}
-				else if (address == 0x4000203)
-				{
-					return gba.Interrupts.InterruptRequestFlags1;
-				}
-				else if (address == 0x04000208)
-				{
-					// (REG_IME) Turns all interrupts on or off
-					return gba.Interrupts.InterruptMasterEnable;
-				}
-				else if (address >= 0x40000B0 && address <= 0x40000E0)
-				{
-					// DMA
-					if (address == 0x40000BA) return gba.Dma[0].DmaCnt.dmaCntRegister0;
-					else if (address == 0x40000BB) return gba.Dma[0].DmaCnt.dmaCntRegister1;
-					else if (address == 0x40000C6) return gba.Dma[1].DmaCnt.dmaCntRegister0;
-					else if (address == 0x40000C7) return gba.Dma[1].DmaCnt.dmaCntRegister1;
-					else if (address == 0x40000D2) return gba.Dma[2].DmaCnt.dmaCntRegister0;
-					else if (address == 0x40000D3) return gba.Dma[2].DmaCnt.dmaCntRegister1;
-					else if (address == 0x40000DE) return gba.Dma[3].DmaCnt.dmaCntRegister0;
-					else if (address == 0x40000DF) return gba.Dma[3].DmaCnt.dmaCntRegister1;
-
-					// TODO: These are all write only!
-					// Should: reads open bus if the whole 32-bit word is unused and zero otherwise.
-					else if (address == 0x40000B0) return gba.Dma[0].sAddr0;
-					else if (address == 0x40000B1) return gba.Dma[0].sAddr1;
-					else if (address == 0x40000B2) return gba.Dma[0].sAddr2;
-					else if (address == 0x40000B3) return gba.Dma[0].sAddr3;
-					else if (address == 0x40000BC) return gba.Dma[1].sAddr0;
-					else if (address == 0x40000BD) return gba.Dma[1].sAddr1;
-					else if (address == 0x40000BE) return gba.Dma[1].sAddr2;
-					else if (address == 0x40000BF) return gba.Dma[1].sAddr3;
-					else if (address == 0x40000C8) return gba.Dma[2].sAddr0;
-					else if (address == 0x40000C9) return gba.Dma[2].sAddr1;
-					else if (address == 0x40000CA) return gba.Dma[2].sAddr2;
-					else if (address == 0x40000CB) return gba.Dma[2].sAddr3;
-					else if (address == 0x40000D4) return gba.Dma[3].sAddr0;
-					else if (address == 0x40000D5) return gba.Dma[3].sAddr1;
-					else if (address == 0x40000D6) return gba.Dma[3].sAddr2;
-					else if (address == 0x40000D7) return gba.Dma[3].sAddr3;
-
-					else if (address == 0x40000B4) return gba.Dma[0].dAddr0;
-					else if (address == 0x40000B5) return gba.Dma[0].dAddr1;
-					else if (address == 0x40000B6) return gba.Dma[0].dAddr2;
-					else if (address == 0x40000B7) return gba.Dma[0].dAddr3;
-					else if (address == 0x40000C0) return gba.Dma[1].dAddr0;
-					else if (address == 0x40000C1) return gba.Dma[1].dAddr1;
-					else if (address == 0x40000C2) return gba.Dma[1].dAddr2;
-					else if (address == 0x40000C3) return gba.Dma[1].dAddr3;
-					else if (address == 0x40000CC) return gba.Dma[2].dAddr0;
-					else if (address == 0x40000CD) return gba.Dma[2].dAddr1;
-					else if (address == 0x40000CE) return gba.Dma[2].dAddr2;
-					else if (address == 0x40000CF) return gba.Dma[2].dAddr3;
-					else if (address == 0x40000D8) return gba.Dma[3].dAddr0;
-					else if (address == 0x40000D9) return gba.Dma[3].dAddr1;
-					else if (address == 0x40000DA) return gba.Dma[3].dAddr2;
-					else if (address == 0x40000DB) return gba.Dma[3].dAddr3;
-
-					else if (address == 0x40000B8) return gba.Dma[0].wordCount0;
-					else if (address == 0x40000B9) return gba.Dma[0].wordCount1;
-					else if (address == 0x40000C4) return gba.Dma[1].wordCount0;
-					else if (address == 0x40000C5) return gba.Dma[1].wordCount1;
-					else if (address == 0x40000D0) return gba.Dma[2].wordCount0;
-					else if (address == 0x40000D1) return gba.Dma[2].wordCount1;
-					else if (address == 0x40000DC) return gba.Dma[3].wordCount0;
-					else if (address == 0x40000DD) return gba.Dma[3].wordCount1;
-
-					// Not used but games write to it
-					else if (address == 0x40000E0) return 0;
-
-					else throw new NotImplementedException();
+					return register.Value;
 				}
 				else
 				{
-					// TODO: this should throw?
-					return ioReg[address - 0x04000000];
+					if (address == 0x04000000) 
+					{ 
+						return 0; 
+					}
+					/*
+					if (address == 0x4000000)
+					{
+						return gba.LcdController.DisplayControlRegister.Register0;
+					}
+					else if (address == 0x04000001)
+					{
+						return gba.LcdController.DisplayControlRegister.Register1;
+					}
+					
+					else if (address == 0x4000004)
+					{
+						return gba.LcdController.DispStatRegister.Register0;
+					}
+					else if (address == 0x4000005)
+					{
+						return gba.LcdController.DispStatRegister.VCountSetting;
+					}
+					
+					// VCOUNT 
+					else if (address == 0x04000006)
+					{
+						return gba.LcdController.CurrentScanline;
+					}
+					
+					else if (address == 0x4000130)
+					{
+						// PAD: U,D,L,R,A,B,Str,Sel
+						return gba.Joypad.Register0;
+					}
+					else if (address == 0x4000131)
+					{
+						// PAD: L&R
+						return gba.Joypad.Register1;
+					}
+					*/
+					/*
+					else if (address >= 0x04000008 && address <= 0x0400000F)
+					{
+						
+						// BG Control Registers
+						if (address == 0x04000008) return gba.LcdController.BgControlRegisters[0].Register0;
+						else if (address == 0x04000009) return gba.LcdController.BgControlRegisters[0].Register1;
+						else if (address == 0x0400000A) return gba.LcdController.BgControlRegisters[1].Register0;
+						else if (address == 0x0400000B) return gba.LcdController.BgControlRegisters[1].Register1;
+						else if (address == 0x0400000C) return gba.LcdController.BgControlRegisters[2].Register0;
+						else if (address == 0x0400000D) return gba.LcdController.BgControlRegisters[2].Register1;
+						else if (address == 0x0400000E) return gba.LcdController.BgControlRegisters[3].Register0;
+						else if (address == 0x0400000F) return gba.LcdController.BgControlRegisters[3].Register1;
+						else throw new ArgumentException("Bad BG read");
+						
+					}
+					else if (address >= 0x4000040 && address <= 0x400004B)
+					{
+						// Window registers
+						if (address == 0x4000040) return gba.LcdController.Windows[0].Right;
+						else if (address == 0x4000041) return gba.LcdController.Windows[0].Left;
+						else if (address == 0x4000042) return gba.LcdController.Windows[1].Right;
+						else if (address == 0x4000043) return gba.LcdController.Windows[1].Left;
+						else if (address == 0x4000044) return gba.LcdController.Windows[0].Bottom;
+						else if (address == 0x4000045) return gba.LcdController.Windows[0].Top;
+						else if (address == 0x4000046) return gba.LcdController.Windows[1].Bottom;
+						else if (address == 0x4000047) return gba.LcdController.Windows[1].Top;
+						else if (address == 0x4000048) return gba.LcdController.Windows[0].Register;
+						else if (address == 0x4000049) return gba.LcdController.Windows[1].Register;
+						else if (address == 0x400004A) return gba.LcdController.Windows[2].Register;
+						else if (address == 0x400004B) return gba.LcdController.Windows[3].Register;
+						else throw new ArgumentException("Bad Window read");
+					}
+					*/
+					else if (address >= 0x4000050 && address <= 0x4000055)
+					{
+						// Alpha Blending Registers
+						if (address == 0x4000050) return gba.LcdController.BlendControlRegister.Register0;
+						else if (address == 0x4000051) return gba.LcdController.BlendControlRegister.Register1;
+
+						// Others are write only 
+
+						// TODO OpenBus here?
+						else return 0;
+						//else throw new ArgumentException("Bad Blend Read");
+					}
+					else if (address >= 0x04000100 && address <= 0x400010F)
+					{
+						// Timers
+
+						// NB: We only update the timers when something reads them						
+
+						if (address == 0x4000100) { gba.Timers.Update(); return gba.Timers.Timer[0].TimerValue0; }
+						else if (address == 0x4000101) { gba.Timers.Update(); return gba.Timers.Timer[0].TimerValue1; }
+						else if (address == 0x4000104) { gba.Timers.Update(); return gba.Timers.Timer[1].TimerValue0; }
+						else if (address == 0x4000105) { gba.Timers.Update(); return gba.Timers.Timer[1].TimerValue1; }
+						else if (address == 0x4000108) { gba.Timers.Update(); return gba.Timers.Timer[2].TimerValue0; }
+						else if (address == 0x4000109) { gba.Timers.Update(); return gba.Timers.Timer[2].TimerValue1; }
+						else if (address == 0x400010C) { gba.Timers.Update(); return gba.Timers.Timer[3].TimerValue0; }
+						else if (address == 0x400010D) { gba.Timers.Update(); return gba.Timers.Timer[3].TimerValue1; }
+
+						else if (address == 0x4000102) return gba.Timers.Timer[0].TimerControlRegister;
+						else if (address == 0x4000103) return 0;
+						else if (address == 0x4000106) return gba.Timers.Timer[1].TimerControlRegister;
+						else if (address == 0x4000107) return 0;
+						else if (address == 0x400010A) return gba.Timers.Timer[2].TimerControlRegister;
+						else if (address == 0x400010B) return 0;
+						else if (address == 0x400010E) return gba.Timers.Timer[3].TimerControlRegister;
+						else if (address == 0x400010F) return 0;
+
+						else throw new ArgumentException("Bad Timer read");
+					}
+
+					// Interrupts				
+					else if (address == 0x4000200)
+					{
+						return gba.Interrupts.InterruptEnableRegister0;
+					}
+					else if (address == 0x4000201)
+					{
+						return gba.Interrupts.InterruptEnableRegister1;
+					}
+
+					else if (address == 0x4000202)
+					{
+						return gba.Interrupts.InterruptRequestFlags0;
+					}
+					else if (address == 0x4000203)
+					{
+						return gba.Interrupts.InterruptRequestFlags1;
+					}
+					else if (address == 0x04000208)
+					{
+						// (REG_IME) Turns all interrupts on or off
+						return gba.Interrupts.InterruptMasterEnable;
+					}
+					else if (address >= 0x40000B0 && address <= 0x40000E0)
+					{
+						// DMA
+						if (address == 0x40000BA) return gba.Dma[0].DmaCnt.dmaCntRegister0;
+						else if (address == 0x40000BB) return gba.Dma[0].DmaCnt.dmaCntRegister1;
+						else if (address == 0x40000C6) return gba.Dma[1].DmaCnt.dmaCntRegister0;
+						else if (address == 0x40000C7) return gba.Dma[1].DmaCnt.dmaCntRegister1;
+						else if (address == 0x40000D2) return gba.Dma[2].DmaCnt.dmaCntRegister0;
+						else if (address == 0x40000D3) return gba.Dma[2].DmaCnt.dmaCntRegister1;
+						else if (address == 0x40000DE) return gba.Dma[3].DmaCnt.dmaCntRegister0;
+						else if (address == 0x40000DF) return gba.Dma[3].DmaCnt.dmaCntRegister1;
+
+						// TODO: These are all write only!
+						// Should: reads open bus if the whole 32-bit word is unused and zero otherwise.
+						else if (address == 0x40000B0) return gba.Dma[0].sAddr0;
+						else if (address == 0x40000B1) return gba.Dma[0].sAddr1;
+						else if (address == 0x40000B2) return gba.Dma[0].sAddr2;
+						else if (address == 0x40000B3) return gba.Dma[0].sAddr3;
+						else if (address == 0x40000BC) return gba.Dma[1].sAddr0;
+						else if (address == 0x40000BD) return gba.Dma[1].sAddr1;
+						else if (address == 0x40000BE) return gba.Dma[1].sAddr2;
+						else if (address == 0x40000BF) return gba.Dma[1].sAddr3;
+						else if (address == 0x40000C8) return gba.Dma[2].sAddr0;
+						else if (address == 0x40000C9) return gba.Dma[2].sAddr1;
+						else if (address == 0x40000CA) return gba.Dma[2].sAddr2;
+						else if (address == 0x40000CB) return gba.Dma[2].sAddr3;
+						else if (address == 0x40000D4) return gba.Dma[3].sAddr0;
+						else if (address == 0x40000D5) return gba.Dma[3].sAddr1;
+						else if (address == 0x40000D6) return gba.Dma[3].sAddr2;
+						else if (address == 0x40000D7) return gba.Dma[3].sAddr3;
+
+						else if (address == 0x40000B4) return gba.Dma[0].dAddr0;
+						else if (address == 0x40000B5) return gba.Dma[0].dAddr1;
+						else if (address == 0x40000B6) return gba.Dma[0].dAddr2;
+						else if (address == 0x40000B7) return gba.Dma[0].dAddr3;
+						else if (address == 0x40000C0) return gba.Dma[1].dAddr0;
+						else if (address == 0x40000C1) return gba.Dma[1].dAddr1;
+						else if (address == 0x40000C2) return gba.Dma[1].dAddr2;
+						else if (address == 0x40000C3) return gba.Dma[1].dAddr3;
+						else if (address == 0x40000CC) return gba.Dma[2].dAddr0;
+						else if (address == 0x40000CD) return gba.Dma[2].dAddr1;
+						else if (address == 0x40000CE) return gba.Dma[2].dAddr2;
+						else if (address == 0x40000CF) return gba.Dma[2].dAddr3;
+						else if (address == 0x40000D8) return gba.Dma[3].dAddr0;
+						else if (address == 0x40000D9) return gba.Dma[3].dAddr1;
+						else if (address == 0x40000DA) return gba.Dma[3].dAddr2;
+						else if (address == 0x40000DB) return gba.Dma[3].dAddr3;
+
+						else if (address == 0x40000B8) return gba.Dma[0].wordCount0;
+						else if (address == 0x40000B9) return gba.Dma[0].wordCount1;
+						else if (address == 0x40000C4) return gba.Dma[1].wordCount0;
+						else if (address == 0x40000C5) return gba.Dma[1].wordCount1;
+						else if (address == 0x40000D0) return gba.Dma[2].wordCount0;
+						else if (address == 0x40000D1) return gba.Dma[2].wordCount1;
+						else if (address == 0x40000DC) return gba.Dma[3].wordCount0;
+						else if (address == 0x40000DD) return gba.Dma[3].wordCount1;
+
+						// Not used but games write to it
+						else if (address == 0x40000E0) return 0;
+
+						else throw new NotImplementedException();
+					}
+					else
+					{
+						// TODO: this should throw?
+						return ioReg[address - 0x04000000];
+					}
 				}
 			}
 			// Fast Cpu linked RAM
@@ -359,17 +395,30 @@ namespace Gba.Core
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ushort ReadHalfWord(UInt32 address)
 		{
-			// NB: Little Endian
-			return (ushort)((ReadByte((UInt32)(address + 1)) << 8) | ReadByte(address));
+			IMemoryRegister16 register;
+			if (IoRegisters16Read.TryGetValue(address, out register))
+			{
+				return register.Value;
+			}
+			else
+			{
+				return (ushort)((ReadByte((UInt32)(address + 1)) << 8) | ReadByte(address));
+			}
 		}
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public UInt32 ReadWord(UInt32 address)
 		{
-
-			// NB: Little Endian
-			return (UInt32)((ReadByte((UInt32)(address + 3)) << 24) | (ReadByte((UInt32)(address + 2)) << 16) | (ReadByte((UInt32)(address + 1)) << 8) | ReadByte(address));
+			IMemoryRegister32 register;
+			if (IoRegisters32Read.TryGetValue(address, out register))
+			{
+				return register.Value;
+			}
+			else
+			{
+				return (UInt32)((ReadByte((UInt32)(address + 3)) << 24) | (ReadByte((UInt32)(address + 2)) << 16) | (ReadByte((UInt32)(address + 1)) << 8) | ReadByte(address));
+			}
 		}
 
 
@@ -390,247 +439,268 @@ namespace Gba.Core
 			}
 			else if (address >= 0x04000000 && address <= 0x040003FE)
 			{
-
-				// TODO:  rather than these long chains of if else if, all the data should go into one buffer and then registers should just new new'd up with the mem offset
-				// then all this mess can go away!
-
-				if (address == 0x04000000)
+				IMemoryRegister8 register;
+				if (IoRegisters8Write.TryGetValue(address, out register))
 				{
-					gba.LcdController.DisplayControlRegister.Register0 = value;
-
-					//if(gba.LcdController.DisplayControlRegister.ForcedBlank)
-					//{
-					// TODO : restart LCD
-					//}
-				}
-				else if (address == 0x04000001)
-				{
-					gba.LcdController.DisplayControlRegister.Register1 = value;
-				}
-				else if (address == 0x4000004)
-				{
-					gba.LcdController.DispStatRegister.Register0 = value;
-				}
-				else if (address == 0x4000005)
-				{
-					gba.LcdController.DispStatRegister.VCountSetting = value;
-				}
-				else if (address >= 0x04000008 && address <= 0x0400003F)
-				{
-					// BG Control Registers
-					if      (address == 0x04000008) gba.LcdController.BgControlRegisters[0].Register0 = value;
-					else if (address == 0x04000009) gba.LcdController.BgControlRegisters[0].Register1 = value;
-					else if (address == 0x0400000A) gba.LcdController.BgControlRegisters[1].Register0 = value;
-					else if (address == 0x0400000B) gba.LcdController.BgControlRegisters[1].Register1 = value;
-					else if (address == 0x0400000C) gba.LcdController.BgControlRegisters[2].Register0 = value;
-					else if (address == 0x0400000D) gba.LcdController.BgControlRegisters[2].Register1 = value;
-					else if (address == 0x0400000E) gba.LcdController.BgControlRegisters[3].Register0 = value;
-					else if (address == 0x0400000F) gba.LcdController.BgControlRegisters[3].Register1 = value;
-
-					// BG Scroll - Write only
-					else if (address == 0x4000010) gba.LcdController.Bg[0].ScrollX = (int)((gba.LcdController.Bg[0].ScrollX & 0xFFFFFF00) | value);
-					else if (address == 0x4000011) gba.LcdController.Bg[0].ScrollX = (int)((gba.LcdController.Bg[0].ScrollX & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
-					else if (address == 0x4000012) gba.LcdController.Bg[0].ScrollY = (int)((gba.LcdController.Bg[0].ScrollY & 0xFFFFFF00) | value);
-					else if (address == 0x4000013) gba.LcdController.Bg[0].ScrollY = (int)((gba.LcdController.Bg[0].ScrollY & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
-
-					else if (address == 0x4000014) gba.LcdController.Bg[1].ScrollX = (int)((gba.LcdController.Bg[1].ScrollX & 0xFFFFFF00) | value);
-					else if (address == 0x4000015) gba.LcdController.Bg[1].ScrollX = (int)((gba.LcdController.Bg[1].ScrollX & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
-					else if (address == 0x4000016) gba.LcdController.Bg[1].ScrollY = (int)((gba.LcdController.Bg[1].ScrollY & 0xFFFFFF00) | value);
-					else if (address == 0x4000017) gba.LcdController.Bg[1].ScrollY = (int)((gba.LcdController.Bg[1].ScrollY & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
-
-					else if (address == 0x4000018) gba.LcdController.Bg[2].ScrollX = (int)((gba.LcdController.Bg[2].ScrollX & 0xFFFFFF00) | value);
-					else if (address == 0x4000019) gba.LcdController.Bg[2].ScrollX = (int)((gba.LcdController.Bg[2].ScrollX & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
-					else if (address == 0x400001A) gba.LcdController.Bg[2].ScrollY = (int)((gba.LcdController.Bg[2].ScrollY & 0xFFFFFF00) | value);
-					else if (address == 0x400001B) gba.LcdController.Bg[2].ScrollY = (int)((gba.LcdController.Bg[2].ScrollY & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
-
-					else if (address == 0x400001C) gba.LcdController.Bg[3].ScrollX = (int)((gba.LcdController.Bg[3].ScrollX & 0xFFFFFF00) | value);
-					else if (address == 0x400001D) gba.LcdController.Bg[3].ScrollX = (int)((gba.LcdController.Bg[3].ScrollX & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
-					else if (address == 0x400001E) gba.LcdController.Bg[3].ScrollY = (int)((gba.LcdController.Bg[3].ScrollY & 0xFFFFFF00) | value);
-					else if (address == 0x400001F) gba.LcdController.Bg[3].ScrollY = (int)((gba.LcdController.Bg[3].ScrollY & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
-
-					// Affine Scrolling registers
-					else if (address == 0x4000028) { gba.LcdController.Bg[2].affineX0 = value; gba.LcdController.Bg[2].AffineScrollXCached = gba.LcdController.Bg[2].AffineScrollX; }
-					else if (address == 0x4000029) { gba.LcdController.Bg[2].affineX1 = value; gba.LcdController.Bg[2].AffineScrollXCached = gba.LcdController.Bg[2].AffineScrollX; }
-					else if (address == 0x400002A) { gba.LcdController.Bg[2].affineX2 = value; gba.LcdController.Bg[2].AffineScrollXCached = gba.LcdController.Bg[2].AffineScrollX; }
-					else if (address == 0x400002B) { gba.LcdController.Bg[2].affineX3 = value; gba.LcdController.Bg[2].AffineScrollXCached = gba.LcdController.Bg[2].AffineScrollX; }
-
-					else if (address == 0x400002C) { gba.LcdController.Bg[2].affineY0 = value; gba.LcdController.Bg[2].AffineScrollYCached = gba.LcdController.Bg[2].AffineScrollY; }
-					else if (address == 0x400002D) { gba.LcdController.Bg[2].affineY1 = value; gba.LcdController.Bg[2].AffineScrollYCached = gba.LcdController.Bg[2].AffineScrollY; }
-					else if (address == 0x400002E) { gba.LcdController.Bg[2].affineY2 = value; gba.LcdController.Bg[2].AffineScrollYCached = gba.LcdController.Bg[2].AffineScrollY; }
-					else if (address == 0x400002F) { gba.LcdController.Bg[2].affineY3 = value; gba.LcdController.Bg[2].AffineScrollYCached = gba.LcdController.Bg[2].AffineScrollY; }
-
-					else if (address == 0x4000038) { gba.LcdController.Bg[3].affineX0 = value; gba.LcdController.Bg[3].AffineScrollXCached = gba.LcdController.Bg[3].AffineScrollX; }
-					else if (address == 0x4000039) { gba.LcdController.Bg[3].affineX1 = value; gba.LcdController.Bg[3].AffineScrollXCached = gba.LcdController.Bg[3].AffineScrollX; }
-					else if (address == 0x400003A) { gba.LcdController.Bg[3].affineX2 = value; gba.LcdController.Bg[3].AffineScrollXCached = gba.LcdController.Bg[3].AffineScrollX; }
-					else if (address == 0x400003B) { gba.LcdController.Bg[3].affineX3 = value; gba.LcdController.Bg[3].AffineScrollXCached = gba.LcdController.Bg[3].AffineScrollX; }
-
-					else if (address == 0x400003C) { gba.LcdController.Bg[3].affineY0 = value; gba.LcdController.Bg[3].AffineScrollYCached = gba.LcdController.Bg[3].AffineScrollY; }
-					else if (address == 0x400003D) { gba.LcdController.Bg[3].affineY1 = value; gba.LcdController.Bg[3].AffineScrollYCached = gba.LcdController.Bg[3].AffineScrollY; }
-					else if (address == 0x400003E) { gba.LcdController.Bg[3].affineY2 = value; gba.LcdController.Bg[3].AffineScrollYCached = gba.LcdController.Bg[3].AffineScrollY; }
-					else if (address == 0x400003F) { gba.LcdController.Bg[3].affineY3 = value; gba.LcdController.Bg[3].AffineScrollYCached = gba.LcdController.Bg[3].AffineScrollY; }
-
-					// Affine Matrices 
-					else if (address == 0x4000020) gba.LcdController.Bg[2].AffineMatrix.PaL = value;
-					else if (address == 0x4000021) gba.LcdController.Bg[2].AffineMatrix.PaH = value;
-					else if (address == 0x4000022) gba.LcdController.Bg[2].AffineMatrix.PbL = value;
-					else if (address == 0x4000023) gba.LcdController.Bg[2].AffineMatrix.PbH = value;
-					else if (address == 0x4000024) gba.LcdController.Bg[2].AffineMatrix.PcL = value;
-					else if (address == 0x4000025) gba.LcdController.Bg[2].AffineMatrix.PcH = value;
-					else if (address == 0x4000026) gba.LcdController.Bg[2].AffineMatrix.PdL = value;
-					else if (address == 0x4000027) gba.LcdController.Bg[2].AffineMatrix.PdH = value;
-
-					else if (address == 0x4000030) gba.LcdController.Bg[3].AffineMatrix.PaL = value;
-					else if (address == 0x4000031) gba.LcdController.Bg[3].AffineMatrix.PaH = value;
-					else if (address == 0x4000032) gba.LcdController.Bg[3].AffineMatrix.PbL = value;
-					else if (address == 0x4000033) gba.LcdController.Bg[3].AffineMatrix.PbH = value;
-					else if (address == 0x4000034) gba.LcdController.Bg[3].AffineMatrix.PcL = value;
-					else if (address == 0x4000035) gba.LcdController.Bg[3].AffineMatrix.PcH = value;
-					else if (address == 0x4000036) gba.LcdController.Bg[3].AffineMatrix.PdL = value;
-					else if (address == 0x4000037) gba.LcdController.Bg[3].AffineMatrix.PdH = value;
-
-					else throw new ArgumentException("Bad BG write");
-
-				}
-				else if (address >= 0x4000050 && address <= 0x4000055)
-				{
-					// Alpha Blending Registers
-					if      (address == 0x4000050) gba.LcdController.BlendControlRegister.Register0 = value;
-					else if (address == 0x4000051) gba.LcdController.BlendControlRegister.Register1 = value;
-					else if (address == 0x4000052) gba.LcdController.BlendingCoefficientRegister.Register0 = value;
-					else if (address == 0x4000053) gba.LcdController.BlendingCoefficientRegister.Register1 = value;
-					else if (address == 0x4000054) gba.LcdController.BrightnessCoefficientRegister.Register0 = value;
-					else if (address == 0x4000055) gba.LcdController.BrightnessCoefficientRegister.Register1 = value;
-
-					else throw new ArgumentException("Bad Blend Write");
-				}
-				else if (address >= 0x4000040 && address <= 0x400004B)				                                                                           
-				{
-					// Window registers
-					if (address == 0x4000040) gba.LcdController.Windows[0].Right = value;
-					else if (address == 0x4000041) gba.LcdController.Windows[0].Left = value;
-					else if (address == 0x4000042) gba.LcdController.Windows[1].Right = value;
-					else if (address == 0x4000043) gba.LcdController.Windows[1].Left = value;
-					else if (address == 0x4000044) gba.LcdController.Windows[0].Bottom = value;
-					else if (address == 0x4000045) gba.LcdController.Windows[0].Top = value;
-					else if (address == 0x4000046) gba.LcdController.Windows[1].Bottom = value;
-					else if (address == 0x4000047) gba.LcdController.Windows[1].Top = value;
-					else if (address == 0x4000048) gba.LcdController.Windows[0].Register = value;
-					else if (address == 0x4000049) gba.LcdController.Windows[1].Register = value;
-					else if (address == 0x400004A) gba.LcdController.Windows[2].Register = value;
-					else if (address == 0x400004B) gba.LcdController.Windows[3].Register = value;
-					else throw new ArgumentException("Bad Window write");
-				}
-				else if (address >= 0x04000100 && address < 0x400010F)
-				{
-					// Timers
-					if (address == 0x4000100) gba.Timers.Timer[0].ReloadValue0 = value;
-					else if (address == 0x4000101) gba.Timers.Timer[0].ReloadValue1 = value;
-					else if (address == 0x4000104) gba.Timers.Timer[1].ReloadValue0 = value;
-					else if (address == 0x4000105) gba.Timers.Timer[1].ReloadValue1 = value;
-					else if (address == 0x4000108) gba.Timers.Timer[2].ReloadValue0 = value;
-					else if (address == 0x4000109) gba.Timers.Timer[2].ReloadValue1 = value;
-					else if (address == 0x400010C) gba.Timers.Timer[3].ReloadValue0 = value;
-					else if (address == 0x400010D) gba.Timers.Timer[3].ReloadValue1 = value;
-
-					else if (address == 0x4000102) gba.Timers.Timer[0].TimerControlRegister = value;
-					else if (address == 0x4000103) { }
-					else if (address == 0x4000106) gba.Timers.Timer[1].TimerControlRegister = value;
-					else if (address == 0x4000107) { }
-					else if (address == 0x400010A) gba.Timers.Timer[2].TimerControlRegister = value;
-					else if (address == 0x400010B) { }
-					else if (address == 0x400010E) gba.Timers.Timer[3].TimerControlRegister = value;
-					else if (address == 0x400010F) { }
-
-
-					else throw new ArgumentException("Bad Timer write");
-				}
-				else if (address == 0x4000200)
-				{
-					gba.Interrupts.InterruptEnableRegister0 = value;
-				}
-				else if (address == 0x4000201)
-				{
-					gba.Interrupts.InterruptEnableRegister1 = value;
-				}
-				else if (address == 0x4000202)
-				{
-					//gba.LogMessage(String.Format("IF Ack {0:X}", value));
-					gba.Interrupts.InterruptRequestFlags0 &= (byte)~value;
-				}
-				else if (address == 0x4000203)
-				{
-					//gba.LogMessage(String.Format("IF Ack {0:X}", value + 255));
-					gba.Interrupts.InterruptRequestFlags1 &= (byte)~value;
-				}
-				else if (address == 0x04000208)
-				{
-					// IME
-					gba.Interrupts.InterruptMasterEnable = value;
-				}
-				else if (address >= 0x40000B0 && address <= 0x40000E0)
-				{
-					// DMA															
-					if (address == 0x40000B0) gba.Dma[0].sAddr0 = value;
-					else if (address == 0x40000B1) gba.Dma[0].sAddr1 = value;
-					else if (address == 0x40000B2) gba.Dma[0].sAddr2 = value;
-					else if (address == 0x40000B3) gba.Dma[0].sAddr3 = value;
-					else if (address == 0x40000B4) gba.Dma[0].dAddr0 = value;
-					else if (address == 0x40000B5) gba.Dma[0].dAddr1 = value;
-					else if (address == 0x40000B6) gba.Dma[0].dAddr2 = value;
-					else if (address == 0x40000B7) gba.Dma[0].dAddr3 = value;
-					else if (address == 0x40000B8) gba.Dma[0].wordCount0 = value;
-					else if (address == 0x40000B9) gba.Dma[0].wordCount1 = value;
-					else if (address == 0x40000BA) gba.Dma[0].DmaCnt.dmaCntRegister0 = value;
-					else if (address == 0x40000BB) gba.Dma[0].DmaCnt.dmaCntRegister1 = value;
-
-					else if (address == 0x40000BC) gba.Dma[1].sAddr0 = value;
-					else if (address == 0x40000BD) gba.Dma[1].sAddr1 = value;
-					else if (address == 0x40000BE) gba.Dma[1].sAddr2 = value;
-					else if (address == 0x40000BF) gba.Dma[1].sAddr3 = value;
-					else if (address == 0x40000C0) gba.Dma[1].dAddr0 = value;
-					else if (address == 0x40000C1) gba.Dma[1].dAddr1 = value;
-					else if (address == 0x40000C2) gba.Dma[1].dAddr2 = value;
-					else if (address == 0x40000C3) gba.Dma[1].dAddr3 = value;
-					else if (address == 0x40000C4) gba.Dma[1].wordCount0 = value;
-					else if (address == 0x40000C5) gba.Dma[1].wordCount1 = value;
-					else if (address == 0x40000C6) gba.Dma[1].DmaCnt.dmaCntRegister0 = value;
-					else if (address == 0x40000C7) gba.Dma[1].DmaCnt.dmaCntRegister1 = value;
-
-					else if (address == 0x40000C8) gba.Dma[2].sAddr0 = value;
-					else if (address == 0x40000C9) gba.Dma[2].sAddr1 = value;
-					else if (address == 0x40000CA) gba.Dma[2].sAddr2 = value;
-					else if (address == 0x40000CB) gba.Dma[2].sAddr3 = value;
-					else if (address == 0x40000CC) gba.Dma[2].dAddr0 = value;
-					else if (address == 0x40000CD) gba.Dma[2].dAddr1 = value;
-					else if (address == 0x40000CE) gba.Dma[2].dAddr2 = value;
-					else if (address == 0x40000CF) gba.Dma[2].dAddr3 = value;
-					else if (address == 0x40000D0) gba.Dma[2].wordCount0 = value;
-					else if (address == 0x40000D1) gba.Dma[2].wordCount1 = value;
-					else if (address == 0x40000D2) gba.Dma[2].DmaCnt.dmaCntRegister0 = value;
-					else if (address == 0x40000D3) gba.Dma[2].DmaCnt.dmaCntRegister1 = value;
-
-					else if (address == 0x40000D4) gba.Dma[3].sAddr0 = value;
-					else if (address == 0x40000D5) gba.Dma[3].sAddr1 = value;
-					else if (address == 0x40000D6) gba.Dma[3].sAddr2 = value;
-					else if (address == 0x40000D7) gba.Dma[3].sAddr3 = value;
-					else if (address == 0x40000D8) gba.Dma[3].dAddr0 = value;
-					else if (address == 0x40000D9) gba.Dma[3].dAddr1 = value;
-					else if (address == 0x40000DA) gba.Dma[3].dAddr2 = value;
-					else if (address == 0x40000DB) gba.Dma[3].dAddr3 = value;
-					else if (address == 0x40000DC) gba.Dma[3].wordCount0 = value;
-					else if (address == 0x40000DD) gba.Dma[3].wordCount1 = value;
-					else if (address == 0x40000DE) gba.Dma[3].DmaCnt.dmaCntRegister0 = value;
-					else if (address == 0x40000DF) gba.Dma[3].DmaCnt.dmaCntRegister1 = value;
-
-
-					// Not used but games write to it
-					else if (address == 0x40000E0) { }
-					else throw new NotImplementedException();
+					register.Value = value;
 				}
 				else
 				{
-					ioReg[address - 0x04000000] = value;
-					//throw new NotImplementedException();
+					if (address == 0x04000000)
+					{
+						//gba.LcdController.DisplayControlRegister.Register0 = value;
+
+						//if(gba.LcdController.DisplayControlRegister.ForcedBlank)
+						//{
+						// TODO : restart LCD
+						//}
+					}
+					/*
+					else if (address == 0x04000001)
+					{
+						gba.LcdController.DisplayControlRegister.Register1 = value;
+					}
+					
+					else if (address == 0x4000004)
+					{
+						gba.LcdController.DispStatRegister.Register0 = value;
+					}
+					else if (address == 0x4000005)
+					{
+						gba.LcdController.DispStatRegister.VCountSetting = value;
+					}
+					*/
+					else if (address >= 0x04000008 && address <= 0x0400003F)
+					{
+						/*
+						// BG Control Registers
+						if (address == 0x04000008)
+						{
+							gba.LcdController.BgControlRegisters[0].Register0 = value;
+						}
+						else if (address == 0x04000009) gba.LcdController.BgControlRegisters[0].Register1 = value;
+						else if (address == 0x0400000A) gba.LcdController.BgControlRegisters[1].Register0 = value;
+						else if (address == 0x0400000B) gba.LcdController.BgControlRegisters[1].Register1 = value;
+						else if (address == 0x0400000C) gba.LcdController.BgControlRegisters[2].Register0 = value;
+						else if (address == 0x0400000D) gba.LcdController.BgControlRegisters[2].Register1 = value;
+						else if (address == 0x0400000E) gba.LcdController.BgControlRegisters[3].Register0 = value;
+						else if (address == 0x0400000F) gba.LcdController.BgControlRegisters[3].Register1 = value;
+						*/
+						
+						/*
+						// BG Scroll - Write only
+						if (address == 0x4000010) gba.LcdController.Bg[0].ScrollX = (int)((gba.LcdController.Bg[0].ScrollX & 0xFFFFFF00) | value);
+						else if (address == 0x4000011) gba.LcdController.Bg[0].ScrollX = (int)((gba.LcdController.Bg[0].ScrollX & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
+						else if (address == 0x4000012) gba.LcdController.Bg[0].ScrollY = (int)((gba.LcdController.Bg[0].ScrollY & 0xFFFFFF00) | value);
+						else if (address == 0x4000013) gba.LcdController.Bg[0].ScrollY = (int)((gba.LcdController.Bg[0].ScrollY & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
+
+						else if (address == 0x4000014) gba.LcdController.Bg[1].ScrollX = (int)((gba.LcdController.Bg[1].ScrollX & 0xFFFFFF00) | value);
+						else if (address == 0x4000015) gba.LcdController.Bg[1].ScrollX = (int)((gba.LcdController.Bg[1].ScrollX & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
+						else if (address == 0x4000016) gba.LcdController.Bg[1].ScrollY = (int)((gba.LcdController.Bg[1].ScrollY & 0xFFFFFF00) | value);
+						else if (address == 0x4000017) gba.LcdController.Bg[1].ScrollY = (int)((gba.LcdController.Bg[1].ScrollY & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
+
+						else if (address == 0x4000018) gba.LcdController.Bg[2].ScrollX = (int)((gba.LcdController.Bg[2].ScrollX & 0xFFFFFF00) | value);
+						else if (address == 0x4000019) gba.LcdController.Bg[2].ScrollX = (int)((gba.LcdController.Bg[2].ScrollX & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
+						else if (address == 0x400001A) gba.LcdController.Bg[2].ScrollY = (int)((gba.LcdController.Bg[2].ScrollY & 0xFFFFFF00) | value);
+						else if (address == 0x400001B) gba.LcdController.Bg[2].ScrollY = (int)((gba.LcdController.Bg[2].ScrollY & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
+
+						else if (address == 0x400001C) gba.LcdController.Bg[3].ScrollX = (int)((gba.LcdController.Bg[3].ScrollX & 0xFFFFFF00) | value);
+						else if (address == 0x400001D) gba.LcdController.Bg[3].ScrollX = (int)((gba.LcdController.Bg[3].ScrollX & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
+						else if (address == 0x400001E) gba.LcdController.Bg[3].ScrollY = (int)((gba.LcdController.Bg[3].ScrollY & 0xFFFFFF00) | value);
+						else if (address == 0x400001F) gba.LcdController.Bg[3].ScrollY = (int)((gba.LcdController.Bg[3].ScrollY & 0xFFFF00FF) | (UInt32)((value & 0x1) << 8));
+						*/
+
+						// Affine Scrolling registers
+						if (address == 0x4000028) { gba.LcdController.Bg[2].affineX0 = value; gba.LcdController.Bg[2].AffineScrollXCached = gba.LcdController.Bg[2].AffineScrollX; }
+						else if (address == 0x4000029) { gba.LcdController.Bg[2].affineX1 = value; gba.LcdController.Bg[2].AffineScrollXCached = gba.LcdController.Bg[2].AffineScrollX; }
+						else if (address == 0x400002A) { gba.LcdController.Bg[2].affineX2 = value; gba.LcdController.Bg[2].AffineScrollXCached = gba.LcdController.Bg[2].AffineScrollX; }
+						else if (address == 0x400002B) { gba.LcdController.Bg[2].affineX3 = value; gba.LcdController.Bg[2].AffineScrollXCached = gba.LcdController.Bg[2].AffineScrollX; }
+
+						else if (address == 0x400002C) { gba.LcdController.Bg[2].affineY0 = value; gba.LcdController.Bg[2].AffineScrollYCached = gba.LcdController.Bg[2].AffineScrollY; }
+						else if (address == 0x400002D) { gba.LcdController.Bg[2].affineY1 = value; gba.LcdController.Bg[2].AffineScrollYCached = gba.LcdController.Bg[2].AffineScrollY; }
+						else if (address == 0x400002E) { gba.LcdController.Bg[2].affineY2 = value; gba.LcdController.Bg[2].AffineScrollYCached = gba.LcdController.Bg[2].AffineScrollY; }
+						else if (address == 0x400002F) { gba.LcdController.Bg[2].affineY3 = value; gba.LcdController.Bg[2].AffineScrollYCached = gba.LcdController.Bg[2].AffineScrollY; }
+
+						else if (address == 0x4000038) { gba.LcdController.Bg[3].affineX0 = value; gba.LcdController.Bg[3].AffineScrollXCached = gba.LcdController.Bg[3].AffineScrollX; }
+						else if (address == 0x4000039) { gba.LcdController.Bg[3].affineX1 = value; gba.LcdController.Bg[3].AffineScrollXCached = gba.LcdController.Bg[3].AffineScrollX; }
+						else if (address == 0x400003A) { gba.LcdController.Bg[3].affineX2 = value; gba.LcdController.Bg[3].AffineScrollXCached = gba.LcdController.Bg[3].AffineScrollX; }
+						else if (address == 0x400003B) { gba.LcdController.Bg[3].affineX3 = value; gba.LcdController.Bg[3].AffineScrollXCached = gba.LcdController.Bg[3].AffineScrollX; }
+
+						else if (address == 0x400003C) { gba.LcdController.Bg[3].affineY0 = value; gba.LcdController.Bg[3].AffineScrollYCached = gba.LcdController.Bg[3].AffineScrollY; }
+						else if (address == 0x400003D) { gba.LcdController.Bg[3].affineY1 = value; gba.LcdController.Bg[3].AffineScrollYCached = gba.LcdController.Bg[3].AffineScrollY; }
+						else if (address == 0x400003E) { gba.LcdController.Bg[3].affineY2 = value; gba.LcdController.Bg[3].AffineScrollYCached = gba.LcdController.Bg[3].AffineScrollY; }
+						else if (address == 0x400003F) { gba.LcdController.Bg[3].affineY3 = value; gba.LcdController.Bg[3].AffineScrollYCached = gba.LcdController.Bg[3].AffineScrollY; }
+
+						// Affine Matrices 
+						else if (address == 0x4000020) gba.LcdController.Bg[2].AffineMatrix.PaL = value;
+						else if (address == 0x4000021) gba.LcdController.Bg[2].AffineMatrix.PaH = value;
+						else if (address == 0x4000022) gba.LcdController.Bg[2].AffineMatrix.PbL = value;
+						else if (address == 0x4000023) gba.LcdController.Bg[2].AffineMatrix.PbH = value;
+						else if (address == 0x4000024) gba.LcdController.Bg[2].AffineMatrix.PcL = value;
+						else if (address == 0x4000025) gba.LcdController.Bg[2].AffineMatrix.PcH = value;
+						else if (address == 0x4000026) gba.LcdController.Bg[2].AffineMatrix.PdL = value;
+						else if (address == 0x4000027) gba.LcdController.Bg[2].AffineMatrix.PdH = value;
+
+						else if (address == 0x4000030) gba.LcdController.Bg[3].AffineMatrix.PaL = value;
+						else if (address == 0x4000031) gba.LcdController.Bg[3].AffineMatrix.PaH = value;
+						else if (address == 0x4000032) gba.LcdController.Bg[3].AffineMatrix.PbL = value;
+						else if (address == 0x4000033) gba.LcdController.Bg[3].AffineMatrix.PbH = value;
+						else if (address == 0x4000034) gba.LcdController.Bg[3].AffineMatrix.PcL = value;
+						else if (address == 0x4000035) gba.LcdController.Bg[3].AffineMatrix.PcH = value;
+						else if (address == 0x4000036) gba.LcdController.Bg[3].AffineMatrix.PdL = value;
+						else if (address == 0x4000037) gba.LcdController.Bg[3].AffineMatrix.PdH = value;
+
+						else throw new ArgumentException("Bad BG write");
+
+					}
+					else if (address >= 0x4000050 && address <= 0x4000055)
+					{
+						// Alpha Blending Registers
+						if (address == 0x4000050) gba.LcdController.BlendControlRegister.Register0 = value;
+						else if (address == 0x4000051) gba.LcdController.BlendControlRegister.Register1 = value;
+						else if (address == 0x4000052) gba.LcdController.BlendingCoefficientRegister.Register0 = value;
+						else if (address == 0x4000053) gba.LcdController.BlendingCoefficientRegister.Register1 = value;
+						else if (address == 0x4000054) gba.LcdController.BrightnessCoefficientRegister.Register0 = value;
+						else if (address == 0x4000055) gba.LcdController.BrightnessCoefficientRegister.Register1 = value;
+
+						else throw new ArgumentException("Bad Blend Write");
+					}
+					/*
+					else if (address >= 0x4000040 && address <= 0x400004B)
+					{
+						// Window registers
+						if (address == 0x4000040) gba.LcdController.Windows[0].Right = value;
+						else if (address == 0x4000041) gba.LcdController.Windows[0].Left = value;
+						else if (address == 0x4000042) gba.LcdController.Windows[1].Right = value;
+						else if (address == 0x4000043) gba.LcdController.Windows[1].Left = value;
+						else if (address == 0x4000044) gba.LcdController.Windows[0].Bottom = value;
+						else if (address == 0x4000045) gba.LcdController.Windows[0].Top = value;
+						else if (address == 0x4000046) gba.LcdController.Windows[1].Bottom = value;
+						else if (address == 0x4000047) gba.LcdController.Windows[1].Top = value;
+						else if (address == 0x4000048) gba.LcdController.Windows[0].Register = value;
+						else if (address == 0x4000049) gba.LcdController.Windows[1].Register = value;
+						else if (address == 0x400004A) gba.LcdController.Windows[2].Register = value;
+						else if (address == 0x400004B) gba.LcdController.Windows[3].Register = value;
+						else throw new ArgumentException("Bad Window write");
+					}
+					*/
+					else if (address >= 0x04000100 && address < 0x400010F)
+					{
+						// Timers
+						if (address == 0x4000100) gba.Timers.Timer[0].ReloadValue0 = value;
+						else if (address == 0x4000101) gba.Timers.Timer[0].ReloadValue1 = value;
+						else if (address == 0x4000104) gba.Timers.Timer[1].ReloadValue0 = value;
+						else if (address == 0x4000105) gba.Timers.Timer[1].ReloadValue1 = value;
+						else if (address == 0x4000108) gba.Timers.Timer[2].ReloadValue0 = value;
+						else if (address == 0x4000109) gba.Timers.Timer[2].ReloadValue1 = value;
+						else if (address == 0x400010C) gba.Timers.Timer[3].ReloadValue0 = value;
+						else if (address == 0x400010D) gba.Timers.Timer[3].ReloadValue1 = value;
+
+						else if (address == 0x4000102) gba.Timers.Timer[0].TimerControlRegister = value;
+						else if (address == 0x4000103) { }
+						else if (address == 0x4000106) gba.Timers.Timer[1].TimerControlRegister = value;
+						else if (address == 0x4000107) { }
+						else if (address == 0x400010A) gba.Timers.Timer[2].TimerControlRegister = value;
+						else if (address == 0x400010B) { }
+						else if (address == 0x400010E) gba.Timers.Timer[3].TimerControlRegister = value;
+						else if (address == 0x400010F) { }
+
+
+						else throw new ArgumentException("Bad Timer write");
+					}
+					else if (address == 0x4000200)
+					{
+						gba.Interrupts.InterruptEnableRegister0 = value;
+					}
+					else if (address == 0x4000201)
+					{
+						gba.Interrupts.InterruptEnableRegister1 = value;
+					}
+					else if (address == 0x4000202)
+					{
+						//gba.LogMessage(String.Format("IF Ack {0:X}", value));
+						gba.Interrupts.InterruptRequestFlags0 &= (byte)~value;
+					}
+					else if (address == 0x4000203)
+					{
+						//gba.LogMessage(String.Format("IF Ack {0:X}", value + 255));
+						gba.Interrupts.InterruptRequestFlags1 &= (byte)~value;
+					}
+					else if (address == 0x04000208)
+					{
+						// IME
+						gba.Interrupts.InterruptMasterEnable = value;
+					}
+					else if (address >= 0x40000B0 && address <= 0x40000E0)
+					{
+						// DMA															
+						if (address == 0x40000B0) gba.Dma[0].sAddr0 = value;
+						else if (address == 0x40000B1) gba.Dma[0].sAddr1 = value;
+						else if (address == 0x40000B2) gba.Dma[0].sAddr2 = value;
+						else if (address == 0x40000B3) gba.Dma[0].sAddr3 = value;
+						else if (address == 0x40000B4) gba.Dma[0].dAddr0 = value;
+						else if (address == 0x40000B5) gba.Dma[0].dAddr1 = value;
+						else if (address == 0x40000B6) gba.Dma[0].dAddr2 = value;
+						else if (address == 0x40000B7) gba.Dma[0].dAddr3 = value;
+						else if (address == 0x40000B8) gba.Dma[0].wordCount0 = value;
+						else if (address == 0x40000B9) gba.Dma[0].wordCount1 = value;
+						else if (address == 0x40000BA) gba.Dma[0].DmaCnt.dmaCntRegister0 = value;
+						else if (address == 0x40000BB) gba.Dma[0].DmaCnt.dmaCntRegister1 = value;
+
+						else if (address == 0x40000BC) gba.Dma[1].sAddr0 = value;
+						else if (address == 0x40000BD) gba.Dma[1].sAddr1 = value;
+						else if (address == 0x40000BE) gba.Dma[1].sAddr2 = value;
+						else if (address == 0x40000BF) gba.Dma[1].sAddr3 = value;
+						else if (address == 0x40000C0) gba.Dma[1].dAddr0 = value;
+						else if (address == 0x40000C1) gba.Dma[1].dAddr1 = value;
+						else if (address == 0x40000C2) gba.Dma[1].dAddr2 = value;
+						else if (address == 0x40000C3) gba.Dma[1].dAddr3 = value;
+						else if (address == 0x40000C4) gba.Dma[1].wordCount0 = value;
+						else if (address == 0x40000C5) gba.Dma[1].wordCount1 = value;
+						else if (address == 0x40000C6) gba.Dma[1].DmaCnt.dmaCntRegister0 = value;
+						else if (address == 0x40000C7) gba.Dma[1].DmaCnt.dmaCntRegister1 = value;
+
+						else if (address == 0x40000C8) gba.Dma[2].sAddr0 = value;
+						else if (address == 0x40000C9) gba.Dma[2].sAddr1 = value;
+						else if (address == 0x40000CA) gba.Dma[2].sAddr2 = value;
+						else if (address == 0x40000CB) gba.Dma[2].sAddr3 = value;
+						else if (address == 0x40000CC) gba.Dma[2].dAddr0 = value;
+						else if (address == 0x40000CD) gba.Dma[2].dAddr1 = value;
+						else if (address == 0x40000CE) gba.Dma[2].dAddr2 = value;
+						else if (address == 0x40000CF) gba.Dma[2].dAddr3 = value;
+						else if (address == 0x40000D0) gba.Dma[2].wordCount0 = value;
+						else if (address == 0x40000D1) gba.Dma[2].wordCount1 = value;
+						else if (address == 0x40000D2) gba.Dma[2].DmaCnt.dmaCntRegister0 = value;
+						else if (address == 0x40000D3) gba.Dma[2].DmaCnt.dmaCntRegister1 = value;
+
+						else if (address == 0x40000D4) gba.Dma[3].sAddr0 = value;
+						else if (address == 0x40000D5) gba.Dma[3].sAddr1 = value;
+						else if (address == 0x40000D6) gba.Dma[3].sAddr2 = value;
+						else if (address == 0x40000D7) gba.Dma[3].sAddr3 = value;
+						else if (address == 0x40000D8) gba.Dma[3].dAddr0 = value;
+						else if (address == 0x40000D9) gba.Dma[3].dAddr1 = value;
+						else if (address == 0x40000DA) gba.Dma[3].dAddr2 = value;
+						else if (address == 0x40000DB) gba.Dma[3].dAddr3 = value;
+						else if (address == 0x40000DC) gba.Dma[3].wordCount0 = value;
+						else if (address == 0x40000DD) gba.Dma[3].wordCount1 = value;
+						else if (address == 0x40000DE) gba.Dma[3].DmaCnt.dmaCntRegister0 = value;
+						else if (address == 0x40000DF) gba.Dma[3].DmaCnt.dmaCntRegister1 = value;
+
+
+						// Not used but games write to it
+						else if (address == 0x40000E0) { }
+						else throw new NotImplementedException();
+					}
+					//else if (address == 0x4000204 || address == 0x4000205)
+					//{
+					// Configure Waitstate
+					//	throw new NotImplementedException("Wait State");
+					//}
+					else
+					{
+						ioReg[address - 0x04000000] = value;
+						//throw new NotImplementedException();
+					}
 				}
 			}
 			// Palette Ram
@@ -676,21 +746,40 @@ namespace Gba.Core
 		}
 
 
+		// TODO: 8, 16 & 32 bit reg classes contained in a 8,16,32 bit mem map dictionaries 
+
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteHalfWord(UInt32 address, ushort value)
 		{
-			WriteByte(address, (byte)(value & 0x00ff));
-			WriteByte((address + 1), (byte)((value & 0xff00) >> 8));
+			IMemoryRegister16 register;
+			if (IoRegisters16Write.TryGetValue(address, out register))
+			{				
+				register.Value = value;
+			}
+			else
+			{
+				WriteByte(address, (byte)(value & 0x00ff));
+				WriteByte((address + 1), (byte)((value & 0xff00) >> 8));
+			}
 		}
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteWord(UInt32 address, UInt32 value)
 		{
-			WriteByte(address, (byte)(value & 0x00ff));
-			WriteByte((address + 1), (byte)((value & 0xff00) >> 8));
-			WriteByte((address + 2), (byte)((value & 0xff0000) >> 16));
-			WriteByte((address + 3), (byte)((value & 0xff000000) >> 24));
+			IMemoryRegister32 register;
+			if (IoRegisters32Write.TryGetValue(address, out register))
+			{
+				register.Value = value;
+			}
+			else
+			{
+				WriteByte(address, (byte)(value & 0x00ff));
+				WriteByte((address + 1), (byte)((value & 0xff00) >> 8));
+				WriteByte((address + 2), (byte)((value & 0xff0000) >> 16));
+				WriteByte((address + 3), (byte)((value & 0xff000000) >> 24));
+			}
 		}
 
 

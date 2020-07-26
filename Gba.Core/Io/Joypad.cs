@@ -5,6 +5,9 @@ namespace Gba.Core
 {
     public class Joypad
     {
+        MemoryRegister16 register;
+
+        /*
         // When a key is pressed, its state on a GB is 0
         byte register0 = 0xFF;
         byte register1 = 0xFF;
@@ -36,6 +39,7 @@ namespace Gba.Core
                 register1 = value;
             }
         }
+        */
 
         public enum GbaKey
         {
@@ -77,17 +81,42 @@ namespace Gba.Core
         //UInt32 lastCpuTickCount;
         //UInt32 elapsedTicks;
 
+        class JoypadRegister : MemoryRegister8
+        {
+            Joypad pad;
+            public JoypadRegister (Joypad pad, Memory memory, UInt32 address) :
+                base(memory, address, true, false)
+            {
+                this.pad = pad;
+            }
+            public override byte Value
+            {
+                get
+                {
+                    pad.UpdateRegister();
+                    return base.Value;
+                }
+
+                set
+                {
+                    base.Value = value;
+                }
+            }
+        }
 
         public Joypad(GameboyAdvance gba)
         {
             this.gba = gba;
+
+            JoypadRegister r0 = new JoypadRegister(this, gba.Memory, 0x4000130);
+            JoypadRegister r1 = new JoypadRegister(this, gba.Memory, 0x4000131);
+            register = new MemoryRegister16(gba.Memory, 0x4000130, true, false, r0, r1);
         }
 
 
         public void Reset()
         {
-            register0 = 0xFF;
-            register1 = 0x02;
+            register.Value = 0x02FF;
 
             for (int i=0; i < 8; i++)
             {
@@ -119,7 +148,8 @@ namespace Gba.Core
         void UpdateRegister()
         {
             // Default everything to pressed then turn off what isn't pressed
-            register0 = register1 = 0;
+            byte register0 = 0;
+            byte register1 = 0;
 
             if (keys[(int)GbaKey.A] == false) register0 |= (byte)(GbaKeyBits.A_Bit);
             if (keys[(int)GbaKey.B] == false) register0 |= (byte)(GbaKeyBits.B_Bit);
@@ -132,6 +162,9 @@ namespace Gba.Core
 
             if (keys[(int)GbaKey.L] == false) register1 |= (byte)(GbaKeyBits.L_Bit);
             if (keys[(int)GbaKey.R] == false) register1 |= (byte)(GbaKeyBits.R_Bit);
+
+            register.LowByte.Value = register0;
+            register.HighByte.Value = register1;
         }
 
 
