@@ -22,34 +22,6 @@ namespace Gba.Core
 
         public byte Register { get { return register.LowByte.Value; } }
 
-/*
-        // 0x4000004
-        byte reg0;
-        public byte Register0
-        {
-            get
-            {
-                // Dynamically set the first 3 flag bits 
-                if (lcd.Mode == LcdController.LcdMode.VBlank) reg0 |= 0x01;
-                else reg0 &= 0xFE;
-
-                if (lcd.Mode == LcdController.LcdMode.HBlank || lcd.HblankInVblank)
-                {
-                    reg0 |= 0x02;
-                }
-                else reg0 &= 0xFD;
-
-                if (VCountSetting == lcd.CurrentScanline) reg0 |= 0x04;
-                else reg0 &= 0xFB;
-
-                return reg0;
-            }
-            set
-            {
-                reg0 = value;
-            }
-        }
-  */
 
         LcdController lcd;
 

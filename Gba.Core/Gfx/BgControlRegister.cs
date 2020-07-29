@@ -23,47 +23,7 @@ namespace Gba.Core
         // 400000Ch - BG2CNT - BG2 Control(R/W) (BG Modes 0,1,2 only)
         // 400000Eh - BG3CNT - BG3 Control(R/W) (BG Modes 0,2 only)
 
-        MemoryRegister16 register;
-
-        /*
-        byte reg0;
-        public byte Register0
-        {
-            get
-            { 
-                return reg0;
-            }
-            set
-            {
-                reg0 = value;
-                lcd.Bg[bgNumber].CacheRenderData();
-            }
-        }
-
-
-
-        byte reg1;
-        public byte Register1
-        {
-            get
-            {
-                return reg1;
-            }
-            set
-            {
-                UInt32 oldScreenBaseBlock = ScreenBlockBaseAddress;
-                
-                reg1 = value;
-
-                if(ScreenBlockBaseAddress != oldScreenBaseBlock)
-                {
-                    lcd.Bg[bgNumber].TileMap.Reset();
-                }
-                lcd.Bg[bgNumber].CacheRenderData();
-            }
-        }
-        */
-      
+        MemoryRegister16 register;   
 
         LcdController lcd;
         int bgNumber;

@@ -38,6 +38,7 @@ namespace Gba.Core
             BoundingBoxScreenSpace = new BoundingBox();
 
             // OBJ Tiles are stored in a separate area in VRAM: 06010000-06017FFF (32 KBytes) in BG Mode 0-2, or 06014000-06017FFF (16 KBytes) in BG Mode 3-5.
+            // TODO : MODE 3-5???
             vramBaseOffset = 0x00010000;
         }
 
@@ -70,6 +71,7 @@ namespace Gba.Core
  
             CalcBoundingBox();
         }
+
 
         // What is the pixel value within the sprite. passing 0,0 returns the pixel value of the top left of this sprite  
         public int PixelValue(int spriteX, int spriteY)

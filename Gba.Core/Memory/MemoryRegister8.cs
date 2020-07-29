@@ -80,6 +80,4 @@ namespace Gba.Core
         public Action<byte, byte> OnSet { get; set; } 
     }
 
-
-
 }

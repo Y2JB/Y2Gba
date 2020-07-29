@@ -9,14 +9,14 @@ namespace Gba.Core
     {
         // 0x4000050 & 0x4000051 
 
-        public byte Register0 { get; set; }
-        public byte Register1 { get; set; }
+        MemoryRegister16 register;
         
         LcdController lcd;
      
-        public PixelCoefficientRegister(LcdController lcd)
+        public PixelCoefficientRegister(LcdController lcd, GameboyAdvance gba, UInt32 address)
         {
             this.lcd = lcd;
+            register = new MemoryRegister16(gba.Memory, address, true, true);
         }
 
     }

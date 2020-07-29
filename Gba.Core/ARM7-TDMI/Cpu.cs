@@ -200,6 +200,7 @@ namespace Gba.Core
             const UInt32 nonSequentialAccessTime = 4;
             const UInt32 sequentialAccessTime = 2;
             
+            // Jon this should be 1 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             UInt32 cycleCount = 1;
 
             // vram 
@@ -227,13 +228,18 @@ namespace Gba.Core
             }
 
             Cycles += cycleCount;
+            
+            if (Cycles >= Gba.Timers.NextUpdateCycle)
+            {
+                Gba.Timers.Update();
+            }
 
             //Run controllers for each cycle		 
             while (cycleCount > 0)
             {
                 Gba.LcdController.Step();
                 //Gba.Joypad.Step();
-                Gba.Timers.Update();
+                //Gba.Timers.Update();
 
                 if (Gba.Dma[0].DmaCnt.ChannelEnabled) Gba.Dma[0].Step();
                 if (Gba.Dma[1].DmaCnt.ChannelEnabled) Gba.Dma[1].Step();
@@ -252,7 +258,11 @@ namespace Gba.Core
 
             Gba.LcdController.Step();
             //Gba.Joypad.Step();
-            Gba.Timers.Update();
+            //Gba.Timers.Update();
+            if (Cycles >= Gba.Timers.NextUpdateCycle)
+            {
+                Gba.Timers.Update();
+            }
 
             if (Gba.Dma[0].DmaCnt.ChannelEnabled) Gba.Dma[0].Step();
             if (Gba.Dma[1].DmaCnt.ChannelEnabled) Gba.Dma[1].Step();
@@ -290,9 +300,6 @@ namespace Gba.Core
                 requestFlushPipeline = false;
                 RefillPipeline();
             }
-
-            // Even if conditional prevented execution? 
-            //Cycle(1);
         }
 
 

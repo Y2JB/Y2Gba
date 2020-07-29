@@ -8,39 +8,16 @@ namespace Gba.Core
     public class DmaChannel
     {
         public DmaControlRegister DmaCnt { get; set; }
-
-        // The most significant address bits are ignored, only the least significant 27 or 28 bits are used(max 07FFFFFFh internal memory, or max 0FFFFFFFh any memory
-        public byte sAddr0 { get; set; }
-        public byte sAddr1 { get; set; }
-        public byte sAddr2 { get; set; }
-        public byte sAddr3 { get; set; }
-        public UInt32 SourceAddress
-        {
-            get { return (UInt32)((sAddr3 << 24) | (sAddr2 << 16) |(sAddr1 << 8) | sAddr0); }
-            set { sAddr0 = (byte)(value & 0xFF); sAddr1 = (byte)((value & 0xFF00) >> 8); sAddr2 = (byte)((value & 0xFF0000) >> 16); sAddr3 = (byte)((value & 0xFF000000) >> 24);  }
-        }
+       
+        // The most significant address bits are ignored, only the least significant 27 or 28 bits are used(max 07FFFFFFh internal memory, or max 0FFFFFFFh any memory        
+        MemoryRegister32 SourceAddress;
 
         // The most significant address bits are ignored, only the least significant 27 or 28 bits are used (max 07FFFFFFh internal memory, or max 0FFFFFFFh any memory
-        public byte dAddr0 { get; set; }
-        public byte dAddr1 { get; set; }
-        public byte dAddr2 { get; set; }
-        public byte dAddr3 { get; set; }
-        public UInt32 DestAddress
-        {
-            get { return (UInt32)((dAddr3 << 24) | (dAddr2 << 16) | (dAddr1 << 8) | dAddr0); }
-            set { dAddr0 = (byte)(value & 0xFF); dAddr1 = (byte)((value & 0xFF00) >> 8); dAddr2 = (byte)((value & 0xFF0000) >> 16); dAddr3 = (byte)((value & 0xFF000000) >> 24); }
-        }
-
+        MemoryRegister32 DestAddress;
 
         // Specifies the number of data units to be transferred, each unit is 16bit or 32bit depending on the transfer type, a value of zero is treated 
         // as max length (ie. 4000h, or 10000h for DMA3).
-        public byte wordCount0 { get; set; }
-        public byte wordCount1 { get; set; }
-        public ushort WordCount
-        {
-            get { return (ushort)((wordCount1 << 8) | wordCount0); }
-            set { wordCount0 = (byte)(value & 0xFF); wordCount1 = (byte)((value & 0xFF00) >> 8); }
-        }
+         MemoryRegister16 WordCount;
 
         // Dma starts 2 cycles after enable flag is flipped
         public int DelayTransfer { get; set; }
@@ -57,7 +34,13 @@ namespace Gba.Core
             this.gba = gba;
             this.channelNumber = channelNumber;
 
-            DmaCnt = new DmaControlRegister(this);
+            DmaCnt = new DmaControlRegister(gba, this, (UInt32) (0x40000BA + (channelNumber * 0xC)));
+
+            // TODO: These are all write only!
+            // Should: reads open bus if the whole 32-bit word is unused and zero otherwise.
+            SourceAddress = new MemoryRegister32(gba.Memory, (UInt32) (0x40000B0 + (channelNumber * 0xC)), true, true);
+            DestAddress = new MemoryRegister32(gba.Memory, (UInt32) (0x40000B4 + (channelNumber * 0xC)), true, true);
+            WordCount = new MemoryRegister16(gba.Memory, (UInt32) (0x40000B8 + (channelNumber * 0xC)), true, true);
         }
 
 
@@ -120,7 +103,7 @@ namespace Gba.Core
         {
             // unit == 2 or 4 bytes depending on transfer type
             
-            int unitsToTransfer = WordCount;
+            int unitsToTransfer = WordCount.Value;
             if (unitsToTransfer == 0)
             {
                 if (channelNumber == 3) unitsToTransfer = 0x10000;
@@ -140,12 +123,12 @@ namespace Gba.Core
 
 
                 // Read data from EEPROM and write to GBA memory
-                if ((SourceAddress >= 0xD000000) && (SourceAddress <= 0xDFFFFFF))
+                if ((SourceAddress.Value >= 0xD000000) && (SourceAddress.Value <= 0xDFFFFFF))
                 {
                     eepromDma = true;
                     eepromRead = true;
                 }                   
-                else if ((DestAddress >= 0xD000000) && (DestAddress <= 0xDFFFFFF))
+                else if ((DestAddress.Value >= 0xD000000) && (DestAddress.Value <= 0xDFFFFFF))
                 {
                     eepromDma = true;
                     eepromRead = false;
@@ -169,8 +152,8 @@ namespace Gba.Core
             //DestAddress &= 0xFFFFFFF;
 
 
-            UInt32 sourceAddress = SourceAddress;
-            UInt32 destinationAddress = DestAddress;
+            UInt32 sourceAddress = SourceAddress.Value;
+            UInt32 destinationAddress = DestAddress.Value;
 
             if (transferType == DmaControlRegister.DmaTransferType.U16)
             {
@@ -242,11 +225,11 @@ namespace Gba.Core
             {
                 // We are doing things a little backward here. We never actually updated our register values during the transfer so the reload is to do nothing
                 // Here we update the actual register with the final value after the transfer is done
-                DestAddress = destinationAddress;
+                DestAddress.Value = destinationAddress;
             }
 
             // NB: SourceAddress cannot have IncrementAndReload
-            SourceAddress = sourceAddress;
+            SourceAddress.Value = sourceAddress;
 
       
             if(DmaCnt.IrqEnable)

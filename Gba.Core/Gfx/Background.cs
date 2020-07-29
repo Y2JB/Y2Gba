@@ -25,69 +25,17 @@ namespace Gba.Core
         public int ScrollY { get { return BGXVOFS.Value; } }
 
         public bool AffineMode { get; set; }
+       
 
-        // 32 but fixed point numbers. Will only ever be set for BG's 2 & 3. Used instead of the scroll registers above
-        public byte affineX0 { get; set; }
-        public byte affineX1 { get; set; }
-        public byte affineX2 { get; set; }
-        byte affinex3;
-        public byte affineX3
-        {
-            get
-            {
-                // Negative
-                if ((affinex3 & (byte)0x08) > 0)
-                {
-                    return (byte)((affinex3 & (byte)0x07) | 0xF8);
-                }
-                else
-                {
-                    return (byte)(affinex3 & (byte)0x07);
-                }
-            }
-            set
-            {
-                affinex3 = value;
-            }
-        }
-        public int AffineScrollX
-        {
-            get { return (int)((affineX3 << 24) | (affineX2 << 16) | (affineX1 << 8) | affineX0); }
-            set { affineX0 = (byte)(value & 0xFF); affineX1 = (byte)((value & 0xFF00) >> 8); affineX2 = (byte)((value & 0xFF0000) >> 16); affineX3 = (byte)((value & 0xFF000000) >> 24); }
-        }
+        public AffineScrollRegister AffineScrollXReg { get; private set; }
+        public AffineScrollRegister AffineScrollYReg { get; private set; }
 
-        
-        public byte affineY0 { get; set; }
-        public byte affineY1 { get; set; }
-        public byte affineY2 { get; set; }
-        byte affiney3;
-        public byte affineY3
-        {
-            get
-            {
-                // Negative
-                if ((affiney3 & (byte)0x08) > 0)
-                {
-                    return (byte)((affiney3 & (byte)0x07) | 0xF8);
-                }
-                else
-                {
-                    return (byte)(affiney3 & (byte)0x07);
-                }
-            }
-            set
-            {
-                affiney3 = value;
-            }
-        }
-        public int AffineScrollY
-        {
-            get { return (int)((affineY3 << 24) | (affineY2 << 16) | (affineY1 << 8) | affineY0); }
-            set { affineY0 = (byte)(value & 0xFF); affineY1 = (byte)((value & 0xFF00) >> 8); affineY2 = (byte)((value & 0xFF0000) >> 16); affineY3 = (byte)((value & 0xFF000000) >> 24); }
-        }
+        public int AffineScrollX { get { return (int)AffineScrollXReg.Value; } }
+        public int AffineScrollY { get { return (int)AffineScrollYReg.Value; } }
+        public int AffineScrollXCached { get { return AffineScrollXReg.CachedValue; } set { AffineScrollXReg.CachedValue = value; } }
+        public int AffineScrollYCached { get { return AffineScrollYReg.CachedValue; } set { AffineScrollYReg.CachedValue = value; } }
 
-        public int AffineScrollXCached { get; set; }
-        public int AffineScrollYCached { get; set; }
+
 
         public BgAffineMatrix AffineMatrix { get; private set; }
 
@@ -124,10 +72,23 @@ namespace Gba.Core
             BGXHOFS = new MemoryRegister16(gba.Memory, scrollXRegAddr, false, true, 0x01);
             BGXVOFS = new MemoryRegister16(gba.Memory, scrollYRegAddr, false, true, 0x01);
 
-            AffineMatrix = new BgAffineMatrix();
+            // Only bg 2 & 3 can rotate and scale 
+            if (bgNumber == 2)
+            {
+                AffineMatrix = new BgAffineMatrix(gba, 0x4000020);
+                AffineScrollXReg = new AffineScrollRegister(gba.Memory, 0x4000028, false, true);
+                AffineScrollYReg = new AffineScrollRegister(gba.Memory, 0x400002C, false, true);
+            }
+            else if (bgNumber == 3)
+            {
+                AffineMatrix = new BgAffineMatrix(gba, 0x4000030);
+                AffineScrollXReg = new AffineScrollRegister(gba.Memory, 0x4000038, false, true);
+                AffineScrollYReg = new AffineScrollRegister(gba.Memory, 0x400003C, false, true);
+            }
 
             ScanlineData = new int[LcdController.Screen_X_Resolution];
 
+            
 
 #if THREADED_SCANLINE
             Interlocked.Exchange(ref cacheScanline, 0);

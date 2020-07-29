@@ -26,15 +26,14 @@ namespace Gba.Core
     public class BlendControlRegister
     {
         // 0x4000050 & 0x4000051 
-
-        public byte Register0 { get; set; }
-        public byte Register1 { get; set; }
+        MemoryRegister16 register;
         
         LcdController lcd;
      
-        public BlendControlRegister(LcdController lcd)
+        public BlendControlRegister(LcdController lcd, GameboyAdvance gba)
         {
             this.lcd = lcd;
+            register = new MemoryRegister16(gba.Memory, 0x4000050, true, true);
         }
 
         public enum SepcialEffect
@@ -45,21 +44,21 @@ namespace Gba.Core
             BrightnessDecrease
         }
 
-        public bool Bg01stTargetPixel { get { return ((Register0 & 0x01) != 0); } }
-        public bool Bg11stTargetPixel { get { return ((Register0 & 0x02) != 0); } }
-        public bool Bg21stTargetPixel { get { return ((Register0 & 0x04) != 0); } }
-        public bool Bg31stTargetPixel { get { return ((Register0 & 0x08) != 0); } }
-        public bool Obj1stTargetPixel { get { return ((Register0 & 0x10) != 0); } }
-        public bool Backdrop1stTargetPixel { get { return ((Register0 & 0x20) != 0); } }
+        public bool Bg01stTargetPixel { get { return ((register.LowByte.Value & 0x01) != 0); } }
+        public bool Bg11stTargetPixel { get { return ((register.LowByte.Value & 0x02) != 0); } }
+        public bool Bg21stTargetPixel { get { return ((register.LowByte.Value & 0x04) != 0); } }
+        public bool Bg31stTargetPixel { get { return ((register.LowByte.Value & 0x08) != 0); } }
+        public bool Obj1stTargetPixel { get { return ((register.LowByte.Value & 0x10) != 0); } }
+        public bool Backdrop1stTargetPixel { get { return ((register.LowByte.Value & 0x20) != 0); } }
 
-        public SepcialEffect Effect { get { return (SepcialEffect)((Register0 & 0xC0) >> 6); } }
+        public SepcialEffect Effect { get { return (SepcialEffect)((register.LowByte.Value & 0xC0) >> 6); } }
 
-        public bool Bg02ndTargetPixel { get { return ((Register1 & 0x01) != 0); } }
-        public bool Bg12ndTargetPixel { get { return ((Register1 & 0x02) != 0); } }
-        public bool Bg22ndTargetPixel { get { return ((Register1 & 0x04) != 0); } }
-        public bool Bg32ndTargetPixel { get { return ((Register1 & 0x08) != 0); } }
-        public bool Obj2ndTargetPixel { get { return ((Register1 & 0x10) != 0); } }
-        public bool Backdrop2ndTargetPixel { get { return ((Register1 & 0x20) != 0); } }
+        public bool Bg02ndTargetPixel { get { return ((register.HighByte.Value & 0x01) != 0); } }
+        public bool Bg12ndTargetPixel { get { return ((register.HighByte.Value & 0x02) != 0); } }
+        public bool Bg22ndTargetPixel { get { return ((register.HighByte.Value & 0x04) != 0); } }
+        public bool Bg32ndTargetPixel { get { return ((register.HighByte.Value & 0x08) != 0); } }
+        public bool Obj2ndTargetPixel { get { return ((register.HighByte.Value & 0x10) != 0); } }
+        public bool Backdrop2ndTargetPixel { get { return ((register.HighByte.Value & 0x20) != 0); } }
 
     }
 

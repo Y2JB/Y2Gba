@@ -130,14 +130,15 @@ namespace Gba.Core
             Windows[2] = new Window(gba, 0, 0x400004A);
             Windows[3] = new Window(gba, 0, 0x400004B);
 
-            this.BlendControlRegister = new BlendControlRegister(this);
-            BlendingCoefficientRegister = new PixelCoefficientRegister(this);
-            BrightnessCoefficientRegister = new PixelCoefficientRegister(this);
+            this.BlendControlRegister = new BlendControlRegister(this, gba);
+            BlendingCoefficientRegister = new PixelCoefficientRegister(this, gba, 0x4000052);
+            BrightnessCoefficientRegister = new PixelCoefficientRegister(this, gba, 0x4000054);
 
 #if THREADED_SCANLINE
             Interlocked.Exchange(ref drawScanline, 0);
             exitThread = false;
             scanlineThread = new Thread(new ThreadStart(ScanlineThread));
+            scanlineThread.Priority = ThreadPriority.Highest;
             scanlineThread.Start();
 #endif
         }
@@ -473,103 +474,28 @@ namespace Gba.Core
             }
         }
 #endif
-/*
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        bool RenderSpritePixel(int screenX, int screenY, int priority, bool windowing, int windowRegion, ref int bgVisibleOverride)
-        {
-            int paletteIndex;
-        
-            // If a sprite has the same priority as a bg, the sprite is drawn on top, therefore we check sprites first 
-            foreach (var obj in priorityObjList[priority])
-            {
-                // Clip against the bounding box which can be DoubleSize. This is the only time doublesize is actually checked
-                if (obj.BoundingBoxScreenSpace.ContainsPoint(screenX, screenY) == false)
-                {
-                    continue;
-                }
 
-                if (obj.Attributes.RotationAndScaling)
-                {
-                    int sourceWidth = obj.Attributes.Dimensions.Width;
-                    int sourceHeight = obj.Attributes.Dimensions.Height;
-
-                    // The game will have set up the matrix to be the inverse texture mapping matrix. I.E it maps from screen space to texture space. Just what we need!                    
-                    OamAffineMatrix rotScaleMatrix = obj.Attributes.AffineMatrix();
-
-                    // NB: Order of operations counts here!
-                    // Transform with the origin set to the centre of the sprite (that's what the - width/height /2 below is for)
-                    int originX = screenX - obj.Attributes.XPosition - (sourceWidth / 2);
-                    int originY = screenY - obj.Attributes.YPosition - (sourceHeight / 2);
-                    // Not well documented anywhere but when double size is enabled we render offset by half the original source width / height
-                    if(obj.Attributes.DoubleSize)
-                    {
-                        originX -= sourceWidth / 2;
-                        originY -= sourceHeight / 2;
-                    }
-
-                    int transformedX, transformedY;
-                    rotScaleMatrix.Multiply(originX , originY, out transformedX, out transformedY);
-
-                    // Transform back from centre of sprite
-                    transformedX += (sourceWidth / 2);
-                    transformedY += (sourceHeight / 2);
-
-                    paletteIndex = obj.PixelValue(transformedX, transformedY);
-                }
-                else
-                {
-                    //paletteIndex = obj.PixelScreenValue(x, scanline);
-                    paletteIndex = obj.PixelValue(screenX - obj.Attributes.XPositionAdjusted(), screenY - obj.Attributes.YPositionAdjusted());
-                }
-
-                // Pal 0 == Transparent 
-                if (paletteIndex == 0)
-                {
-                    continue;
-                }
-
-
-                // TODO: I *think* this will render the Obj window correctly but i cannot test it yet
-                // This pixel belongs to a sprite in the Obj Window and Win 0 & 1 are not enclosing this pixel
-                if (windowing &&
-                    DisplayControlRegister.DisplayObjWin &&
-                    obj.Attributes.Mode == ObjAttributes.ObjMode.ObjWindow &&
-                    ((windowRegion & (int)TileHelpers.WindowRegion.WindowIn) == 0))
-                {
-                    bgVisibleOverride = Windows[(int)Window.WindowName.WindowObj].DisplayBg0 |
-                                            Windows[(int)Window.WindowName.WindowObj].DisplayBg1 |
-                                            Windows[(int)Window.WindowName.WindowObj].DisplayBg2 |
-                                            Windows[(int)Window.WindowName.WindowObj].DisplayBg3;
-
-                    return false;
-                }
-
-                drawBuffer.SetPixel(screenX, screenY, Palettes.Palette1[paletteIndex]);
-                return true;
-                   
-            }                        
-            return false;
-        }
-*/
 
         // DENNIS: the way I did threaded rendering was by caching the LCD IO registers, and updating them for the PPU whenever it started rendering the next scanline
 
         private void RenderScanlineTextMode()
         {
+            /*
             if (DisplayControlRegister.BgVisible(0)) Bg[0].CacheScanline();
             if (DisplayControlRegister.BgVisible(1)) Bg[1].CacheScanline();
             if (DisplayControlRegister.BgVisible(2)) Bg[2].CacheScanline();
             if (DisplayControlRegister.BgVisible(3)) Bg[3].CacheScanline();
+            */
 
             ObjController.ObjPrioritySort();
             int scanline = CurrentScanline;
             bool windowing = (DisplayControlRegister.DisplayWin0 || DisplayControlRegister.DisplayWin1 || DisplayControlRegister.DisplayWin1 || DisplayControlRegister.DisplayObjWin);
 
 
-            Bg[0].WaitForScanline();
-            Bg[1].WaitForScanline();
-            Bg[2].WaitForScanline();
-            Bg[3].WaitForScanline();
+            //Bg[0].WaitForScanline();
+            //Bg[1].WaitForScanline();
+            //Bg[2].WaitForScanline();
+            //Bg[3].WaitForScanline();
 
             // We render front to back. Once a pixel is drawn we stop going through the layers.
             // TODO: In order to do blending we may need to go through all the layers for each pixel
@@ -655,9 +581,7 @@ namespace Gba.Core
                     // Find the backgrounds with this priority                        
                     // In case of same priority, BG0 has highest (drawn at front)
                     for (int bgSelect = 0; bgSelect < 4; bgSelect++)
-                    {
-                        
-
+                    {                      
                         if (Bg[bgSelect].CntRegister.Priority != priority ||
                             DisplayControlRegister.BgVisible(Bg[bgSelect].BgNumber) == false ||
                             (windowing && ((bgVisibleOverride & (1 << bgSelect)) == 0)))
@@ -665,12 +589,14 @@ namespace Gba.Core
                             continue;
                         }
 
+                        /*
                         if(Bg[2].AffineMode && bgSelect == 1)
                         {
-                            //continue;
+                            continue;
                         }
+                        */
 
-                        /*
+                        
                         if (Bg[bgSelect].AffineMode)
                         {
                             paletteIndex = Bg[bgSelect].PixelValueAffine(x, scanline);
@@ -679,13 +605,15 @@ namespace Gba.Core
                         {
                             paletteIndex = Bg[bgSelect].PixelValue(x, scanline);
                         }
-                        */
                         
+                        // TODO: If we need to blend then get the pixels we need to blend here
+
+                        /*
                         lock (Bg[bgSelect].ScanlineData)
                         {
                             paletteIndex = Bg[bgSelect].ScanlineData[x];
                         }
-                        
+                        */
 
                         // Pal 0 == Transparent 
                         if (paletteIndex == 0)

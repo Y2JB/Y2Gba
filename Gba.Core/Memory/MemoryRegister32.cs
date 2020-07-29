@@ -8,10 +8,8 @@ namespace Gba.Core
     {
         public MemoryRegister32(Memory memory, UInt32 address, bool readable, bool writeable)
         {
-            Byte0 = new MemoryRegister8(memory, address, readable, writeable);
-            Byte1 = new MemoryRegister8(memory, address + 1, readable, writeable);
-            Byte2 = new MemoryRegister8(memory, address + 2, readable, writeable);
-            Byte3 = new MemoryRegister8(memory, address + 3, readable, writeable);
+            LoWord = new MemoryRegister16(memory, address, readable, writeable);
+            HiWord = new MemoryRegister16(memory, address + 2, readable, writeable);
 
             if (readable)
             {
@@ -24,27 +22,30 @@ namespace Gba.Core
             }
         }
 
+        // Allow inheritted classes to set up themselves
+        public MemoryRegister32()
+        {
+        }
+
         //LSB
-        public MemoryRegister8 Byte0 { get; private set; }
-        public MemoryRegister8 Byte1 { get; private set; }
-        public MemoryRegister8 Byte2 { get; private set; }
+        public MemoryRegister16 LoWord { get; protected set; }
         //MSB
-        public MemoryRegister8 Byte3 { get; private set; }
+        public MemoryRegister16 HiWord { get; protected set; }
 
 
-        public UInt32 Value 
+        public virtual UInt32 Value 
         { 
             get 
             { 
-                return (UInt32)( (Byte3.Value << 24) | (Byte2.Value << 16) | (Byte1.Value << 8) | Byte0.Value); 
+                return (UInt32)( (HiWord.HighByte.Value << 24) | (HiWord.LowByte.Value << 16) | (LoWord.HighByte.Value << 8) | LoWord.LowByte.Value); 
             }
 
             set 
             {
-                Byte0.Value = (byte) (value & 0x000000FF);
-                Byte1.Value = (byte) ((value & 0x0000FF00) >> 8);
-                Byte2.Value = (byte) ((value & 0x00FF0000) >> 16);
-                Byte3.Value = (byte) ((value & 0xFF000000) >> 24);
+                LoWord.LowByte.Value = (byte) (value & 0x000000FF);
+                LoWord.HighByte.Value = (byte) ((value & 0x0000FF00) >> 8);
+                HiWord.LowByte.Value = (byte) ((value & 0x00FF0000) >> 16);
+                HiWord.HighByte.Value = (byte) ((value & 0xFF000000) >> 24);
             }
         }
 

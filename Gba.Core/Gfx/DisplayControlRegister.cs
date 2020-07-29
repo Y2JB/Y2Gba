@@ -23,47 +23,7 @@ namespace Gba.Core
 
     public class DisplayControlRegister
     {
-        // 0x4000000
-        // 0x4000001 
-
-        /*
-        byte reg0;
-        public byte Register0
-        {
-            get
-            { 
-                return reg0;
-            }
-            set
-            {
-                UInt32 oldBgMode = BgMode;
-                reg0 = value;
-
-                if(oldBgMode != BgMode)
-                {
-                    lcd.Bg[0].CacheRenderData();
-                    lcd.Bg[1].CacheRenderData();
-                    lcd.Bg[2].CacheRenderData();
-                    lcd.Bg[3].CacheRenderData();
-                }
-            }
-        }
-
-
-
-        byte reg1;
-        public byte Register1
-        {
-            get
-            {            
-                return reg1;
-            }
-            set
-            {
-                reg1 = value;
-            }
-        }
-        */
+        // 0x4000000 / 0x4000001     
         MemoryRegister16 register;
         
         LcdController lcd;

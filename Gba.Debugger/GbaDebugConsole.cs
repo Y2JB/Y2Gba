@@ -531,8 +531,8 @@ namespace GbaDebugger
 
             for (int i = 0; i < 4; i++)
             {
-                int scrollX = gba.LcdController.Bg[i].AffineMode ? gba.LcdController.Bg[i].AffineScrollX >> 8 : gba.LcdController.Bg[i].ScrollX;
-                int scrollY = gba.LcdController.Bg[i].AffineMode ? gba.LcdController.Bg[i].AffineScrollY >> 8 : gba.LcdController.Bg[i].ScrollY;
+                int scrollX = gba.LcdController.Bg[i].AffineMode ? (int)gba.LcdController.Bg[i].AffineScrollX >> 8 : gba.LcdController.Bg[i].ScrollX;
+                int scrollY = gba.LcdController.Bg[i].AffineMode ? (int)gba.LcdController.Bg[i].AffineScrollY >> 8 : gba.LcdController.Bg[i].ScrollY;
                 
                 string visible = gba.LcdController.DisplayControlRegister.BgVisible(i) ? "Visible" : "Hidden "; 
                 if(gba.LcdController.Bg[i].AffineMode) visible = "Visible";
