@@ -29,18 +29,18 @@ namespace Gba.Core
 #endif
 		}
 
-		bool isPeeking = false;
+		//bool isPeeking = false;
 		public string PeekThumbInstruction(ushort rawInstruction)
         {
 			peekString = "*UNKNOWN_INSTRUCTION*";
-			isPeeking = true;
+			//isPeeking = true;
 
 #if USE_LUT_THUMB
 			ThumbInstructionLut[rawInstruction >> 8](rawInstruction, true);
 #else
 			DecodeThumbInstruction(rawInstruction, true);
 #endif
-			isPeeking = false;
+			//isPeeking = false;
 			return peekString;
         }
 

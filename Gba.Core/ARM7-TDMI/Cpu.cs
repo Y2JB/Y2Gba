@@ -28,6 +28,10 @@ namespace Gba.Core
         public const UInt32 Cycles_Per_Second = 16777216;
         public UInt32 Cycles { get; private set; }
 
+        UInt32 nonSequentialAccessTime = 4;
+        UInt32 sequentialAccessTime = 2;
+        MemoryRegister16 waitStateControlRegister;
+
         public Memory Memory { get; private set; }
         GameboyAdvance Gba { get; set; }
 
@@ -42,6 +46,36 @@ namespace Gba.Core
             CalculateArmDecodeLookUpTable();
             CalculateThumbDecodeLookUpTable();
             RegisterConditionalHandlers();
+
+            MemoryRegister8WithSetHook r0 = new MemoryRegister8WithSetHook(gba.Memory, 0x4000204, true, true);
+            MemoryRegister8WithSetHook r1 = new MemoryRegister8WithSetHook(gba.Memory, 0x4000205, true, true);            
+            waitStateControlRegister = new MemoryRegister16(gba.Memory, 0x4000204, true, true, r0, r1);
+
+            Action<byte, byte> waitStateSet = (oldValue, newValue) =>
+            {
+                //Always make sure Bit 15 is 0 and Read-Only in GBA mode
+                //memory_map[WAITCNT + 1] &= ~0x80;
+
+                ushort waitControl = (ushort) (waitStateControlRegister.Value & ~0x80);
+
+                //Determine first access cycles (Non-Sequential)
+                switch ((waitControl >> 2) & 0x3)
+                {
+                    case 0x0: nonSequentialAccessTime = 4; break;
+                    case 0x1: nonSequentialAccessTime = 3; break;
+                    case 0x2: nonSequentialAccessTime = 2; break;
+                    case 0x3: nonSequentialAccessTime = 8; break;
+                }
+
+                //Determine second access cycles (Sequential)
+                switch ((waitControl >> 4) & 0x1)
+                {
+                    case 0x0: sequentialAccessTime = 2; break;
+                    case 0x1: sequentialAccessTime = 1; break;
+                }
+            };
+            r0.OnSet = waitStateSet;
+            r1.OnSet = waitStateSet;
         }
 
 
@@ -190,22 +224,20 @@ namespace Gba.Core
         // Determines how many cycles should elapse when emulating Wait States and access timing
         void CycleWithAccessTiming(UInt32 accessAddr, bool firstAccess)
         {
+            /*
             // TODO: keep this commented out unless testing it
             if(isPeeking)
             {
                 throw new ArgumentException("Bad Peek");
             }
+            */
 
-            // JB: TODO: These can change depending on wait state 
-            const UInt32 nonSequentialAccessTime = 4;
-            const UInt32 sequentialAccessTime = 2;
-            
-            // Jon this should be 1 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             UInt32 cycleCount = 1;
 
             // vram 
             // TODO: Need to consider mirroring?
-            if ((accessAddr >= 0x5000000) && (accessAddr <= 0x70003FF))
+            //if ((accessAddr >= 0x5000000) && (accessAddr <= 0x70003FF))
+            if ((accessAddr >= 0x5000000) && (accessAddr <= 0x7FFFFFF))
             {
                 // Access time is +1 if outside of H-Blank & V-Blank. Otherwise each 16-bit access is 1 cycle
                 if (Gba.LcdController.Mode == LcdController.LcdMode.ScanlineRendering) 
@@ -234,10 +266,15 @@ namespace Gba.Core
                 Gba.Timers.Update();
             }
 
+            if (Cycles >= Gba.LcdController.NextUpdateCycle)
+            {
+                Gba.LcdController.Step();
+            }
+
             //Run controllers for each cycle		 
             while (cycleCount > 0)
             {
-                Gba.LcdController.Step();
+                //Gba.LcdController.Step();
                 //Gba.Joypad.Step();
                 //Gba.Timers.Update();
 
@@ -256,12 +293,17 @@ namespace Gba.Core
         {
             Cycles++;
 
-            Gba.LcdController.Step();
+            //Gba.LcdController.Step();
             //Gba.Joypad.Step();
             //Gba.Timers.Update();
             if (Cycles >= Gba.Timers.NextUpdateCycle)
             {
                 Gba.Timers.Update();
+            }
+
+            if (Cycles >= Gba.LcdController.NextUpdateCycle)
+            {
+                Gba.LcdController.Step();
             }
 
             if (Gba.Dma[0].DmaCnt.ChannelEnabled) Gba.Dma[0].Step();

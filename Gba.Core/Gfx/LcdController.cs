@@ -1,5 +1,5 @@
 ﻿//#define ParallelizeScanline
-//#define THREADED_SCANLINE
+#define THREADED_SCANLINE
 
 using System;
 using System.Collections.Generic;
@@ -18,9 +18,6 @@ namespace Gba.Core
         public const byte Screen_X_Resolution = 240;
         public const byte Screen_Y_Resolution = 160;
 
-        //public const byte Max_Sprites = 128;
-        //public const byte Max_OAM_Matrices = 32;
-
         public const int Tile_Size_4bit = 32;
         public const int Tile_Size_8bit = 64;
 
@@ -33,6 +30,9 @@ namespace Gba.Core
         public const UInt32 VBlank_Length = 83776;          // ScanLine_Length * 68
         public const UInt32 ScreenRefresh_Length = 280896;  // VDraw_Length + VBlank_Length
 
+        // When do we next need to be updated?
+        public UInt32 NextUpdateCycle { get; private set; }
+        UInt32 lastUpdatedCycle = 0;
 
         // IO Registers (driven by the memory controller))
         public DisplayControlRegister DisplayControlRegister { get; private set; }
@@ -160,9 +160,8 @@ namespace Gba.Core
 
         public void Reset()
         {
- 
-
             Mode = LcdMode.ScanlineRendering;
+            NextUpdateCycle = gba.Cpu.Cycles + HDraw_Length;
             LcdCycles = 0;
             FrameCycles = 0;
             VblankScanlineCycles = 0;
@@ -173,10 +172,12 @@ namespace Gba.Core
         // Step one cycle
         public void Step()
         {
+            UInt32 cycles = gba.Cpu.Cycles - lastUpdatedCycle;
+            lastUpdatedCycle = gba.Cpu.Cycles;
 
             // If we change these, change vblank cycle count too
-            LcdCycles++;
-            FrameCycles++;
+            LcdCycles += cycles;
+            FrameCycles += cycles;
 
             switch (Mode)
             {
@@ -196,6 +197,7 @@ namespace Gba.Core
 #endif
                         LcdCycles -= HDraw_Length;
                         Mode = LcdMode.HBlank;
+                        NextUpdateCycle = gba.Cpu.Cycles + HBlank_Length;
 
                         if (DispStatRegister.HBlankIrqEnabled)
                         {
@@ -245,6 +247,7 @@ namespace Gba.Core
                         if (CurrentScanline == 160)
                         {
                             Mode = LcdMode.VBlank;
+                            NextUpdateCycle = gba.Cpu.Cycles + HDraw_Length;
                             VblankScanlineCycles = 0;
 
                             if (DispStatRegister.VBlankIrqEnabled)
@@ -314,6 +317,7 @@ namespace Gba.Core
                         else
                         {
                             Mode = LcdMode.ScanlineRendering;
+                            NextUpdateCycle = gba.Cpu.Cycles + HDraw_Length;
                             Render();
                         }
                     }
@@ -322,21 +326,22 @@ namespace Gba.Core
 
                 case LcdMode.VBlank:
 
-                    VblankScanlineCycles++;
+                    VblankScanlineCycles += cycles;
                     if (LcdCycles >= VBlank_Length)
-                    {
+                    {/*
                         // 160 + 68 lines per screen
                         if(CurrentScanline != 227 ||
                             FrameCycles != ScreenRefresh_Length)
                         {
                             throw new InvalidOperationException("LCD: Scanlines / cycles mismatch"); 
                         }
-
+*/
                         LcdCycles -= VBlank_Length;
                         FrameCycles = 0;
 
                         CurrentScanline = 0;
                         Mode = LcdMode.ScanlineRendering;
+                        NextUpdateCycle = gba.Cpu.Cycles + HDraw_Length;
                         Render();
 
                         if (DispStatRegister.VCounterIrqEnabled &&
@@ -349,8 +354,10 @@ namespace Gba.Core
                     else
                     {
                         // HBlanks IRQ's still fire durng vblank
-                        if(VblankScanlineCycles == HDraw_Length)
+                        if(VblankScanlineCycles >= HDraw_Length)
                         {
+                            NextUpdateCycle = gba.Cpu.Cycles + HBlank_Length;
+
                             if (DispStatRegister.HBlankIrqEnabled)
                             {
                                 gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.HBlank);
@@ -358,8 +365,10 @@ namespace Gba.Core
                         }
 
                         // We are within vblank
-                        if(VblankScanlineCycles == ScanLine_Length)
+                        if(VblankScanlineCycles >= ScanLine_Length)
                         {
+                            NextUpdateCycle = gba.Cpu.Cycles + HDraw_Length;
+
                             VblankScanlineCycles = 0;
                             CurrentScanline++;
 
