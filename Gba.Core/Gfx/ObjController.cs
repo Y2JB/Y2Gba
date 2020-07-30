@@ -95,8 +95,7 @@ namespace Gba.Core
         public bool RenderSpritePixel(DirectBitmap drawBuffer, int screenX, int screenY, int priority, bool windowing, int windowRegion, ref int bgVisibleOverride)
         {
             int paletteIndex;
-        
-            // If a sprite has the same priority as a bg, the sprite is drawn on top, therefore we check sprites first 
+                    
             foreach (var obj in priorityObjList[priority])
             {
                 // Clip against the bounding box which can be DoubleSize. This is the only time doublesize is actually checked
@@ -115,8 +114,8 @@ namespace Gba.Core
 
                     // NB: Order of operations counts here!
                     // Transform with the origin set to the centre of the sprite (that's what the - width/height /2 below is for)
-                    int originX = screenX - obj.Attributes.XPosition - (sourceWidth / 2);
-                    int originY = screenY - obj.Attributes.YPosition - (sourceHeight / 2);
+                    int originX = screenX - obj.Attributes.XPositionAdjusted() - (sourceWidth / 2);
+                    int originY = screenY - obj.Attributes.YPositionAdjusted() - (sourceHeight / 2);
                     // Not well documented anywhere but when double size is enabled we render offset by half the original source width / height
                     if(obj.Attributes.DoubleSize)
                     {

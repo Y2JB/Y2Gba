@@ -1,5 +1,5 @@
 ﻿//#define ParallelizeScanline
-#define THREADED_SCANLINE
+//#define THREADED_SCANLINE
 
 using System;
 using System.Collections.Generic;
@@ -44,12 +44,6 @@ namespace Gba.Core
 
 
         public Background[] Bg { get; private set; }
-
-        //public Obj[] Obj { get; private set; }
-        //public OamAffineMatrix[] OamAffineMatrices { get; private set; }
-
-        // Every frame, put the objs in a bucket based on it's priority
-        //List<Obj>[] priorityObjList = new List<Obj>[4];
 
         public ObjController ObjController { get; private set; }
 
@@ -574,6 +568,7 @@ namespace Gba.Core
                 for (int priority = 0; priority < 4; priority++)
                 {
                     // Sprite rendering
+                    // If a sprite has the same priority as a bg, the sprite is drawn on top, therefore we check sprites first 
                     if (DisplayControlRegister.DisplayObj &&
                         (!windowing || (windowing && objVisibleOverride)))
                     {

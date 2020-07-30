@@ -61,12 +61,16 @@ namespace Gba.Core
             {
                 paletteOffset = Attributes.PaletteNumber * 16;
             }
-            hFlip = false;
-            vFlip = false;
+            
             if (Attributes.RotationAndScaling == false)
             {
                 hFlip = Attributes.HorizontalFlip;
                 vFlip = Attributes.VerticalFlip;
+            }
+            else
+            {
+                hFlip = false;
+                vFlip = false;
             }
  
             CalcBoundingBox();
