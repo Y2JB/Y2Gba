@@ -61,7 +61,7 @@ namespace Gba.Core
         GameboyAdvance gba;
 
 
-        public Background(GameboyAdvance gba, int bgNumber, BgControlRegister cntRegister, UInt32 scrollXRegAddr, UInt32 scrollYRegAddr)
+        public Background(GameboyAdvance gba, int bgNumber, BgControlRegister cntRegister, MemoryRegister16 scrollXReg, MemoryRegister16 scrollYReg)
         {
             this.gba = gba;
             this.BgNumber = bgNumber;
@@ -69,8 +69,8 @@ namespace Gba.Core
             AffineMode = false;
             TileMap = new TileMap(gba.Memory.VRam, cntRegister, bgNumber);
 
-            BGXHOFS = new MemoryRegister16(gba.Memory, scrollXRegAddr, false, true, 0x01);
-            BGXVOFS = new MemoryRegister16(gba.Memory, scrollYRegAddr, false, true, 0x01);
+            BGXHOFS = scrollXReg;
+            BGXVOFS = scrollYReg;
 
             // Only bg 2 & 3 can rotate and scale 
             if (bgNumber == 2)

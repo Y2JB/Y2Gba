@@ -5,8 +5,10 @@ using System.Text;
 
 namespace Gba.Core
 {
-    public class DmaChannel
+    public class DmaChannel : IScheudledItem
     {
+        public UInt32 ScheduledUpdateOnCycle { get; set; }
+
         public DmaControlRegister DmaCnt { get; set; }
        
         // The most significant address bits are ignored, only the least significant 27 or 28 bits are used(max 07FFFFFFh internal memory, or max 0FFFFFFFh any memory        
@@ -40,30 +42,39 @@ namespace Gba.Core
             // Should: reads open bus if the whole 32-bit word is unused and zero otherwise.
             SourceAddress = new MemoryRegister32(gba.Memory, (UInt32) (0x40000B0 + (channelNumber * 0xC)), true, true);
             DestAddress = new MemoryRegister32(gba.Memory, (UInt32) (0x40000B4 + (channelNumber * 0xC)), true, true);
-            WordCount = new MemoryRegister16(gba.Memory, (UInt32) (0x40000B8 + (channelNumber * 0xC)), true, true);
+            WordCount = new MemoryRegister16(gba.Memory, (UInt32) (0x40000B8 + (channelNumber * 0xC)), true, true);            
+        }
+
+        public void Reset()
+        {
+            ScheduledUpdateOnCycle = 0xFFFFFFFF;
         }
 
 
-        public void Step()
+        public void ScheduledUpdate()
         {
+            /*
             // You cannot support this until you are cycle accurate otherwise dma's mess up
             if (DelayTransfer > 0)
             {
                 DelayTransfer--;
                 return;
             }
+            */
 
-            if(DmaCnt.ChannelEnabled == false)
+            ScheduledUpdateOnCycle = 0xFFFFFFFF;
+
+            if (DmaCnt.ChannelEnabled == false)
             {
                 return;
-            }  
-            
+            }           
+
             //if(DmaCnt.StartTiming != DmaControlRegister.DmaStartTiming.Special)
             //{
             //    gba.LogMessage(String.Format("DMA: Ch: {0} Source 0x{1:X} Dest 0x{2:X} Size 0x{3:X}", channelNumber, SourceAddress, DestAddress, WordCount));
             //}
 
-            switch(DmaCnt.StartTiming)
+            switch (DmaCnt.StartTiming)
             {
                 case DmaControlRegister.DmaStartTiming.Immediate:
                     Transfer();

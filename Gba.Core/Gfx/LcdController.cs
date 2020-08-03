@@ -13,7 +13,7 @@ using System.Runtime.CompilerServices;
 
 namespace Gba.Core
 {
-    public class LcdController : IDisposable
+    public class LcdController : IDisposable, IScheudledItem
     {
         public const byte Screen_X_Resolution = 240;
         public const byte Screen_Y_Resolution = 160;
@@ -30,14 +30,16 @@ namespace Gba.Core
         public const UInt32 VBlank_Length = 83776;          // ScanLine_Length * 68
         public const UInt32 ScreenRefresh_Length = 280896;  // VDraw_Length + VBlank_Length
 
+        int frameNumber;
+
         // When do we next need to be updated?
-        public UInt32 NextUpdateCycle { get; private set; }
+        UInt32 updateOnCycle;
+        public UInt32 ScheduledUpdateOnCycle { get { return updateOnCycle; } private set { updateOnCycle = value; gba.Scheduler.RefreshSchedule(); } }
         UInt32 lastUpdatedCycle = 0;
 
         // IO Registers (driven by the memory controller))
         public DisplayControlRegister DisplayControlRegister { get; private set; }
-        public DisplayStatusRegister DispStatRegister { get; private set; }
-        public BgControlRegister[] BgControlRegisters { get; private set; }
+        public DisplayStatusRegister DispStatRegister { get; private set; }        
         public BlendControlRegister BlendControlRegister { get; private set; }
         public PixelCoefficientRegister BlendingCoefficientRegister { get; private set; }
         public PixelCoefficientRegister BrightnessCoefficientRegister { get; private set; }
@@ -76,8 +78,8 @@ namespace Gba.Core
 
 
 #if THREADED_SCANLINE
-        int drawScanline;
-        bool exitThread;
+        volatile int drawScanline;
+        volatile bool exitThread;
         System.Threading.Thread scanlineThread;
 #endif 
 
@@ -99,17 +101,14 @@ namespace Gba.Core
             DisplayControlRegister = new DisplayControlRegister(gba, this);
             DispStatRegister = new DisplayStatusRegister(gba, this);
             
-            BgControlRegisters = new BgControlRegister[4];
-            BgControlRegisters[0] = new BgControlRegister(gba, this, 0, 0x4000008);
-            BgControlRegisters[1] = new BgControlRegister(gba, this, 1, 0x400000A);
-            BgControlRegisters[2] = new BgControlRegister(gba, this, 2, 0x400000C);
-            BgControlRegisters[3] = new BgControlRegister(gba, this, 3, 0x400000E);
-
             Bg = new Background[4];
             UInt32 scrollBaseAddress = 0x4000010;
             for (int i = 0; i < 4; i++)
-            {                
-                Bg[i] = new Background(gba, i, BgControlRegisters[i], scrollBaseAddress, scrollBaseAddress + 2);
+            {
+                BgControlRegister cntReg = new BgControlRegister(gba, this, i, (UInt32) (0x4000008 + (i * 2)));
+                MemoryRegister16 scrollXReg = new MemoryRegister16(gba.Memory, scrollBaseAddress, false, true, 0x01);
+                MemoryRegister16 scrollYReg = new MemoryRegister16(gba.Memory, scrollBaseAddress + 2, false, true, 0x01);
+                Bg[i] = new Background(gba, i, cntReg, scrollXReg, scrollYReg);
 
                 scrollBaseAddress += 4;
             }
@@ -129,7 +128,8 @@ namespace Gba.Core
             BrightnessCoefficientRegister = new PixelCoefficientRegister(this, gba, 0x4000054);
 
 #if THREADED_SCANLINE
-            Interlocked.Exchange(ref drawScanline, 0);
+            //Interlocked.Exchange(ref drawScanline, 0);
+            drawScanline = 0;
             exitThread = false;
             scanlineThread = new Thread(new ThreadStart(ScanlineThread));
             scanlineThread.Priority = ThreadPriority.Highest;
@@ -155,7 +155,7 @@ namespace Gba.Core
         public void Reset()
         {
             Mode = LcdMode.ScanlineRendering;
-            NextUpdateCycle = gba.Cpu.Cycles + HDraw_Length;
+            ScheduledUpdateOnCycle = gba.Cpu.Cycles + HDraw_Length;
             LcdCycles = 0;
             FrameCycles = 0;
             VblankScanlineCycles = 0;
@@ -163,8 +163,7 @@ namespace Gba.Core
         }
 
         //Queue<double> avr = new Queue<double>();
-        // Step one cycle
-        public void Step()
+        public void ScheduledUpdate()
         {
             UInt32 cycles = gba.Cpu.Cycles - lastUpdatedCycle;
             lastUpdatedCycle = gba.Cpu.Cycles;
@@ -185,25 +184,27 @@ namespace Gba.Core
                         }
 
                         // Wait for scanline rendering to finsih
-                        while (Thread.VolatileRead(ref drawScanline) == 1) 
+                        //while (Thread.VolatileRead(ref drawScanline) == 1) 
+                        while(drawScanline == 1)
                         {
                         }
 #endif
                         LcdCycles -= HDraw_Length;
                         Mode = LcdMode.HBlank;
-                        NextUpdateCycle = gba.Cpu.Cycles + HBlank_Length;
+                        ScheduledUpdateOnCycle = gba.Cpu.Cycles + HBlank_Length;
 
                         if (DispStatRegister.HBlankIrqEnabled)
                         {
                             gba.Interrupts.RequestInterrupt(Interrupts.InterruptType.HBlank);
                         }
 
-                        // Start hblank DMA's (HDMA)
-                        for(int i=0; i < 4; i++)
+                        // Start hblank DMA's (HDMA) immediately 
+                        for (int i=0; i < 4; i++)
                         {
                             if(gba.Dma[i].DmaCnt.StartTiming == DmaControlRegister.DmaStartTiming.HBlank &&
                                gba.Dma[i].DmaCnt.ChannelEnabled == true)
                             {
+                                gba.Dma[i].ScheduledUpdateOnCycle = gba.Cpu.Cycles;
                                 gba.Dma[i].Started = true;
                             }
                         }
@@ -241,7 +242,7 @@ namespace Gba.Core
                         if (CurrentScanline == 160)
                         {
                             Mode = LcdMode.VBlank;
-                            NextUpdateCycle = gba.Cpu.Cycles + HDraw_Length;
+                            ScheduledUpdateOnCycle = gba.Cpu.Cycles + HDraw_Length;
                             VblankScanlineCycles = 0;
 
                             if (DispStatRegister.VBlankIrqEnabled)
@@ -301,7 +302,8 @@ namespace Gba.Core
                             }
 
                             lastFrameTime = gba.EmulatorTimer.Elapsed.TotalMilliseconds;
-                            
+
+                            frameNumber++;
 
                             if (gba.OnFrame != null)
                             {
@@ -311,7 +313,7 @@ namespace Gba.Core
                         else
                         {
                             Mode = LcdMode.ScanlineRendering;
-                            NextUpdateCycle = gba.Cpu.Cycles + HDraw_Length;
+                            ScheduledUpdateOnCycle = gba.Cpu.Cycles + HDraw_Length;
                             Render();
                         }
                     }
@@ -335,7 +337,7 @@ namespace Gba.Core
 
                         CurrentScanline = 0;
                         Mode = LcdMode.ScanlineRendering;
-                        NextUpdateCycle = gba.Cpu.Cycles + HDraw_Length;
+                        ScheduledUpdateOnCycle = gba.Cpu.Cycles + HDraw_Length;
                         Render();
 
                         if (DispStatRegister.VCounterIrqEnabled &&
@@ -350,7 +352,7 @@ namespace Gba.Core
                         // HBlanks IRQ's still fire durng vblank
                         if(VblankScanlineCycles >= HDraw_Length)
                         {
-                            NextUpdateCycle = gba.Cpu.Cycles + HBlank_Length;
+                            ScheduledUpdateOnCycle = gba.Cpu.Cycles + HBlank_Length;
 
                             if (DispStatRegister.HBlankIrqEnabled)
                             {
@@ -361,7 +363,7 @@ namespace Gba.Core
                         // We are within vblank
                         if(VblankScanlineCycles >= ScanLine_Length)
                         {
-                            NextUpdateCycle = gba.Cpu.Cycles + HDraw_Length;
+                            ScheduledUpdateOnCycle = gba.Cpu.Cycles + HDraw_Length;
 
                             VblankScanlineCycles = 0;
                             CurrentScanline++;
@@ -403,15 +405,13 @@ namespace Gba.Core
                 case 0x1:
                 case 0x2:
 #if THREADED_SCANLINE
-                    if(scanlineThread.IsAlive == false)
-                    {
-                        throw new ArgumentException("Thread pop");
-                    }
-                    if(Thread.VolatileRead(ref drawScanline) == 1)
+                    //if(Thread.VolatileRead(ref drawScanline) == 1)
+                    if(drawScanline == 1)
                     {
                         throw new ArgumentException("Scanline already true???");
                     }
-                    Interlocked.Exchange(ref drawScanline, 1);
+                    //Interlocked.Exchange(ref drawScanline, 1);
+                    drawScanline = 1;
 #else
                     RenderScanlineTextMode();
 #endif
@@ -466,12 +466,14 @@ namespace Gba.Core
         {
             while (exitThread == false)
             {
-                if (Thread.VolatileRead(ref drawScanline) == 1)
+                //if (Thread.VolatileRead(ref drawScanline) == 1)
+                if(drawScanline == 1)
                 {
                     //lock (drawBuffer)
                     {
                         RenderScanlineTextMode();
-                        Interlocked.Exchange(ref drawScanline, 0);
+                        //Interlocked.Exchange(ref drawScanline, 0);
+                        drawScanline = 0;
                     }
                 }
             }
@@ -483,6 +485,13 @@ namespace Gba.Core
 
         private void RenderScanlineTextMode()
         {
+            /*
+            if(frameNumber % 30 != 0)
+            {
+                return;
+            }
+            */
+
             /*
             if (DisplayControlRegister.BgVisible(0)) Bg[0].CacheScanline();
             if (DisplayControlRegister.BgVisible(1)) Bg[1].CacheScanline();

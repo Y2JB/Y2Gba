@@ -18,6 +18,7 @@ namespace Gba.Core
         public Memory Memory { get; private set; }
         public Joypad Joypad { get; private set; }
         public DmaChannel[] Dma { get; private set; }
+        public Scheduler Scheduler { get; private set; }
 
         //long oneSecondTimer;
         public Stopwatch EmulatorTimer { get; private set; }
@@ -69,7 +70,7 @@ namespace Gba.Core
             //this.Rom = new Rom("../../../../roms/TestRoms/m7_demo.gba");
 
             //this.Rom = new Rom("../../../../roms/Super Dodgeball Advance.gba");
-            //this.Rom = new Rom("../../../../roms/Kirby.gba");
+            this.Rom = new Rom("../../../../roms/Kirby.gba");
             //this.Rom = new Rom("../../../../roms/Metal Slug Advance (U).gba");
             //this.Rom = new Rom("../../../../roms/Super Mario Advance 2 - Super Mario World (U) [!].gba");
             //this.Rom = new Rom("../../../../roms/Legend of Zelda, The - The Minish Cap (U).gba");
@@ -79,7 +80,7 @@ namespace Gba.Core
             //this.Rom = new Rom("../../../../roms/Barbie Horse Adventures.gba");
             //this.Rom = new Rom("../../../../roms/Pokemon Pinball.gba");
             //this.Rom = new Rom("../../../../roms/Contra Advance - The Alien Wars Ex.gba");
-            this.Rom = new Rom("../../../../roms/Castlevania - Aria of Sorrow.GBA");
+            //this.Rom = new Rom("../../../../roms/Castlevania - Aria of Sorrow.GBA");
             //this.Rom = new Rom("../../../../roms/Castlevania - Harmony Of Dissonance.GBA");           
             //this.Rom = new Rom("../../../../roms/Baseball Advance.GBA");
             //this.Rom = new Rom("../../../../roms/Donkey Kong Country 3.gba");
@@ -89,7 +90,8 @@ namespace Gba.Core
             //this.Rom = new Rom("../../../../roms/Fire Emblem.gba");
             //this.Rom = new Rom("../../../../roms/Darius R.GBA");
             //this.Rom = new Rom("../../../../roms/Max Payne Advance.gba");
-           // this.Rom = new Rom("../../../../roms/Mario Kart Super Circuit (U).gba");
+            //this.Rom = new Rom("../../../../roms/Mario & Luigi - Superstar Saga.gba");
+            //this.Rom = new Rom("../../../../roms/Mario Kart Super Circuit (U).gba");
             //this.Rom = new Rom("../../../../roms/F-Zero - Maximum Velocity.gba");
             //this.Rom = new Rom("../../../../roms/Konami Krazy Racers.gba");
             //this.Rom = new Rom("../../../../roms/Sega Rally Championship.gba");
@@ -114,7 +116,9 @@ namespace Gba.Core
             for(int i=0; i < 4; i ++)
             {
                 Dma[i] = new DmaChannel(this, i);
+                Dma[i].Reset();
             }
+            this.Scheduler = new Scheduler(this);
 
             EmulatorTimer.Reset();
             EmulatorTimer.Start();

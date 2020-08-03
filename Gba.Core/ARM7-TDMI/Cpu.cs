@@ -260,31 +260,8 @@ namespace Gba.Core
             }
 
             Cycles += cycleCount;
-            
-            if (Cycles >= Gba.Timers.NextUpdateCycle)
-            {
-                Gba.Timers.Update();
-            }
 
-            if (Cycles >= Gba.LcdController.NextUpdateCycle)
-            {
-                Gba.LcdController.Step();
-            }
-
-            //Run controllers for each cycle		 
-            while (cycleCount > 0)
-            {
-                //Gba.LcdController.Step();
-                //Gba.Joypad.Step();
-                //Gba.Timers.Update();
-
-                if (Gba.Dma[0].DmaCnt.ChannelEnabled) Gba.Dma[0].Step();
-                if (Gba.Dma[1].DmaCnt.ChannelEnabled) Gba.Dma[1].Step();
-                if (Gba.Dma[2].DmaCnt.ChannelEnabled) Gba.Dma[2].Step();
-                if (Gba.Dma[3].DmaCnt.ChannelEnabled) Gba.Dma[3].Step();
-
-                cycleCount--;
-            }
+            Gba.Scheduler.Check();
         }
 
 
@@ -292,24 +269,7 @@ namespace Gba.Core
         public void Cycle()
         {
             Cycles++;
-
-            //Gba.LcdController.Step();
-            //Gba.Joypad.Step();
-            //Gba.Timers.Update();
-            if (Cycles >= Gba.Timers.NextUpdateCycle)
-            {
-                Gba.Timers.Update();
-            }
-
-            if (Cycles >= Gba.LcdController.NextUpdateCycle)
-            {
-                Gba.LcdController.Step();
-            }
-
-            if (Gba.Dma[0].DmaCnt.ChannelEnabled) Gba.Dma[0].Step();
-            if (Gba.Dma[1].DmaCnt.ChannelEnabled) Gba.Dma[1].Step();
-            if (Gba.Dma[2].DmaCnt.ChannelEnabled) Gba.Dma[2].Step();
-            if (Gba.Dma[3].DmaCnt.ChannelEnabled) Gba.Dma[3].Step();
+            Gba.Scheduler.Check();
         }
 
 

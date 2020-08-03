@@ -26,6 +26,9 @@ namespace Gba.Core
                 {
                     // Dma transfers take 2 cycles to start
                     channel.DelayTransfer = 2;
+                    channel.ScheduledUpdateOnCycle = gba.Cpu.Cycles + 2;
+
+                    gba.Scheduler.RefreshSchedule();
                 }
             };
         }

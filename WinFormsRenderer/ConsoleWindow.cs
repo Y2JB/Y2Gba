@@ -16,10 +16,6 @@ namespace WinFormRender
 {
     public partial class ConsoleWindow : Form
     {
-        //RichTextBox console = new RichTextBox();
-        //RichTextBox codeWnd = new RichTextBox();
-        //TextBox commandInput = new TextBox();
-        //TextBox emuSnapshot = new TextBox();
         Button okButton = new Button();
 
         GameboyAdvance Gba;

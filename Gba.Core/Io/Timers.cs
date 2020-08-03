@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Gba.Core
 {
-    public class Timers
+    public class Timers : IScheudledItem
     {
         GameboyAdvance gba;
 
@@ -14,7 +14,7 @@ namespace Gba.Core
         public readonly int[] TimerPeriods = { 1, 64, 256, 1024 };
 
         public GbaTimer[] Timer { get; private set; }
-        public UInt32 NextUpdateCycle { get; set; }
+        public UInt32 ScheduledUpdateOnCycle { get; set; }
 
 
         public Timers(GameboyAdvance gba)
@@ -27,7 +27,7 @@ namespace Gba.Core
                 Timer[i] = new GbaTimer(this, gba, i);
             }
 
-            NextUpdateCycle = 0xFFFFFFFF;
+            ScheduledUpdateOnCycle = 0xFFFFFFFF;
         }
 
 
@@ -43,11 +43,13 @@ namespace Gba.Core
                     nextUpdate = Timer[i].FiresOnCycle;
                 }
             }
-            NextUpdateCycle = nextUpdate;
+            ScheduledUpdateOnCycle = nextUpdate;
+
+            gba.Scheduler.RefreshSchedule();
         }
 
 
-        public void Update()
+        public void ScheduledUpdate()
         {
             for (int i = 0; i < 4; i++)
             {
@@ -79,7 +81,7 @@ namespace Gba.Core
         {
             get
             {
-                gba.Timers.Update();                
+                gba.Timers.ScheduledUpdate();                
                 if(((address & 1) == 0)) return (byte) (timer.TimerValue & 0x00FF);
                 return (byte)((timer.TimerValue & 0xFF00) >> 8);
             }
@@ -133,7 +135,7 @@ namespace Gba.Core
                 {
                     startCycle = gba.Cpu.Cycles;
 
-                    timers.Update();
+                    timers.ScheduledUpdate();
                     TimerValue = ReloadValue.Value;                
                 }
             };
@@ -189,7 +191,7 @@ namespace Gba.Core
 
         public void AddCycles()
         {
-            UInt32 elapsedCycles = gba.Cpu.Cycles - startCycle; 
+            UInt32 elapsedCycles = gba.Cpu.Cycles - startCycle;
             if(elapsedCycles == 0)
             {
                 return;
@@ -239,7 +241,7 @@ namespace Gba.Core
             UInt32 cycle = (UInt32)(gba.Cpu.Cycles + ((0xFFFF - TimerValue) * timers.TimerPeriods[Freq]));
             FiresOnCycle = cycle;
 
-            // Keep track on when we next need to update timers
+            // Keep track of when we next need to update timers
             timers.CalculateWhenToNextUpdate();
         }
 
